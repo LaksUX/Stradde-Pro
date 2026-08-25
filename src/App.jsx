@@ -341,7 +341,21 @@ function AdminScreen({ onBack }) {
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout }) {
+  const [view, setView] = useState("host") // host | player
   const recent = pastGames.slice(0, 6)
+
+  const playerGames = pastGames.filter(g => g.players.some(p => p.name === hostName))
+  const overallNet = playerGames.reduce((sum, g) => {
+    const h = g.players.find(p => p.name === hostName)
+    return sum + (h ? (h.cashoutAmount || 0) - totalBuyinsFor(h) : 0)
+  }, 0)
+  const wins = playerGames.filter(g => {
+    const h = g.players.find(p => p.name === hostName)
+    return h && (h.cashoutAmount || 0) - totalBuyinsFor(h) > 0
+  }).length
+
+  const list = view === "host" ? recent : playerGames.slice(0, 6)
+
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 pb-28">
       {/* Header */}
@@ -395,11 +409,45 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout }) {
         </button>
       </div>
 
-      {recent.length > 0 && (
+      <div className="px-5 mt-1">
+        <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl p-1">
+          <button
+            onClick={() => setView("host")}
+            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "host" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300")}
+          >
+            Host
+          </button>
+          <button
+            onClick={() => setView("player")}
+            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "player" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300")}
+          >
+            Player
+          </button>
+        </div>
+      </div>
+
+      {view === "player" && playerGames.length > 0 && (
+        <div className="px-5 mt-3">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500">Overall Result</div>
+              <div className={cn("font-mono text-2xl font-extrabold mt-1", overallNet > 0 ? "text-emerald-400" : overallNet < 0 ? "text-red-400" : "text-zinc-300")}>
+                {fmtNet(overallNet)}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500">Games Played</div>
+              <div className="text-zinc-200 font-mono text-lg font-bold mt-1">{playerGames.length} <span className="text-zinc-600 text-xs font-normal">· {wins}W</span></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {list.length > 0 && (
         <>
-          <SL>Recent Games</SL>
+          <SL>{view === "host" ? "Games You Hosted" : "Games You Played"}</SL>
           <div className="px-5 flex flex-col gap-2">
-            {recent.map(g => {
+            {list.map(g => {
               const h = g.players.find(p => p.name === hostName)
               const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
               return (
