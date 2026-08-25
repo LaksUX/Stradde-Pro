@@ -8,12 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-indigo-600 text-white shadow hover:bg-indigo-700 active:scale-[0.98]",
+        default: "bg-gold text-primary-foreground shadow hover:bg-gold-light active:scale-[0.98]",
         destructive: "bg-red-600 text-white shadow hover:bg-red-700",
         outline: "border border-white/20 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm",
         secondary: "bg-white/10 text-slate-700 hover:bg-slate-100 border border-slate-200",
         ghost: "hover:bg-slate-100 text-slate-600",
-        link: "text-indigo-600 underline-offset-4 hover:underline",
+        link: "text-gold underline-offset-4 hover:underline",
         green: "bg-emerald-600 text-white shadow hover:bg-emerald-700",
         gold: "bg-amber-600 text-white shadow hover:bg-amber-700",
         whatsapp: "bg-[#25d366] text-white shadow hover:bg-[#1fb958]",

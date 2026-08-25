@@ -57,7 +57,7 @@ function BottomSheet({ open, onClose, title, subtitle, avatar, children }) {
   return (
     <div className="fixed inset-0 z-[90]">
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-zinc-900 border border-zinc-800 border-b-0 rounded-t-3xl px-4.5 pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)] animate-sheet-up">
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-felt-surface border border-felt-border border-b-0 rounded-t-3xl px-4.5 pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)] animate-sheet-up">
         <div className="w-9 h-1 rounded-full bg-zinc-700 mx-auto mb-3.5" />
         <div className="flex items-center gap-2.5 mb-4">
           {avatar}
@@ -65,7 +65,7 @@ function BottomSheet({ open, onClose, title, subtitle, avatar, children }) {
             {title && <div className="text-[16.5px] font-extrabold tracking-tight text-white truncate">{title}</div>}
             {subtitle && <div className="text-[11.5px] text-zinc-500 font-mono mt-0.5">{subtitle}</div>}
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -78,14 +78,14 @@ function BottomSheet({ open, onClose, title, subtitle, avatar, children }) {
 // ─── Segmented switch tabs (used inside sheets and create-game) ───────────────
 function SegTabs({ tabs, active, onChange }) {
   return (
-    <div className="flex bg-zinc-800/70 border border-zinc-700 rounded-xl p-[3px] mb-4">
+    <div className="flex bg-felt-surface-2/70 border border-felt-border rounded-xl p-[3px] mb-4">
       {tabs.map(t => (
         <button
           key={t}
           onClick={() => onChange(t)}
           className={cn(
             "flex-1 text-center py-2 text-[12.5px] font-bold rounded-lg transition-colors",
-            active === t ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"
+            active === t ? "bg-gold text-white" : "text-zinc-500 hover:text-zinc-300"
           )}
         >
           {t}
@@ -107,8 +107,8 @@ function Keypad({ onDigit, onBackspace, onClear }) {
           className={cn(
             "h-11.5 rounded-xl flex items-center justify-center text-base font-bold font-mono transition-colors",
             (k === "⌫" || k === "C")
-              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-              : "bg-zinc-800/70 border border-zinc-700 text-zinc-100 hover:bg-zinc-700"
+              ? "bg-felt-surface-2 text-zinc-300 hover:bg-zinc-700"
+              : "bg-felt-surface-2/70 border border-felt-border text-zinc-100 hover:bg-zinc-700"
           )}
         >
           {k}
@@ -129,17 +129,17 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
       <div className="relative">
         {min > 0 && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 h-2 rounded-l-full bg-indigo-900/70 pointer-events-none"
+            className="absolute top-1/2 -translate-y-1/2 h-2 rounded-l-full bg-gold-dark/70 pointer-events-none"
             style={{ left: 0, width: `${minPct}%` }}
           />
         )}
         <input
           type="range" min={min} max={max} step={1} value={value}
           onChange={e => onChange(Math.max(min, Number(e.target.value)))}
-          className="relative w-full h-2 rounded-full appearance-none bg-zinc-800 accent-indigo-500 cursor-pointer
+          className="relative w-full h-2 rounded-full appearance-none bg-felt-surface-2 accent-gold cursor-pointer
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6.5 [&::-webkit-slider-thumb]:h-6.5
             [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-4
-            [&::-webkit-slider-thumb]:border-indigo-500 [&::-webkit-slider-thumb]:shadow-lg"
+            [&::-webkit-slider-thumb]:border-gold [&::-webkit-slider-thumb]:shadow-lg"
           style={{ background: `linear-gradient(90deg, #27272a ${minPct}%, #4f46e5 ${minPct}%, #4f46e5 ${pct}%, #27272a ${pct}%)` }}
         />
       </div>
@@ -161,7 +161,7 @@ const BALANCE_TOLERANCE = 50
 // ─── Small status dot (replaces text pills/badges for in-play/settled state) ──
 function Dot({ color, className }) {
   const map = {
-    indigo: "bg-indigo-400 shadow-[0_0_6px_rgba(129,140,248,0.7)]",
+    indigo: "bg-gold-light shadow-[0_0_6px_rgba(224,187,92,0.7)]",
     emerald: "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]",
     red: "bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.7)]",
     zinc: "bg-zinc-600",
@@ -246,7 +246,7 @@ function Toast({ toast }) {
   if (!toast) return null
   return (
     <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[100] px-4">
-      <div className="flex items-center gap-3 bg-zinc-800 border border-zinc-700 text-white px-4 py-3 rounded-2xl shadow-2xl shadow-black/50 max-w-[320px]">
+      <div className="flex items-center gap-3 bg-felt-surface-2 border border-felt-border text-white px-4 py-3 rounded-2xl shadow-2xl shadow-black/50 max-w-[320px]">
         <span className="text-lg leading-none">{toast.icon}</span>
         <div>
           <div className="text-sm font-semibold text-zinc-100">{toast.title}</div>
@@ -288,8 +288,8 @@ function LoginScreen({ onSendMagicLink }) {
 
   if (status === "sent") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 px-6">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.18),transparent)]" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(202,160,67,0.18),transparent)]" />
         <div className="relative z-10 w-full max-w-[320px] text-center">
           <div className="text-[48px] leading-none mb-5">✉️</div>
           <h1 className="text-white text-2xl font-black tracking-tight">Check your email</h1>
@@ -298,7 +298,7 @@ function LoginScreen({ onSendMagicLink }) {
           </p>
           <button
             onClick={() => setStatus("idle")}
-            className="mt-6 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors"
+            className="mt-6 text-gold-light text-sm font-bold hover:text-gold-light transition-colors"
           >
             Use a different email
           </button>
@@ -308,8 +308,8 @@ function LoginScreen({ onSendMagicLink }) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.18),transparent)]" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(202,160,67,0.18),transparent)]" />
       <div className="relative z-10 w-full max-w-[320px]">
         <div className="text-center mb-10">
           <div className="text-[48px] leading-none mb-5">♠</div>
@@ -318,7 +318,7 @@ function LoginScreen({ onSendMagicLink }) {
         </div>
         <div className="flex flex-col gap-3">
           <input
-            className="w-full h-12 bg-zinc-900 border border-zinc-700 rounded-xl px-4 text-white text-sm font-medium placeholder:text-zinc-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            className="w-full h-12 bg-felt-surface border border-felt-border rounded-xl px-4 text-white text-sm font-medium placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
             placeholder="you@example.com"
             type="email"
             value={email}
@@ -329,7 +329,7 @@ function LoginScreen({ onSendMagicLink }) {
           <button
             disabled={!email.trim() || status === "sending"}
             onClick={submit}
-            className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm"
+            className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm"
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
           </button>
@@ -345,8 +345,8 @@ function LoginScreen({ onSendMagicLink }) {
 // ─── Pending approval ─────────────────────────────────────────────────────────
 function PendingApprovalScreen({ onLogout }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.18),transparent)]" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(202,160,67,0.18),transparent)]" />
       <div className="relative z-10 w-full max-w-[320px] text-center">
         <div className="text-[48px] leading-none mb-5">⏳</div>
         <h1 className="text-white text-2xl font-black tracking-tight">Pending approval</h1>
@@ -355,7 +355,7 @@ function PendingApprovalScreen({ onLogout }) {
         </p>
         <button
           onClick={onLogout}
-          className="mt-8 w-full h-12 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 font-bold rounded-xl transition-colors text-sm"
+          className="mt-8 w-full h-12 bg-felt-surface border border-felt-border hover:border-felt-border text-zinc-300 font-bold rounded-xl transition-colors text-sm"
         >
           Sign out
         </button>
@@ -401,15 +401,15 @@ function AdminScreen({ onBack }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950 pb-10">
+    <div className="flex flex-col min-h-screen bg-felt-bg pb-10">
       <div className="relative px-5 pt-14 pb-7 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.12),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.12),transparent_60%)]" />
         <div className="relative z-10 flex items-center justify-between">
           <div>
             <div className="text-zinc-500 text-xs font-medium mb-1">Admin</div>
             <div className="text-white text-2xl font-black tracking-tight">Approvals</div>
           </div>
-          <button onClick={onBack} className="mt-1 p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button onClick={onBack} className="mt-1 p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-zinc-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -424,7 +424,7 @@ function AdminScreen({ onBack }) {
         {profiles.map(row => {
           const isApprovedHost = row.role === "host" && row.approved
           return (
-            <div key={row.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+            <div key={row.id} className="bg-felt-surface border border-felt-border rounded-2xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-white font-bold text-sm truncate">{row.display_name || row.email}</div>
@@ -436,7 +436,7 @@ function AdminScreen({ onBack }) {
                     "shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border",
                     isApprovedHost
                       ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                      : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                      : "bg-felt-surface-2 text-zinc-400 border-felt-border"
                   )}
                 >
                   {row.role}{row.approved ? " · approved" : ""}
@@ -447,7 +447,7 @@ function AdminScreen({ onBack }) {
                   <button
                     disabled={busyId === row.id}
                     onClick={() => setApproval(row, "host", true)}
-                    className="flex-1 h-9 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-colors"
+                    className="flex-1 h-9 bg-gold hover:bg-gold disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-colors"
                   >
                     Approve as host
                   </button>
@@ -455,7 +455,7 @@ function AdminScreen({ onBack }) {
                   <button
                     disabled={busyId === row.id}
                     onClick={() => setApproval(row, row.role, false)}
-                    className="flex-1 h-9 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 text-xs font-bold rounded-lg transition-colors"
+                    className="flex-1 h-9 bg-felt-surface-2 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 text-xs font-bold rounded-lg transition-colors"
                   >
                     Revoke approval
                   </button>
@@ -492,7 +492,7 @@ function NetTrendChart({ pastGames, hostName }) {
 
   if (points.length < 2) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-6 text-center text-zinc-700 text-xs font-medium">
+      <div className="bg-felt-surface border border-felt-border rounded-2xl px-4 py-6 text-center text-zinc-700 text-xs font-medium">
         Play a couple more games to see your trend
       </div>
     )
@@ -512,7 +512,7 @@ function NetTrendChart({ pastGames, hostName }) {
   const up = last >= 0
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 pt-4 pb-3">
+    <div className="bg-felt-surface border border-felt-border rounded-2xl px-4 pt-4 pb-3">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">Net Trend</div>
         <NumB value={last} sign size="text-sm" className={up ? "text-emerald-400" : "text-red-400"} />
@@ -564,19 +564,19 @@ function HostStatsView({ pastGames }) {
   return (
     <div className="px-5 flex flex-col gap-2.5">
       <div className="grid grid-cols-2 gap-2.5">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Games Hosted</div>
           <div className="text-white font-mono text-2xl font-extrabold mt-1 tracking-tight">{gamesHosted}</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Players Hosted</div>
           <div className="text-white font-mono text-2xl font-extrabold mt-1 tracking-tight">{uniquePlayers}</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Rake Collected</div>
           <NumB value={totalRake} size="text-2xl" className="mt-1 text-amber-400" />
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Avg Pot / Game</div>
           <NumB value={avgPot} size="text-2xl" className="mt-1 text-zinc-100" />
         </div>
@@ -592,10 +592,10 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
   const recent = pastGames.slice(0, 6)
   const [view, setView] = useState("player") // player | host
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950 pb-28">
+    <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
       {/* Header */}
       <div className="relative px-5 pt-14 pb-7 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.12),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.12),transparent_60%)]" />
         <div className="relative z-10 flex items-start justify-between">
           <div>
             <div className="text-zinc-500 text-xs font-medium mb-1">Welcome back</div>
@@ -603,11 +603,11 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           </div>
           <div className="flex items-center gap-2 mt-1">
             {isAdmin && (
-              <button onClick={() => onNavigate("admin")} className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-indigo-400 transition-colors" title="Admin approvals">
+              <button onClick={() => onNavigate("admin")} className="p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-gold-light transition-colors" title="Admin approvals">
                 <Users className="w-4 h-4" />
               </button>
             )}
-            <button onClick={onLogout} className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors">
+            <button onClick={onLogout} className="p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-zinc-300 transition-colors">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -638,10 +638,10 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         {/* New game */}
         <button
           onClick={() => onNavigate("create-game")}
-          className="w-full text-left rounded-2xl bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 p-4 flex items-center gap-4 transition-all group"
+          className="w-full text-left rounded-2xl bg-felt-surface border border-felt-border hover:border-gold/50 p-4 flex items-center gap-4 transition-all group"
         >
-          <div className="w-11 h-11 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center group-hover:bg-indigo-600/30 transition-colors">
-            <Plus className="w-5 h-5 text-indigo-400" />
+          <div className="w-11 h-11 rounded-xl bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:bg-gold/30 transition-colors">
+            <Plus className="w-5 h-5 text-gold-light" />
           </div>
           <div>
             <div className="text-white font-bold text-sm">New Game</div>
@@ -652,16 +652,16 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
       </div>
 
       <div className="px-5 mt-1">
-        <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl p-1">
+        <div className="flex bg-felt-surface border border-felt-border rounded-xl p-1">
           <button
             onClick={() => setView("player")}
-            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "player" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300")}
+            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "player" ? "bg-gold text-white" : "text-zinc-500 hover:text-zinc-300")}
           >
             My Player Stats
           </button>
           <button
             onClick={() => setView("host")}
-            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "host" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300")}
+            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "host" ? "bg-gold text-white" : "text-zinc-500 hover:text-zinc-300")}
           >
             My Hosting Stats
           </button>
@@ -695,7 +695,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
                 <button
                   key={g.id}
                   onClick={() => onNavigate("game-detail", g)}
-                  className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
+                  className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
                 >
                   <div className={cn(
                     "w-1 h-9 rounded-full shrink-0",
@@ -797,8 +797,8 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
   // Step 2: game created — offer the (stubbed) WhatsApp invite text, then continue.
   if (createdGame) {
     return (
-      <div className="min-h-screen bg-zinc-950 pb-8">
-        <div className="px-5 pt-14 pb-6 border-b border-zinc-900">
+      <div className="min-h-screen bg-felt-bg pb-8">
+        <div className="px-5 pt-14 pb-6 border-b border-felt-border">
           <div className="text-white text-xl font-bold flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" /> Game Created
           </div>
@@ -806,9 +806,9 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
         </div>
 
         <div className="px-5 pt-5 flex flex-col gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">Invite Preview</div>
-            <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-zinc-300 bg-zinc-950/60 border border-zinc-800 rounded-xl p-3">{inviteText()}</pre>
+            <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-zinc-300 bg-felt-bg/60 border border-felt-border rounded-xl p-3">{inviteText()}</pre>
             <div className="text-[10.5px] text-zinc-600 mt-2 leading-relaxed">
               Stub: this link doesn't route anywhere real yet and phones aren't verified — anyone with the link could open it once a real join page exists.
             </div>
@@ -823,7 +823,7 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
 
           <button
             onClick={() => onCreate(createdGame)}
-            className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
           >
             <Gamepad2 className="w-4 h-4" /> Continue to Live Game
           </button>
@@ -833,9 +833,9 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 pb-8">
+    <div className="min-h-screen bg-felt-bg pb-8">
       {/* Header */}
-      <div className="px-5 pt-14 pb-6 border-b border-zinc-900">
+      <div className="px-5 pt-14 pb-6 border-b border-felt-border">
         <button onClick={onCancel} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-sm mb-5 transition-colors">
           <X className="w-4 h-4" /> Cancel
         </button>
@@ -845,7 +845,7 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
 
       <div className="px-5 pt-5 flex flex-col gap-5">
         {/* Game info */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-4">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex flex-col gap-4">
           <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">Game Details</div>
           <div className="flex flex-col gap-3">
             <DInput label="Game Name" placeholder="e.g. Friday Night Felts" value={name} onChange={e => setName(e.target.value)} />
@@ -858,7 +858,7 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
         </div>
 
         {/* Players */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">
               Add players{players.length > 0 ? ` · ${players.length} in` : ""}
@@ -869,7 +869,7 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
           {players.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3.5">
               {players.map(p => (
-                <span key={p.name} className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-2xl pl-1 pr-1.5 py-1 text-[12.5px] font-semibold text-zinc-200">
+                <span key={p.name} className="flex items-center gap-2 bg-felt-surface-2 border border-felt-border rounded-2xl pl-1 pr-1.5 py-1 text-[12.5px] font-semibold text-zinc-200">
                   <Av name={p.name} size={26} />
                   <span className="flex flex-col leading-tight">
                     <span>{p.name}</span>
@@ -894,9 +894,9 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
                 <div className="flex flex-wrap gap-1.5">
                   {notAdded.map(r => (
                     <button key={r.name} onClick={() => r.phone ? addPlayer(r.name, r.phone) : (setSource("Type in"), setNameInput(r.name))}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-transparent hover:bg-zinc-800 border border-dashed border-zinc-700 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-full text-xs font-medium transition-all"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-transparent hover:bg-felt-surface-2 border border-dashed border-felt-border hover:border-zinc-600 text-zinc-400 hover:text-white rounded-full text-xs font-medium transition-all"
                     >
-                      <span className="text-indigo-400 font-bold">+</span> {r.name}
+                      <span className="text-gold-light font-bold">+</span> {r.name}
                       {!r.phone && <span className="text-amber-500 text-[10px]">· add #</span>}
                     </button>
                   ))}
@@ -919,14 +919,14 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
           {source === "Type in" && (
             <div className="flex flex-col gap-2">
               <input
-                className="w-full h-11 bg-zinc-800 border border-zinc-700 rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                 placeholder="Player's name…"
                 value={nameInput}
                 onChange={e => setNameInput(e.target.value)}
               />
               <div className="relative">
                 <input
-                  className="w-full h-11 bg-zinc-800 border border-zinc-700 rounded-xl px-4 pr-20 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 pr-20 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                   placeholder="Phone number (required)…"
                   type="tel"
                   value={phoneInput}
@@ -936,7 +936,7 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
                 {nameInput.trim() && phoneInput.trim() && (
                   <button
                     onClick={() => addPlayer(nameInput, phoneInput)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 h-7 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 h-7 bg-gold hover:bg-gold text-white text-xs font-bold rounded-lg transition-colors"
                   >
                     Add
                   </button>
@@ -952,7 +952,7 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
         <button
           disabled={!name.trim()}
           onClick={handleCreate}
-          className="w-full h-13 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 py-3.5"
+          className="w-full h-13 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 py-3.5"
         >
           <Gamepad2 className="w-4 h-4" />
           Start Game{players.length > 0 ? ` · ${players.length} players` : ""}
@@ -968,7 +968,7 @@ function DInput({ label, ...props }) {
     <div>
       {label && <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">{label}</div>}
       <input
-        className="w-full h-11 bg-zinc-800 border border-zinc-700 rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+        className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
         {...props}
       />
     </div>
@@ -991,7 +991,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-[340px] bg-zinc-900 border-zinc-800 text-zinc-100">
+      <DialogContent className="max-w-[340px] bg-felt-surface border-felt-border text-zinc-100">
         <DialogHeader>
           <DialogTitle className="text-white">End Game & Settle</DialogTitle>
           <DialogDescription className="text-zinc-500">Review accounts before settlement.</DialogDescription>
@@ -1012,7 +1012,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
             <input
               type="number" min="0" step="1" placeholder="0" value={rake}
               onChange={e => setRake(e.target.value)}
-              className="flex-1 h-11 bg-zinc-800 border border-zinc-700 rounded-xl px-4 text-zinc-100 text-sm font-mono outline-none focus:border-indigo-500 transition-all"
+              className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm font-mono outline-none focus:border-gold transition-all"
             />
             <span className="text-zinc-500 text-sm font-bold w-6">B</span>
           </div>
@@ -1042,11 +1042,11 @@ function EndGameModal({ game, onConfirm, onClose }) {
         </div>
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 h-11 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
           <button
             disabled={!balanced}
             onClick={() => onConfirm(rakeAmt)}
-            className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
+            className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
           >
             Settle Up
           </button>
@@ -1170,9 +1170,9 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   const cashoutNet = cashoutEntered - sheetPlayerIn
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950 pb-28">
+    <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
       {/* Header */}
-      <div className="relative px-5 pt-14 pb-5 overflow-hidden border-b border-zinc-900">
+      <div className="relative px-5 pt-14 pb-5 overflow-hidden border-b border-felt-border">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.08),transparent_60%)]" />
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
@@ -1181,7 +1181,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
               <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">Live</span>
             </div>
             {undoStack.length > 0 && (
-              <button onClick={onUndo} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg transition-colors">
+              <button onClick={onUndo} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors">
                 <Undo2 className="w-3.5 h-3.5" /> Undo
               </button>
             )}
@@ -1193,18 +1193,18 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
       {/* Stats row */}
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">On table</div>
           <NumB value={totalIn - totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Cashed out</div>
           <NumB value={totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-2.5 flex flex-col justify-between">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Rake</div>
-            <button onClick={() => setRakeVisible(v => !v)} className="w-6 h-6 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+            <button onClick={() => setRakeVisible(v => !v)} className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
               {rakeVisible ? <ChevronUp className="w-3 h-3" /> : <span className="text-[10px]">◐</span>}
             </button>
           </div>
@@ -1222,22 +1222,22 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
           <div className="flex gap-2">
             <input
               autoFocus
-              className="flex-1 h-11 bg-zinc-900 border border-zinc-800 rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition-all"
+              className="flex-1 h-11 bg-felt-surface border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition-all"
               placeholder="Player name…"
               value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && addPlayer()}
             />
-            <button onClick={addPlayer} className="w-11 h-11 bg-indigo-600 hover:bg-indigo-500 rounded-xl flex items-center justify-center text-white transition-colors">
+            <button onClick={addPlayer} className="w-11 h-11 bg-gold hover:bg-gold rounded-xl flex items-center justify-center text-white transition-colors">
               <Check className="w-4 h-4" />
             </button>
-            <button onClick={() => { setAddingPlayer(false); setNewName("") }} className="w-11 h-11 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-zinc-500 transition-colors">
+            <button onClick={() => { setAddingPlayer(false); setNewName("") }} className="w-11 h-11 bg-felt-surface border border-felt-border rounded-xl flex items-center justify-center text-zinc-500 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
         ) : (
           <button onClick={() => setAddingPlayer(true)}
-            className="w-full h-11 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl text-zinc-400 hover:text-zinc-200 text-sm font-semibold transition-colors">
+            className="w-full h-11 bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl text-zinc-400 hover:text-zinc-200 text-sm font-semibold transition-colors">
             + Add late player
           </button>
         )}
@@ -1260,7 +1260,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
             <div
               key={p.name}
               className={cn(
-                "flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl px-3.5 py-3 transition-opacity",
+                "flex items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3 transition-opacity",
                 p.cashedOut && "opacity-55"
               )}
             >
@@ -1284,7 +1284,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                 <button
                   onClick={(e) => { e.stopPropagation(); askConfirmBank(p) }}
                   title="Ask player to confirm their bank"
-                  className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-indigo-300 hover:border-indigo-500/40 transition-colors shrink-0"
+                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-gold-light hover:border-gold/40 transition-colors shrink-0"
                 >
                   <Wallet className="w-3.5 h-3.5" />
                 </button>
@@ -1292,7 +1292,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                 <button
                   onClick={(e) => { e.stopPropagation(); sendCashoutDetails(p) }}
                   title="Send cash-out details"
-                  className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors shrink-0"
+                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors shrink-0"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                 </button>
@@ -1339,17 +1339,17 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
             <div className="text-center text-[11px] text-zinc-600">
               Locks in <b className="text-zinc-400 font-semibold">1 min</b>
             </div>
-            <button onClick={confirmBuyins} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm transition-colors">
+            <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
               Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
             </button>
 
             {/* Cash-out: rare, one-time end-of-game action — a small toggle,
                 not a peer tab of buy-in. */}
-            <div className="flex items-center justify-between bg-zinc-800/50 border border-zinc-700 rounded-xl px-3.5 py-2.5 mt-1">
+            <div className="flex items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5 mt-1">
               <span className="text-xs font-bold text-zinc-300">Cash out this player</span>
               <button
                 onClick={() => setCashoutOn(v => !v)}
-                className={cn("w-10 h-6 rounded-full relative transition-colors shrink-0", cashoutOn ? "bg-indigo-600" : "bg-zinc-700")}
+                className={cn("w-10 h-6 rounded-full relative transition-colors shrink-0", cashoutOn ? "bg-gold" : "bg-zinc-700")}
               >
                 <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", cashoutOn ? "left-[18px]" : "left-0.5")} />
               </button>
@@ -1359,11 +1359,11 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
               <div className="flex flex-col gap-3.5">
                 {/* Buy-ins in / cash-out entered shown side by side — both prominent */}
                 <div className="grid grid-cols-2 gap-2.5">
-                  <div className="bg-zinc-800/60 border border-zinc-700 rounded-2xl p-3.5 text-center">
+                  <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl p-3.5 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600 mb-1">Banks In</div>
                     <NumB value={sheetPlayerIn} size="text-[24px]" className="text-white justify-center" />
                   </div>
-                  <div className="bg-zinc-800/60 border border-zinc-700 rounded-2xl p-3.5 text-center">
+                  <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl p-3.5 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600 mb-1">Banks Out</div>
                     <NumB value={cashoutEntered} size="text-[24px]" className="text-white justify-center" />
                   </div>
@@ -1376,7 +1376,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                   onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
                   onClear={() => setCashoutDigits("")}
                 />
-                <button onClick={confirmCashout} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm transition-colors">
+                <button onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
                   Confirm cash out
                 </button>
               </div>
@@ -1497,9 +1497,9 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   const visibleTxns = allTxns.filter(t => !(overrides[t.key]?.removed))
 
   return (
-    <div className="min-h-screen bg-zinc-950 pb-8">
+    <div className="min-h-screen bg-felt-bg pb-8">
       {/* Header */}
-      <div className="relative px-5 pt-14 pb-6 border-b border-zinc-900 overflow-hidden">
+      <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.06),transparent_60%)]" />
         <div className="relative z-10">
           <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
@@ -1514,7 +1514,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           </div>
           <div className="flex gap-2 mt-4 flex-wrap">
             {[`${fmtB(totalIn)} pot`, rake > 0 ? `${fmtB(rake)} rake` : null, `${players.length} players`, `${visibleTxns.length} payments`].filter(Boolean).map(s => (
-              <span key={s} className="text-[10px] font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1">{s}</span>
+              <span key={s} className="text-[10px] font-bold text-zinc-500 bg-felt-surface border border-felt-border rounded-full px-3 py-1">{s}</span>
             ))}
           </div>
         </div>
@@ -1535,8 +1535,8 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           const p = players.find(x => x.name === pos.name)
           return (
             <div key={pos.name} className={cn(
-              "bg-zinc-900 border rounded-xl px-4 py-3 flex items-center gap-3 border-l-2",
-              pos.net > 0 ? "border-l-emerald-500 border-zinc-800" : pos.net < 0 ? "border-l-red-500 border-zinc-800" : "border-zinc-800"
+              "bg-felt-surface border rounded-xl px-4 py-3 flex items-center gap-3 border-l-2",
+              pos.net > 0 ? "border-l-emerald-500 border-felt-border" : pos.net < 0 ? "border-l-red-500 border-felt-border" : "border-felt-border"
             )}>
               <div className="text-xl w-7 text-center shrink-0">{rank < 3 ? medals[rank] : `#${rank + 1}`}</div>
               <Av name={pos.name} size={32} />
@@ -1560,7 +1560,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           {visibleTxns.map(t => {
             const done = settled[t.key]
             return (
-              <div key={t.key} className={cn("flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl px-3.5 py-3 transition-opacity", done && "opacity-50")}>
+              <div key={t.key} className={cn("flex items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3 transition-opacity", done && "opacity-50")}>
                 <button onClick={() => openEdit(t)} className="flex-1 min-w-0 flex items-center gap-2.5 text-left">
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-zinc-100 flex items-center gap-1.5 truncate">
@@ -1585,9 +1585,9 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       {/* Progress */}
       {visibleTxns.length > 0 && (
         <div className="px-5 mb-4">
-          <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3 bg-felt-surface border border-felt-border rounded-xl px-4 py-3">
             <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-wider">Settled</span>
-            <Progress value={visibleTxns.length ? (settledCount / visibleTxns.length) * 100 : 0} className="flex-1 bg-zinc-800" indicatorClassName="bg-emerald-500" />
+            <Progress value={visibleTxns.length ? (settledCount / visibleTxns.length) * 100 : 0} className="flex-1 bg-felt-surface-2" indicatorClassName="bg-emerald-500" />
             <span className="font-mono text-sm font-bold text-emerald-400">{settledCount}/{visibleTxns.length}</span>
           </div>
         </div>
@@ -1595,7 +1595,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 
       <div className="px-5 mb-4">
         <button onClick={openAdd}
-          className="w-full border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 rounded-xl py-3 text-sm text-zinc-700 hover:text-zinc-500 font-medium transition-all flex items-center justify-center gap-2">
+          className="w-full border border-dashed border-felt-border hover:border-felt-border hover:bg-felt-surface/50 rounded-xl py-3 text-sm text-zinc-700 hover:text-zinc-500 font-medium transition-all flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" /> Add Custom Payment
         </button>
       </div>
@@ -1607,7 +1607,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           <Share2 className="w-4 h-4" /> Share via WhatsApp
         </button>
         <button onClick={onClose}
-          className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-bold rounded-xl text-sm transition-colors">
+          className="w-full h-12 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-200 font-bold rounded-xl text-sm transition-colors">
           Save to History & Close
         </button>
       </div>
@@ -1627,7 +1627,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
                 <button key={p.name} onClick={() => setSheetFrom(p.name)}
                   className={cn(
                     "text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-colors",
-                    sheetFrom === p.name ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-300" : "bg-zinc-800/70 border-zinc-700 text-zinc-400 hover:text-zinc-200"
+                    sheetFrom === p.name ? "bg-gold/15 border-gold/40 text-gold-light" : "bg-felt-surface-2/70 border-felt-border text-zinc-400 hover:text-zinc-200"
                   )}>
                   {p.name}
                 </button>
@@ -1640,7 +1640,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
                 <button key={p.name} onClick={() => setSheetTo(p.name)}
                   className={cn(
                     "text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-colors",
-                    sheetTo === p.name ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-300" : "bg-zinc-800/70 border-zinc-700 text-zinc-400 hover:text-zinc-200"
+                    sheetTo === p.name ? "bg-gold/15 border-gold/40 text-gold-light" : "bg-felt-surface-2/70 border-felt-border text-zinc-400 hover:text-zinc-200"
                   )}>
                   {p.name}
                 </button>
@@ -1648,7 +1648,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
             </div>
 
             <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">Amount</div>
-            <div className="bg-zinc-800/60 border border-zinc-700 rounded-2xl px-4 py-3 text-right mb-3">
+            <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl px-4 py-3 text-right mb-3">
               <NumB value={(parseInt(sheetDigits || "0", 10)) * 10} size="text-[26px]" className="text-white justify-end" />
             </div>
 
@@ -1662,7 +1662,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
               <button onClick={removeSheet} className="h-11 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm transition-colors hover:bg-red-500/15">
                 Remove
               </button>
-              <button onClick={saveSheet} className="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-colors">
+              <button onClick={saveSheet} className="h-11 rounded-xl bg-gold hover:bg-gold text-white font-bold text-sm transition-colors">
                 Save
               </button>
             </div>
@@ -1684,9 +1684,9 @@ function HistoryScreen({ hostName, pastGames, onSelectGame }) {
   const wins     = nets.filter(n => n > 0).length
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950 pb-28">
-      <div className="relative px-5 pt-14 pb-6 border-b border-zinc-900 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_60%)]" />
+    <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
+      <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.08),transparent_60%)]" />
         <div className="relative z-10">
           <div className="text-white text-2xl font-bold">Dashboard</div>
           <div className="text-zinc-600 text-sm mt-1">Your history as host</div>
@@ -1701,8 +1701,8 @@ function HistoryScreen({ hostName, pastGames, onSelectGame }) {
           { label: "Net", value: null, isNet: true, sub: totalNet >= 0 ? "profit" : "loss", green: totalNet > 0, red: totalNet < 0 },
         ].map(s => (
           <div key={s.label} className={cn(
-            "bg-zinc-900 border rounded-2xl px-4 py-3.5",
-            s.green ? "border-emerald-800/40" : s.red ? "border-red-900/40" : "border-zinc-800"
+            "bg-felt-surface border rounded-2xl px-4 py-3.5",
+            s.green ? "border-emerald-800/40" : s.red ? "border-red-900/40" : "border-felt-border"
           )}>
             <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-1">{s.label}</div>
             {s.isNet ? (
@@ -1728,7 +1728,7 @@ function HistoryScreen({ hostName, pastGames, onSelectGame }) {
             const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
             return (
               <button key={g.id} onClick={() => onSelectGame(g)}
-                className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left">
+                className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left">
                 <div className={cn("w-1 h-9 rounded-full shrink-0", net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600")} />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
@@ -1767,8 +1767,8 @@ function GameDetailScreen({ game, onBack }) {
   const medals = ["🥇", "🥈", "🥉"]
 
   return (
-    <div className="min-h-screen bg-zinc-950 pb-8">
-      <div className="relative px-5 pt-14 pb-6 border-b border-zinc-900 overflow-hidden">
+    <div className="min-h-screen bg-felt-bg pb-8">
+      <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
         <div className="relative z-10">
           <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
             <X className="w-4 h-4" /> Back
@@ -1779,18 +1779,18 @@ function GameDetailScreen({ game, onBack }) {
       </div>
 
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Pot</div>
           <NumB value={totalIn} size="text-[17px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Players</div>
           <div className="mt-1 text-[17px] font-extrabold text-white">{game.players.length}</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
           <div className="flex items-center justify-between">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Rake</div>
-            <button onClick={() => setRakeVisible(v => !v)} className="w-5 h-5 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+            <button onClick={() => setRakeVisible(v => !v)} className="w-5 h-5 rounded-md bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
               <span className="text-[9px]">◐</span>
             </button>
           </div>
@@ -1807,7 +1807,7 @@ function GameDetailScreen({ game, onBack }) {
         {positions.slice().sort((a, b) => b.net - a.net).map((pos, rank) => {
           const p = game.players.find(x => x.name === pos.name)
           return (
-            <div key={pos.name} className={cn("bg-zinc-900 border rounded-xl px-4 py-3 flex items-center gap-3 border-l-2", pos.net > 0 ? "border-l-emerald-500 border-zinc-800" : pos.net < 0 ? "border-l-red-500 border-zinc-800" : "border-zinc-800")}>
+            <div key={pos.name} className={cn("bg-felt-surface border rounded-xl px-4 py-3 flex items-center gap-3 border-l-2", pos.net > 0 ? "border-l-emerald-500 border-felt-border" : pos.net < 0 ? "border-l-red-500 border-felt-border" : "border-felt-border")}>
               <div className="text-lg w-6 text-center shrink-0">{rank < 3 ? medals[rank] : `#${rank + 1}`}</div>
               <Av name={pos.name} size={30} />
               <div className="flex-1 min-w-0">
@@ -1824,7 +1824,7 @@ function GameDetailScreen({ game, onBack }) {
       {txns.length === 0 ? <div className="text-center py-6 text-zinc-600 text-sm">Everyone was even</div> : (
         <div className="px-5 flex flex-col gap-2">
           {txns.map((t, i) => (
-            <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center gap-3">
+            <div key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3">
               <Av name={t.from} size={28} />
               <span className="text-sm font-semibold text-red-400">{t.from}</span>
               <ChevronsRight className="w-4 h-4 text-zinc-700 shrink-0" />
@@ -1849,16 +1849,16 @@ function BottomNav({ screen, onNavigate, showLive }) {
 
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40 px-3 pb-5">
-      <div className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl px-2 py-2 flex items-center shadow-2xl shadow-black/50">
+      <div className="bg-felt-surface/95 backdrop-blur-xl border border-felt-border rounded-2xl px-2 py-2 flex items-center shadow-2xl shadow-black/50">
         {items.map(item => {
           const Icon = item.icon
           const active = screen === item.id
           return (
             <button key={item.id} onClick={() => onNavigate(item.id)}
-              className={cn("flex-1 flex flex-col items-center gap-1.5 py-2 rounded-xl transition-all", active ? "bg-indigo-600" : "text-zinc-600 hover:text-zinc-400")}>
+              className={cn("flex-1 flex flex-col items-center gap-1.5 py-2 rounded-xl transition-all", active ? "bg-gold" : "text-zinc-600 hover:text-zinc-400")}>
               <div className="relative">
                 <Icon className={cn("w-5 h-5", active ? "text-white" : "")} />
-                {item.live && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-zinc-900" />}
+                {item.live && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-felt-border" />}
               </div>
               <span className={cn("text-[10px] font-bold", active ? "text-white" : "")}>{item.label}</span>
             </button>
@@ -1969,7 +1969,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-zinc-950">
+      <div className="flex items-center justify-center min-h-screen bg-felt-bg">
         <div className="text-zinc-600 text-sm font-medium">Loading…</div>
       </div>
     )
@@ -1993,7 +1993,7 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-[430px] min-h-screen bg-zinc-950 mx-auto relative">
+    <div className="w-full max-w-[430px] min-h-screen bg-felt-bg mx-auto relative">
       {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} />}
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} />}
