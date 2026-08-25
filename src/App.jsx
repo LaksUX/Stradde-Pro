@@ -675,14 +675,35 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         </>
       )}
 
-      {view === "player" && pastGames.length > 0 && (
-        <>
-          <SL>Net Trend</SL>
-          <div className="px-5">
-            <NetTrendChart pastGames={pastGames} hostName={hostName} />
-          </div>
-        </>
-      )}
+      {view === "player" && pastGames.length > 0 && (() => {
+        // Different stakes aren't comparable on one line — a win at one bank
+        // size doesn't mean the same thing as a win at another — so each
+        // distinct buy-in level gets its own trend chart rather than being
+        // blended into a single misleading combined line.
+        const stakeGroups = {}
+        for (const g of pastGames) {
+          const key = g.buyinAmount || 0
+          ;(stakeGroups[key] ||= []).push(g)
+        }
+        const stakes = Object.keys(stakeGroups).map(Number).sort((a, b) => b - a)
+        return (
+          <>
+            <SL>Net Trend{stakes.length > 1 ? ` — by stake` : ""}</SL>
+            <div className="px-5 flex flex-col gap-3">
+              {stakes.map(stake => (
+                <div key={stake}>
+                  {stakes.length > 1 && (
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+                      {fmtB(stake)} / bank stakes
+                    </div>
+                  )}
+                  <NetTrendChart pastGames={stakeGroups[stake]} hostName={hostName} />
+                </div>
+              ))}
+            </div>
+          </>
+        )
+      })()}
 
       {view === "player" && recent.length > 0 && (
         <>
@@ -950,12 +971,12 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
         </div>
 
         <button
-          disabled={!name.trim()}
+          disabled={!name.trim() || players.length === 0}
           onClick={handleCreate}
           className="w-full h-13 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 py-3.5"
         >
           <Gamepad2 className="w-4 h-4" />
-          Start Game{players.length > 0 ? ` · ${players.length} players` : ""}
+          Start Game{players.length > 0 ? ` · ${players.length} players` : " · add at least 1 player"}
         </button>
       </div>
     </div>
@@ -1216,6 +1237,37 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
         </div>
       </div>
 
+      {/* Live bankroll check — a poker bankroll manager's core invariant:
+          buy-ins = cashed-out + rake + whatever's still in play. Mid-game,
+          money still on the table is normal, not an error — the only real
+          error is paying out (cashouts + rake) more than ever came in. */}
+      {(() => {
+        const paidOut = totalOut + (game.rake || 0)
+        const overpaid = paidOut - totalIn
+        const isError = overpaid > BALANCE_TOLERANCE
+        const stillIn = totalIn - totalOut
+        return (
+          <div className="px-5 pt-2.5">
+            <div className={cn(
+              "rounded-xl px-3.5 py-2 text-[11px] font-medium flex items-center gap-2",
+              isError ? "bg-red-500/10 border border-red-500/30 text-red-300" : "bg-felt-surface-2/50 text-zinc-500"
+            )}>
+              {isError ? (
+                <>
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  Paid out <NumB value={overpaid} size="text-[11px]" className="inline-flex" /> more than total buy-ins — check entries
+                </>
+              ) : (
+                <>
+                  <span className="text-emerald-400">●</span>
+                  Bankroll checks out · <NumB value={stillIn} size="text-[11px]" className="inline-flex" /> still in play
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Add player */}
       <div className="px-5 mt-4">
         {addingPlayer ? (
@@ -1326,25 +1378,30 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
       >
         {sheetPlayer && (
           <div className="flex flex-col gap-3.5">
-            <div className="text-center pt-1 pb-0.5">
-              <div className="flex items-center justify-center gap-2">
-                <div className="font-mono text-[40px] font-extrabold tracking-tight text-white leading-none">{sliderVal}</div>
-                <Dot color="indigo" className="mt-3" />
-              </div>
-              <div className="text-[10.5px] font-bold tracking-wider uppercase text-zinc-600 mt-1">
-                buy-in{sliderVal === 1 ? "" : "s"} · <NumB value={sliderVal * game.buyinAmount} size="text-[11px]" className="text-zinc-400 inline-flex" />
-              </div>
-            </div>
-            <BuyinSlider value={sliderVal} onChange={setSliderVal} min={lockedCountFor(sheetPlayer)} />
-            <div className="text-center text-[11px] text-zinc-600">
-              Locks in <b className="text-zinc-400 font-semibold">1 min</b>
-            </div>
-            <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
-              Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
-            </button>
+            {!cashoutOn && (
+              <>
+                <div className="text-center pt-1 pb-0.5">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="font-mono text-[40px] font-extrabold tracking-tight text-white leading-none">{sliderVal}</div>
+                    <Dot color="indigo" className="mt-3" />
+                  </div>
+                  <div className="text-[10.5px] font-bold tracking-wider uppercase text-zinc-600 mt-1">
+                    buy-in{sliderVal === 1 ? "" : "s"} · <NumB value={sliderVal * game.buyinAmount} size="text-[11px]" className="text-zinc-400 inline-flex" />
+                  </div>
+                </div>
+                <BuyinSlider value={sliderVal} onChange={setSliderVal} min={lockedCountFor(sheetPlayer)} />
+                <div className="text-center text-[11px] text-zinc-600">
+                  Locks in <b className="text-zinc-400 font-semibold">1 min</b>
+                </div>
+                <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
+                  Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
+                </button>
+              </>
+            )}
 
             {/* Cash-out: rare, one-time end-of-game action — a small toggle,
-                not a peer tab of buy-in. */}
+                not a peer tab of buy-in. Once switched on, buy-ins for this
+                player are locked — no more can be added while cashing out. */}
             <div className="flex items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5 mt-1">
               <span className="text-xs font-bold text-zinc-300">Cash out this player</span>
               <button
@@ -1357,16 +1414,12 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
             {cashoutOn && (
               <div className="flex flex-col gap-3.5">
-                {/* Buy-ins in / cash-out entered shown side by side — both prominent */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl p-3.5 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600 mb-1">Banks In</div>
-                    <NumB value={sheetPlayerIn} size="text-[24px]" className="text-white justify-center" />
-                  </div>
-                  <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl p-3.5 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600 mb-1">Banks Out</div>
-                    <NumB value={cashoutEntered} size="text-[24px]" className="text-white justify-center" />
-                  </div>
+                <div className="text-center text-[11px] text-zinc-500">
+                  {sheetPlayerIn === 0 ? "no" : sheetPlayer.buyins.length} buy-in{sheetPlayer.buyins.length === 1 ? "" : "s"} · <NumB value={sheetPlayerIn} size="text-[11px]" className="text-zinc-400 inline-flex" /> in — locked while cashing out
+                </div>
+                <div className="text-center pt-1 pb-0.5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">Cashing out</div>
+                  <NumB value={cashoutEntered} size="text-[40px]" className="text-white justify-center" />
                 </div>
                 <div className="text-center text-[11.5px] font-mono -mt-1.5">
                   net <NumB value={cashoutNet} sign size="text-[11.5px]" className={cn("inline-flex", cashoutNet >= 0 ? "text-emerald-400" : "text-red-400")} />
@@ -1674,83 +1727,49 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 }
 
 // ─── History ──────────────────────────────────────────────────────────────────
-function HistoryScreen({ hostName, pastGames, onSelectGame }) {
-  const nets = pastGames.map(g => {
-    const h = g.players.find(p => p.name === hostName)
-    return h ? h.cashoutAmount - totalBuyinsFor(h) : 0
-  })
-  const total    = pastGames.length
-  const totalNet = nets.reduce((s, n) => s + n, 0)
-  const wins     = nets.filter(n => n > 0).length
-
-  return (
-    <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
-      <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.08),transparent_60%)]" />
-        <div className="relative z-10">
-          <div className="text-white text-2xl font-bold">Dashboard</div>
-          <div className="text-zinc-600 text-sm mt-1">Your history as host</div>
-        </div>
-      </div>
-
-      <div className="px-5 pt-5 grid grid-cols-2 gap-3 mb-2">
-        {[
-          { label: "Games", value: String(total), sub: "played" },
-          { label: "Record", value: `${wins}W/${total - wins}L`, sub: "win/loss" },
-          { label: "Win Rate", value: `${total ? Math.round((wins / total) * 100) : 0}%`, sub: "of games" },
-          { label: "Net", value: null, isNet: true, sub: totalNet >= 0 ? "profit" : "loss", green: totalNet > 0, red: totalNet < 0 },
-        ].map(s => (
-          <div key={s.label} className={cn(
-            "bg-felt-surface border rounded-2xl px-4 py-3.5",
-            s.green ? "border-emerald-800/40" : s.red ? "border-red-900/40" : "border-felt-border"
-          )}>
-            <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-1">{s.label}</div>
-            {s.isNet ? (
-              <NumB value={totalNet} sign size="text-xl" className={s.green ? "text-emerald-400" : s.red ? "text-red-400" : "text-zinc-100"} />
-            ) : (
-              <div className={cn("font-mono text-xl font-black", s.green ? "text-emerald-400" : s.red ? "text-red-400" : "text-zinc-100")}>
-                {s.value}
-              </div>
-            )}
-            <div className="text-[10px] text-zinc-700 mt-0.5">{s.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      <SL>Game History</SL>
-
-      {pastGames.length === 0 ? (
-        <div className="text-center py-12 text-zinc-700 text-sm">No past games yet</div>
-      ) : (
-        <div className="px-5 flex flex-col gap-2">
-          {pastGames.map(g => {
-            const h = g.players.find(p => p.name === hostName)
-            const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
-            return (
-              <button key={g.id} onClick={() => onSelectGame(g)}
-                className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left">
-                <div className={cn("w-1 h-9 rounded-full shrink-0", net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600")} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
-                  <div className="text-zinc-600 text-xs mt-0.5">{g.date} · {g.players.length} players</div>
-                </div>
-                {net !== null && <NumB value={net} sign size="text-sm" className={cn("shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-600")} />}
-                <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ─── Game Detail ──────────────────────────────────────────────────────────────
-function GameDetailScreen({ game, onBack }) {
+// Role-aware: the host who ran this game sees the full breakdown (every
+// player, total pot, rake). A viewer who only played in it — not the host —
+// sees just their own buy-in/cash-out, nothing about anyone else's numbers.
+function GameDetailScreen({ game, viewerName, onBack }) {
   const [rakeVisible, setRakeVisible] = useState(false)
+  const isHost = !game.hostName || game.hostName === viewerName
   const totalIn  = game.players.reduce((s, p) => s + totalBuyinsFor(p), 0)
   const totalOut = game.players.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
   const rake     = game.rake || 0
+
+  if (!isHost) {
+    const me = game.players.find(p => p.name === viewerName)
+    const myIn = me ? totalBuyinsFor(me) : 0
+    const myOut = me?.cashoutAmount || 0
+    const myNet = myOut - myIn
+    return (
+      <div className="min-h-screen bg-felt-bg pb-8">
+        <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
+            <X className="w-4 h-4" /> Back
+          </button>
+          <div className="text-white text-xl font-bold">{game.name}</div>
+          <div className="text-zinc-500 text-sm mt-1">{game.date} · hosted by {game.hostName}</div>
+        </div>
+        <div className="px-5 pt-5 flex flex-col gap-2.5">
+          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Your buy-ins</div>
+            <NumB value={myIn} size="text-lg" className="text-white" />
+          </div>
+          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Your cash-out</div>
+            <NumB value={myOut} size="text-lg" className="text-white" />
+          </div>
+          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Your net</div>
+            <NumB value={myNet} sign size="text-xl" className={myNet >= 0 ? "text-emerald-400" : "text-red-400"} />
+          </div>
+        </div>
+      </div>
+    )
+  }
   const positions = game.players.map(p => ({ name: p.name, net: Math.round((p.cashoutAmount || 0) - totalBuyinsFor(p)) }))
   const txns = (() => {
     const d = positions.filter(p => p.net < 0).map(p => ({ ...p, rem: -p.net })).sort((a, b) => b.rem - a.rem)
@@ -1844,7 +1863,6 @@ function BottomNav({ screen, onNavigate, showLive }) {
   const items = [
     { id: "home", icon: Home, label: "Home" },
     showLive && { id: "live-game", icon: Gamepad2, label: "Live", live: true },
-    { id: "history", icon: LayoutDashboard, label: "History" },
   ].filter(Boolean)
 
   return (
@@ -1955,13 +1973,13 @@ export default function App() {
   }
 
   const handleCreateGame = (game) => {
-    setActiveGame(game); setUndoStack([]); navigate("live-game")
+    setActiveGame({ ...game, hostName }); setUndoStack([]); navigate("live-game")
     showToast("🃏", "Game Started", game.name)
   }
 
   const handleCloseGame = () => {
     if (activeGame) { setPastGames(prev => [{ ...activeGame, id: Date.now() }, ...prev]); setActiveGame(null); setUndoStack([]) }
-    setScreen("history")
+    setScreen("home")
     showToast("🏁", "Saved", "Results added to your dashboard")
   }
 
@@ -1998,8 +2016,7 @@ export default function App() {
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
-      {screen === "history"     && <HistoryScreen hostName={hostName} pastGames={pastGames} onSelectGame={g => navigate("game-detail", g)} />}
-      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} onBack={() => navigate("history")} />}
+      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} />}
       {!isFullScreen && <BottomNav screen={screen} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>
