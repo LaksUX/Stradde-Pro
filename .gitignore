@@ -1,0 +1,12 @@
+node_modules
+.DS_Store
+.vscode
+dist
+.env
+.env.local
+dev-dist
+q
+q.pub
+.vite
+push-to-github.html
+.DS_Store
