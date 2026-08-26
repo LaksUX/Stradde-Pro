@@ -158,11 +158,15 @@ No separate History screen/tab — this covers it.
 - No per-player buy-in *count* control — every added player gets exactly 1 buy-in
   automatically, at the stake set above.
 - Player entry: segmented tabs **Your players / Contacts / Type in** (shadcn `Tabs`).
-  - "Your players" = remembered roster (name + phone), tap to add.
+  - "Your players" = remembered roster (name + phone, persisted per `REQUIREMENTS.md`
+    → Roster) — tap to add, this is the fast/default path and should be the tab
+    that's active by default once the host has any saved players.
   - "Contacts" = placeholder stub (no real device integration yet).
   - "Type in" = free text, **requires both name and phone** before a player can be
     added — phone is mandatory, not optional. Phone is normalized to E.164 on add
-    (needed for claim-matching later).
+    (needed for claim-matching later). Adding someone this way saves them to the
+    roster automatically — the host should never have to type the same person's
+    phone number twice, on this game or any future one.
   - Selected players stay visible as removable chips (✕) regardless of active tab,
     each chip showing name + phone. Removing a chip here is always safe — no buy-in
     exists yet at this stage.
@@ -189,15 +193,20 @@ No separate History screen/tab — this covers it.
 
 **Player list** (not the primary interaction surface — tapping is):
 
-- Each row: name, buy-in count shown **large and bold** (the one dynamic number that
-  matters most), a small status **dot** instead of a text badge (in-play vs.
-  settled-win vs. settled-loss color), tap opens the bottom sheet.
-- Per-row stub actions: send a "confirm your bank" check (toast stub), share cash-out
-  details for a player quitting early (clipboard-copy stub).
+- Each row: name, **total banks bought in** shown large and bold (not a raw buy-in
+  *count* — the bank amount is what matters), a small status dot for locked/unlocked
+  instead of a text badge, tap opens the bottom sheet. No "bank check" action — that
+  stub is removed, it added a row action for no real behavior behind it yet.
+- Cash-out-share stub stays (clipboard-copy summary for a player quitting early) —
+  copy-only, no deep link, per the global no-deep-links principle.
 - **Remove player** — only available for a row with zero buy-ins recorded (accidental
   add). Once any buy-in exists, the action disappears entirely rather than being
   disabled-with-tooltip, since it's genuinely no longer a valid action per
   `REQUIREMENTS.md`.
+- **Add player mid-game ("Add late player")** uses the same roster-picker as Create
+  Game — defaults to the host's saved roster (see `REQUIREMENTS.md` → Roster), with
+  free-text + mandatory phone as the fallback for someone new. Not a separate,
+  simpler text-only input — one consistent add-player experience everywhere.
 
 **Stats row**: on-table total, cashed-out total, rake (masked by default, tap to
 reveal — rake is editable here up until the game closes, per the updated money
@@ -306,9 +315,14 @@ flow itself only exists in that pre-close window.
   disagreement between a total and its visible parts is expected, not a bug (see
   `REQUIREMENTS.md`).
 - Bottom nav: Home + Live (when a game's active) only — no History entry.
-- `overflow-x: hidden` on `html, body` plus responsive `max-w-[430px] w-full`
-  containers — don't reintroduce fixed pixel widths that could overflow on narrow
-  phones.
+- **Responsive on every screen, not just mobile** (see `REQUIREMENTS.md` → Interaction
+  principles) — `overflow-x: hidden` on `html, body`, no fixed pixel widths anywhere,
+  and the content column should widen past ~640px rather than staying pinned at
+  mobile width in a wide browser window. Check this per-screen when building or
+  changing one, the same way you'd check dark-mode contrast — it's a standing
+  requirement, not a one-time layout pass.
+- No deep links (WhatsApp, SMS, etc.) anywhere — copy-to-clipboard only for any
+  share/invite action.
 
 ### Edge cases
 - ⚠️ **Offline / connection loss mid-entry** (buy-in tap, cash-out confirm, rake

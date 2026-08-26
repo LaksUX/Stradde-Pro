@@ -15,6 +15,26 @@ A money-tracking app for home poker games. A host runs a game, tracks each playe
 buy-ins and cash-out, the app works out who owes whom, and everyone can see their own
 history over time. No real-money payment processing — it's a ledger, not a wallet.
 
+## Interaction principles
+
+These apply to every screen, not just the ones that happen to mention them —
+treat them as defaults, not per-screen decisions to re-litigate.
+
+- **[decision] Genuinely responsive, not just a centered mobile column.** Every
+  screen must adapt to the actual viewport it's rendered in — phone, tablet, or a
+  wide desktop browser tab — not just cap at a fixed mobile width with dead space
+  on either side. Below ~640px: the current single-column mobile-app layout.
+  Above that: the content column widens proportionally (more breathing room,
+  slightly larger type) rather than staying pinned to a phone-sized box in the
+  middle of a desktop window. This is a main interaction detail, checked on every
+  screen, not a one-off bug to fix in one place.
+- **[decision] No deep links to external apps (WhatsApp, SMS, etc.).** Any
+  "share" action generates text and offers **copy to clipboard only** — never a
+  `wa.me/`-style deep link or app-switch. Deep links are unreliable across
+  devices/browsers and require permissions this app shouldn't need; a copy button
+  works identically everywhere and the host pastes it wherever they actually want
+  to send it.
+
 ## Access model
 
 - **Super admin** (the app owner) approves who is allowed to be a **host**. Nobody can
@@ -190,6 +210,26 @@ game is "done," which the settlement graph and dashboard stats both depend on.)*
 - After creating a game, the host gets a "copy WhatsApp invite" action that generates
   a formatted text block (game name, location, time, invited player list) for pasting
   into a group chat — this is a courtesy notification, not a confirmation request.
+  Copy-to-clipboard only, per the no-deep-links interaction principle above.
+
+## Roster (known players)
+
+- **[decision] A host's added players are always remembered** — name and phone,
+  reusable on every future game without retyping. This is the "Your players" list
+  on Create Game, and the same list should be offered first when adding a player
+  mid-game too (see Live Game below) — one roster, used everywhere a player gets
+  added, not a Create-Game-only convenience.
+- **[decision, interim] Persisted via `localStorage`, not the database, for now.**
+  Real game screens are still local React state (see Known Gaps), so there's
+  nowhere server-side to durably store this yet. `localStorage` at least survives
+  a page refresh/reopen on the same device/browser, which is a real improvement
+  over losing the roster every session. This is explicitly a stopgap — the
+  `known_players` table already exists in `supabase/schema.sql` and is unused;
+  moving roster storage there is part of the eventual Supabase-wiring phase, at
+  which point it becomes cross-device instead of per-browser.
+- Adding a player (anywhere — Create Game or mid-game) should default to picking
+  from this roster; free-text entry (with mandatory phone number) stays available
+  for someone genuinely new, and doing so adds them to the roster for next time.
 
 ## Known gaps — intentionally deferred, not silently missing
 
