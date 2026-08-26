@@ -694,13 +694,20 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         )}
       </div>
 
-      <div className="px-5 mt-1">
-        <Tabs value={view} onValueChange={setView}>
+      <div className="px-5 mt-1 flex items-center gap-2">
+        <Tabs value={view} onValueChange={setView} className="flex-1">
           <TabsList>
             <TabsTrigger value="player">My Player Stats</TabsTrigger>
             <TabsTrigger value="host">My Hosting Stats</TabsTrigger>
           </TabsList>
         </Tabs>
+        <button
+          onClick={() => onNavigate("settlements")}
+          title="Settlements across every game"
+          className="w-9 h-9 shrink-0 rounded-xl bg-felt-surface border border-felt-border text-zinc-400 hover:text-gold-light hover:border-gold/40 flex items-center justify-center transition-colors"
+        >
+          <LayoutDashboard className="w-4 h-4" />
+        </button>
       </div>
 
       {view === "host" && (
@@ -1908,7 +1915,134 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   )
 }
 
-// ─── History ──────────────────────────────────────────────────────────────────
+// ─── Settlements Ledger ─────────────────────────────────────────────────────────
+// Cross-game view — every other settlement surface (Settlement screen, Game
+// Detail) only shows one game at a time. This answers "what do I actually
+// owe right now" / "what's the full picture across everything I've hosted"
+// by reading each closed game's already-computed, stored settlement list —
+// never recomputed live, never includes a `live` game.
+function SettlementsLedgerScreen({ hostName, closedGames, onBack, onSelectGame }) {
+  const [view, setView] = useState("player") // player | host
+  const [drillPlayer, setDrillPlayer] = useState(null)
+
+  // Player: every line across every closed game where this account was a
+  // party (from or to), regardless of who hosted it.
+  const myLines = closedGames.flatMap(g =>
+    (g.settlement || [])
+      .filter(t => t.from === hostName || t.to === hostName)
+      .map(t => ({ ...t, game: g }))
+  )
+  const iOwe = myLines.filter(t => t.from === hostName)
+  const owedToMe = myLines.filter(t => t.to === hostName)
+
+  // Host: every line across every game *this account hosted* — the full
+  // ledger, not filtered down to their own personal transfers.
+  const hostedClosed = closedGames.filter(g => !g.hostName || g.hostName === hostName)
+  const allHostedLines = hostedClosed.flatMap(g => (g.settlement || []).map(t => ({ ...t, game: g })))
+  const hostedPlayers = [...new Set(allHostedLines.flatMap(t => [t.from, t.to]))].sort((a, b) => a.localeCompare(b))
+  const drillLines = drillPlayer ? allHostedLines.filter(t => t.from === drillPlayer || t.to === drillPlayer) : allHostedLines
+
+  return (
+    <div className="min-h-screen bg-felt-bg pb-8">
+      <div className="px-5 pt-14 pb-6 border-b border-felt-border">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <X className="w-4 h-4" /> Back
+        </button>
+        <div className="text-white text-xl font-bold">Settlements</div>
+        <div className="text-zinc-500 text-sm mt-1">Across every closed game, not just one</div>
+      </div>
+
+      <div className="px-5 mt-4">
+        <Tabs value={view} onValueChange={v => { setView(v); setDrillPlayer(null) }}>
+          <TabsList>
+            <TabsTrigger value="player">My Settlements</TabsTrigger>
+            <TabsTrigger value="host">Settlement Ledger</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {view === "player" && (
+        <div className="px-5 mt-4 flex flex-col gap-2">
+          {myLines.length === 0 && (
+            <div className="text-zinc-600 text-xs text-center py-10">
+              {closedGames.length === 0
+                ? "No closed games yet — settlements show up here once a game ends."
+                : "No settlements involve you yet in any closed game."}
+            </div>
+          )}
+          {iOwe.length > 0 && (
+            <>
+              <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-2">You owe</div>
+              {iOwe.map((t, i) => (
+                <button key={i} onClick={() => onSelectGame(t.game)}
+                  className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
+                  <Av name={t.to} size={28} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-zinc-100 text-sm font-semibold">To {t.to}</div>
+                    <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+                  </div>
+                  <NumB value={t.amount} sign={false} size="text-base" className="text-red-400" />
+                </button>
+              ))}
+            </>
+          )}
+          {owedToMe.length > 0 && (
+            <>
+              <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-3">Owed to you</div>
+              {owedToMe.map((t, i) => (
+                <button key={i} onClick={() => onSelectGame(t.game)}
+                  className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
+                  <Av name={t.from} size={28} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-zinc-100 text-sm font-semibold">From {t.from}</div>
+                    <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+                  </div>
+                  <NumB value={t.amount} sign={false} size="text-base" className="text-emerald-400" />
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {view === "host" && (
+        <div className="px-5 mt-4 flex flex-col gap-2">
+          {hostedPlayers.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-1">
+              <button onClick={() => setDrillPlayer(null)}
+                className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+                All players
+              </button>
+              {hostedPlayers.map(p => (
+                <button key={p} onClick={() => setDrillPlayer(p)}
+                  className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+          {drillLines.length === 0 && (
+            <div className="text-zinc-600 text-xs text-center py-10">
+              {hostedClosed.length === 0
+                ? "No games you've hosted have closed yet."
+                : "No settlement lines to show."}
+            </div>
+          )}
+          {drillLines.map((t, i) => (
+            <button key={i} onClick={() => onSelectGame(t.game)}
+              className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
+              <div className="flex-1 min-w-0">
+                <div className="text-zinc-100 text-sm font-semibold">{t.from} → {t.to}</div>
+                <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+              </div>
+              <NumB value={t.amount} size="text-base" className="text-zinc-200" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── Game Detail ──────────────────────────────────────────────────────────────
 // Role-aware: the host who ran this game sees the full breakdown (every
@@ -2188,7 +2322,7 @@ export default function App() {
     showToast("🏁", "Saved", "Results added to your dashboard")
   }
 
-  const isFullScreen = ["create-game", "settlement", "game-detail", "admin"].includes(screen)
+  const isFullScreen = ["create-game", "settlement", "game-detail", "admin", "settlements"].includes(screen)
 
   if (authLoading) {
     return (
@@ -2222,6 +2356,7 @@ export default function App() {
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
       {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
+      {screen === "settlements" && <SettlementsLedgerScreen hostName={hostName} closedGames={pastGames.filter(g => g.status !== "live")} onBack={() => navigate("home")} onSelectGame={g => navigate("game-detail", g)} />}
       {!isFullScreen && <BottomNav screen={screen} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>
