@@ -119,10 +119,12 @@ point on Home.
 
 Header: greeting + name, admin-only entry point to Admin screen, logout.
 
-Below that: Live Game card if one's active, "New Game" CTA, then a **Host / Player**
-segmented toggle (shadcn `Tabs`):
+Below that: Live Game card if one's active, then a **Host / Player** segmented toggle
+(shadcn `Tabs`):
 
-- **Host tab**: hosting-stats grid (games hosted, players hosted, rake collected, avg
+- **Host tab**: "New Game" CTA (hosting-only action, lives here rather than being
+  shown universally on both tabs — creating a game is something only a host does),
+  then a hosting-stats grid (games hosted, players hosted, rake collected, avg
   pot/game) + list of recently hosted games. Stats and list reflect **closed games
   only** — a game in progress doesn't count toward totals yet (see
   `REQUIREMENTS.md` → Game lifecycle).

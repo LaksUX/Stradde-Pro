@@ -685,21 +685,6 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
             </div>
           </button>
         )}
-
-        {/* New game */}
-        <button
-          onClick={() => onNavigate("create-game")}
-          className="w-full text-left rounded-2xl bg-felt-surface border border-felt-border hover:border-gold/50 p-4 flex items-center gap-4 transition-all group"
-        >
-          <div className="w-11 h-11 rounded-xl bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:bg-gold/30 transition-colors">
-            <Plus className="w-5 h-5 text-gold-light" />
-          </div>
-          <div>
-            <div className="text-white font-bold text-sm">New Game</div>
-            <div className="text-zinc-500 text-xs mt-0.5">Set up players & buy-ins</div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-zinc-700 ml-auto group-hover:text-zinc-500 transition-colors" />
-        </button>
       </div>
 
       <div className="px-5 mt-1">
@@ -713,6 +698,23 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
 
       {view === "host" && (
         <>
+          {/* New game — hosting-only action, lives in the Hosting tab rather
+              than being shown universally on both tabs. */}
+          <div className="px-5 mt-3">
+            <button
+              onClick={() => onNavigate("create-game")}
+              className="w-full text-left rounded-2xl bg-felt-surface border border-felt-border hover:border-gold/50 p-4 flex items-center gap-4 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-xl bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:bg-gold/30 transition-colors">
+                <Plus className="w-5 h-5 text-gold-light" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-sm">New Game</div>
+                <div className="text-zinc-500 text-xs mt-0.5">Set up players & buy-ins</div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-700 ml-auto group-hover:text-zinc-500 transition-colors" />
+            </button>
+          </div>
           <SL>Hosting Overview</SL>
           <HostStatsView pastGames={closedGames} />
         </>
@@ -1208,7 +1210,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     setSheetFor(p.name)
     setCashoutOn(!!p.cashedOut)
     setSliderVal(p.buyins.length)
-    setCashoutDigits(p.cashedOut ? String(Math.round((p.cashoutAmount || 0) / 10)) : "")
+    setCashoutDigits(p.cashedOut ? String(Math.round((p.cashoutAmount || 0) / 1000)) : "")
   }
   const closeSheet = () => { setSheetFor(null); setCashoutDigits(""); setCashoutOn(false) }
 
@@ -1627,7 +1629,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
     setSheetTxn(t)
     setSheetFrom(t.from)
     setSheetTo(t.to)
-    setSheetDigits(t.amount ? String(Math.round(t.amount / 10)) : "")
+    setSheetDigits(t.amount ? String(Math.round(t.amount / 1000)) : "")
   }
   const openAdd = () => {
     setSheetTxn({ key: `custom-${customTxns.length}`, isNew: true })
