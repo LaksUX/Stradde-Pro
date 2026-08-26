@@ -13,6 +13,10 @@ import { Progress } from "@/components/ui/progress"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
+import { Slider } from "@/components/ui/slider"
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const nowStr = () => {
@@ -51,47 +55,28 @@ function NumB({ value, sign = false, size = "text-sm", className }) {
   )
 }
 
-// ─── Bottom sheet: backdrop + slide-up panel with drag handle ─────────────────
-function BottomSheet({ open, onClose, title, subtitle, avatar, children }) {
-  if (!open) return null
+// ─── Bottom sheet: shadcn Sheet (Dialog primitive, slide-in-from-bottom) ──────
+// Thin app-shaped wrapper around the shared Sheet/SheetContent/SheetHeader so
+// call sites don't need to know about Radix's open/onOpenChange plumbing.
+function AppSheet({ open, onClose, title, subtitle, avatar, children }) {
   return (
-    <div className="fixed inset-0 z-[90]">
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-felt-surface border border-felt-border border-b-0 rounded-t-3xl px-4.5 pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)] animate-sheet-up">
-        <div className="w-9 h-1 rounded-full bg-zinc-700 mx-auto mb-3.5" />
-        <div className="flex items-center gap-2.5 mb-4">
-          {avatar}
-          <div className="flex-1 min-w-0">
-            {title && <div className="text-[16.5px] font-extrabold tracking-tight text-white truncate">{title}</div>}
-            {subtitle && <div className="text-[11.5px] text-zinc-500 font-mono mt-0.5">{subtitle}</div>}
-          </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <SheetContent onOpenAutoFocus={(e) => e.preventDefault()}>
+        <SheetHeader title={title} subtitle={subtitle} avatar={avatar} />
         {children}
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 
-// ─── Segmented switch tabs (used inside sheets and create-game) ───────────────
+// ─── Segmented tabs wrapper (shadcn Tabs — used inside sheets and create-game) ─
 function SegTabs({ tabs, active, onChange }) {
   return (
-    <div className="flex bg-felt-surface-2/70 border border-felt-border rounded-xl p-[3px] mb-4">
-      {tabs.map(t => (
-        <button
-          key={t}
-          onClick={() => onChange(t)}
-          className={cn(
-            "flex-1 text-center py-2 text-[12.5px] font-bold rounded-lg transition-colors",
-            active === t ? "bg-gold text-white" : "text-zinc-500 hover:text-zinc-300"
-          )}
-        >
-          {t}
-        </button>
-      ))}
-    </div>
+    <Tabs value={active} onValueChange={onChange} className="mb-4">
+      <TabsList>
+        {tabs.map(t => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
+      </TabsList>
+    </Tabs>
   )
 }
 
@@ -118,29 +103,32 @@ function Keypad({ onDigit, onBackspace, onClear }) {
   )
 }
 
-// ─── Buy-in slider (0–30, ticks every 5) ───────────────────────────────────────
+// ─── Buy-in slider (0–30, ticks every 5, shadcn/Radix Slider) ─────────────────
 // `min` floors the draggable range at the player's already-locked buy-in
 // count — locked buy-ins (past the 1-min edit window) can never be removed.
+// Once EVERY current buy-in is locked (value === min, i.e. no unlocked room
+// left to add or remove), the slider becomes fully non-interactive rather
+// than just floored-but-still-draggable — a locked state should read as
+// genuinely locked, not merely clamped. It re-enables the moment a fresh
+// unlocked buy-in exists (value > min).
 function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
-  const pct = (value / max) * 100
-  const minPct = (min / max) * 100
+  const locked = min > 0 && value === min
   return (
     <div className="px-1">
       <div className="relative">
         {min > 0 && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 h-2 rounded-l-full bg-gold-dark/70 pointer-events-none"
-            style={{ left: 0, width: `${minPct}%` }}
+            className="absolute top-1/2 -translate-y-1/2 h-2 rounded-l-full bg-gold-dark/70 pointer-events-none z-10"
+            style={{ left: 0, width: `${(min / max) * 100}%` }}
           />
         )}
-        <input
-          type="range" min={min} max={max} step={1} value={value}
-          onChange={e => onChange(Math.max(min, Number(e.target.value)))}
-          className="relative w-full h-2 rounded-full appearance-none bg-felt-surface-2 accent-gold cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6.5 [&::-webkit-slider-thumb]:h-6.5
-            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-4
-            [&::-webkit-slider-thumb]:border-gold [&::-webkit-slider-thumb]:shadow-lg"
-          style={{ background: `linear-gradient(90deg, #27272a ${minPct}%, #4f46e5 ${minPct}%, #4f46e5 ${pct}%, #27272a ${pct}%)` }}
+        <Slider
+          value={[value]}
+          min={min}
+          max={max}
+          step={1}
+          disabled={locked}
+          onValueChange={([v]) => onChange(Math.max(min, v))}
         />
       </div>
       <div className="flex justify-between mt-2 px-0.5">
@@ -148,11 +136,43 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
           <span key={t} className="text-[10px] font-mono text-zinc-600">{t}</span>
         ))}
       </div>
+      {locked && (
+        <div className="text-center text-[10.5px] text-zinc-600 mt-1.5">
+          All buy-ins locked — no more can be removed from here
+        </div>
+      )}
     </div>
   )
 }
 
 const totalBuyinsFor = (p) => p.buyins.reduce((s, b) => s + b.amount, 0)
+
+// ─── Deterministic settlement (debt simplification) ───────────────────────────
+// Winners are paid by losers, biggest matched against biggest, rake excluded
+// (rake never appears as a transfer). Ties on remaining net — both the
+// initial sort and mid-simplification remainders — are broken by ascending
+// player name, since this local-state model has no numeric player id. This
+// guarantees the same inputs always produce the same transfer list.
+function computeSettlement(players) {
+  const positions = players.map(p => ({
+    name: p.name,
+    net: Math.round((p.cashoutAmount || 0) - totalBuyinsFor(p)),
+  }))
+  const byNetThenName = (a, b) => (b.rem - a.rem) || a.name.localeCompare(b.name)
+  const debtors   = positions.filter(p => p.net < 0).map(p => ({ ...p, rem: -p.net })).sort(byNetThenName)
+  const creditors = positions.filter(p => p.net > 0).map(p => ({ ...p, rem: p.net })).sort(byNetThenName)
+  const out = []
+  let di = 0, ci = 0
+  while (di < debtors.length && ci < creditors.length) {
+    const d = debtors[di], c = creditors[ci]
+    const amt = Math.min(d.rem, c.rem)
+    if (amt > 0) out.push({ from: d.name, to: c.name, amount: Math.round(amt) })
+    d.rem -= amt; c.rem -= amt
+    if (d.rem < 1) di++
+    if (c.rem < 1) ci++
+  }
+  return out
+}
 
 // Rounding tolerance for the settlement invariant check — amounts round to
 // the nearest 100 units on screen, so allow half that as noise.
@@ -187,7 +207,7 @@ const initials = (n) => n.split(" ").map(w => w[0]).join("").slice(0, 2).toUpper
 const SEED_PAST_GAMES = [
   {
     id: 1, name: "Friday Night Felts", date: "Apr 11",
-    buyinAmount: 1000, rake: 1000,
+    buyinAmount: 1000, rake: 1000, status: "closed",
     players: [
       { name: "Raj K.",   buyins: [{ts:"8:00 PM",amount:1000},{ts:"9:15 PM",amount:1000}], cashedOut:true, cashoutAmount:2500 },
       { name: "Priya S.", buyins: [{ts:"8:00 PM",amount:1000},{ts:"8:45 PM",amount:1000}], cashedOut:true, cashoutAmount:1000 },
@@ -200,7 +220,7 @@ const SEED_PAST_GAMES = [
   },
   {
     id: 2, name: "Saturday Shootout", date: "Apr 5",
-    buyinAmount: 1000, rake: 0,
+    buyinAmount: 1000, rake: 0, status: "closed",
     players: [
       { name: "Raj K.",   buyins: [{ts:"7:30 PM",amount:1000},{ts:"9:00 PM",amount:1000}], cashedOut:true, cashoutAmount:1000 },
       { name: "Priya S.", buyins: [{ts:"7:30 PM",amount:1000}], cashedOut:true, cashoutAmount:4000 },
@@ -211,7 +231,7 @@ const SEED_PAST_GAMES = [
   },
   {
     id: 3, name: "Sunday Deep Stack", date: "Mar 30",
-    buyinAmount: 1000, rake: 2000,
+    buyinAmount: 1000, rake: 2000, status: "closed",
     players: [
       { name: "Raj K.",   buyins: [{ts:"6:00 PM",amount:1000},{ts:"7:30 PM",amount:1000},{ts:"9:00 PM",amount:1000}], cashedOut:true, cashoutAmount:7000 },
       { name: "Priya S.", buyins: [{ts:"6:00 PM",amount:1000},{ts:"7:00 PM",amount:1000},{ts:"8:30 PM",amount:1000}], cashedOut:true, cashoutAmount:1000 },
@@ -370,6 +390,7 @@ function AdminScreen({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [busyId, setBusyId] = useState(null)
+  const [revokeTarget, setRevokeTarget] = useState(null) // row pending revoke confirmation
 
   const load = async () => {
     setLoading(true)
@@ -454,7 +475,7 @@ function AdminScreen({ onBack }) {
                 ) : (
                   <button
                     disabled={busyId === row.id}
-                    onClick={() => setApproval(row, row.role, false)}
+                    onClick={() => setRevokeTarget(row)}
                     className="flex-1 h-9 bg-felt-surface-2 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 text-xs font-bold rounded-lg transition-colors"
                   >
                     Revoke approval
@@ -465,6 +486,31 @@ function AdminScreen({ onBack }) {
           )
         })}
       </div>
+
+      {/* Revoke confirmation — this local-state build has no live-games join
+          yet (game screens aren't wired to Supabase, see Known Gaps), so we
+          can't name specific in-progress games here; the copy says so
+          explicitly rather than silently omitting the check the spec asks
+          for. */}
+      <Dialog open={!!revokeTarget} onOpenChange={(o) => { if (!o) setRevokeTarget(null) }}>
+        <DialogContent className="max-w-[340px] bg-felt-surface border-felt-border text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-white">Revoke host approval?</DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              {revokeTarget?.display_name || revokeTarget?.email} will no longer be able to create games. This build can't yet check whether they have a live game in progress — confirm you're not pulling approval mid-game.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3">
+            <button onClick={() => setRevokeTarget(null)} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
+            <button
+              onClick={() => { setApproval(revokeTarget, revokeTarget.role, false); setRevokeTarget(null) }}
+              className="flex-1 h-11 bg-red-600/80 hover:bg-red-600 text-white font-bold rounded-xl text-sm transition-colors"
+            >
+              Revoke
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -589,7 +635,12 @@ function HostStatsView({ pastGames }) {
 }
 
 function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin }) {
-  const recent = pastGames.slice(0, 6)
+  // Dashboard stats/lists only ever reflect closed games — a live game in
+  // progress doesn't count toward hosting totals or the trend chart yet, and
+  // it already has its own separate "active game" card above, so it's
+  // excluded here to avoid double-showing it.
+  const closedGames = pastGames.filter(g => g.status !== "live")
+  const recent = closedGames.slice(0, 6)
   const [view, setView] = useState("player") // player | host
   return (
     <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
@@ -652,36 +703,28 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
       </div>
 
       <div className="px-5 mt-1">
-        <div className="flex bg-felt-surface border border-felt-border rounded-xl p-1">
-          <button
-            onClick={() => setView("player")}
-            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "player" ? "bg-gold text-white" : "text-zinc-500 hover:text-zinc-300")}
-          >
-            My Player Stats
-          </button>
-          <button
-            onClick={() => setView("host")}
-            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors", view === "host" ? "bg-gold text-white" : "text-zinc-500 hover:text-zinc-300")}
-          >
-            My Hosting Stats
-          </button>
-        </div>
+        <Tabs value={view} onValueChange={setView}>
+          <TabsList>
+            <TabsTrigger value="player">My Player Stats</TabsTrigger>
+            <TabsTrigger value="host">My Hosting Stats</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {view === "host" && (
         <>
           <SL>Hosting Overview</SL>
-          <HostStatsView pastGames={pastGames} />
+          <HostStatsView pastGames={closedGames} />
         </>
       )}
 
-      {view === "player" && pastGames.length > 0 && (() => {
+      {view === "player" && closedGames.length > 0 && (() => {
         // Different stakes aren't comparable on one line — a win at one bank
         // size doesn't mean the same thing as a win at another — so each
         // distinct buy-in level gets its own trend chart rather than being
         // blended into a single misleading combined line.
         const stakeGroups = {}
-        for (const g of pastGames) {
+        for (const g of closedGames) {
           const key = g.buyinAmount || 0
           ;(stakeGroups[key] ||= []).push(g)
         }
@@ -743,10 +786,9 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
 }
 
 // ─── Create Game ──────────────────────────────────────────────────────────────
-// Fixed buy-in unit: every player starts at exactly 1 buy-in. There is no
-// per-player buy-in count control at creation time anymore — hosts add
-// buy-ins live during the game instead.
-const DEFAULT_BUYIN = 1000
+// Every player starts at exactly 1 buy-in, at the game-wide stake the host
+// sets below. There is no per-player buy-in count/amount control at creation
+// time — hosts add further buy-ins live during the game instead.
 
 function CreateGameScreen({ pastGames, onCancel, onCreate }) {
   const lastGame = pastGames[0]
@@ -754,6 +796,11 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
   const [date, setDate]         = useState(new Date().toLocaleDateString("en-IN", { day:"numeric", month:"short" }))
   const [time, setTime]         = useState(nowStr())
   const [location, setLocation] = useState(lastGame?.location || "")
+  // Stake (buy-in amount) — blank by default, deliberately not 0/1, so
+  // "Start Game" stays disabled until the host sets a real value. Entered in
+  // whole banks, stored in internal units (1 bank = 1000 units).
+  const [stakeInput, setStakeInput] = useState("")
+  const stakeAmount = (parseFloat(stakeInput) || 0) * 1000
   const [players, setPlayers]   = useState([])
   const [nameInput, setNameInput]   = useState("")
   const [phoneInput, setPhoneInput] = useState("")
@@ -775,16 +822,19 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
 
   const removePlayer = (n) => setPlayers(prev => prev.filter(p => p.name !== n))
 
+  const canStart = name.trim() && players.length > 0 && stakeAmount > 0
+
   const handleCreate = () => {
-    if (!name.trim()) return
+    if (!canStart) return
     const game = {
       id: Date.now(),
       name: name.trim(), date, time, location,
-      buyinAmount: DEFAULT_BUYIN,
+      buyinAmount: stakeAmount,
       rake: 0,
+      status: "live",
       players: players.map(p => ({
         name: p.name, phone: p.phone,
-        buyins: [{ ts: nowStr(), epoch: Date.now(), amount: DEFAULT_BUYIN }],
+        buyins: [{ ts: nowStr(), epoch: Date.now(), amount: stakeAmount }],
         cashedOut: false, cashoutAmount: null,
       })),
     }
@@ -875,6 +925,21 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
               <DInput label="Time" value={time} onChange={e => setTime(e.target.value)} />
             </div>
             <DInput label="Location (optional)" placeholder="e.g. Raj's place" value={location} onChange={e => setLocation(e.target.value)} />
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">Buy-in Amount (Banks)</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number" min="0" step="1" inputMode="decimal" placeholder="e.g. 2"
+                  value={stakeInput}
+                  onChange={e => setStakeInput(e.target.value)}
+                  className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm font-mono placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                />
+                <span className="text-zinc-500 text-sm font-bold w-10 shrink-0">/ buy-in</span>
+              </div>
+              <div className="text-[10.5px] text-zinc-600 mt-1.5 leading-relaxed">
+                Every player starts with exactly 1 buy-in at this amount. One stake for the whole game — required before you can start.
+              </div>
+            </div>
           </div>
         </div>
 
@@ -971,12 +1036,17 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
         </div>
 
         <button
-          disabled={!name.trim() || players.length === 0}
+          disabled={!canStart}
           onClick={handleCreate}
           className="w-full h-13 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 py-3.5"
         >
           <Gamepad2 className="w-4 h-4" />
-          Start Game{players.length > 0 ? ` · ${players.length} players` : " · add at least 1 player"}
+          Start Game{
+            !name.trim() ? " · add a game name"
+            : players.length === 0 ? " · add at least 1 player"
+            : stakeAmount <= 0 ? " · set a buy-in amount"
+            : ` · ${players.length} players`
+          }
         </button>
       </div>
     </div>
@@ -999,6 +1069,7 @@ function DInput({ label, ...props }) {
 // ─── End Game Modal ───────────────────────────────────────────────────────────
 function EndGameModal({ game, onConfirm, onClose }) {
   const [rake, setRake] = useState(String((game.rake || 0) / 1000))
+  const [ackUncashed, setAckUncashed] = useState(false)
   const players  = game.players
   const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
   const totalOut = players.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
@@ -1009,6 +1080,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
   // transfer, so it never appears in the settlement transfers below.
   const diff     = totalIn - (totalOut + rakeAmt)
   const balanced = Math.abs(diff) < BALANCE_TOLERANCE
+  const canProceed = balanced && (uncashed.length === 0 || ackUncashed)
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -1018,13 +1090,22 @@ function EndGameModal({ game, onConfirm, onClose }) {
           <DialogDescription className="text-zinc-500">Review accounts before settlement.</DialogDescription>
         </DialogHeader>
 
+        {/* Explicit confirmation — closing doesn't require every player to
+            have cashed out (they may have walked away), but the host must
+            acknowledge that an uncashed player's buy-ins will count as a
+            loss to the table before the button unlocks. */}
         {uncashed.length > 0 && (
-          <div className="flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-            <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+          <label className="flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ackUncashed}
+              onChange={e => setAckUncashed(e.target.checked)}
+              className="mt-0.5 shrink-0 accent-amber-500"
+            />
             <div className="text-xs text-amber-300">
-              {uncashed.map(p => p.name).join(", ")} {uncashed.length > 1 ? "haven't" : "hasn't"} cashed out.
+              {uncashed.length} player{uncashed.length > 1 ? "s have" : " has"} no cash-out recorded — their buy-ins will count as a loss to the table. Continue?
             </div>
-          </div>
+          </label>
         )}
 
         <div>
@@ -1065,7 +1146,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
           <button
-            disabled={!balanced}
+            disabled={!canProceed}
             onClick={() => onConfirm(rakeAmt)}
             className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
           >
@@ -1090,14 +1171,38 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   const [addingPlayer, setAddingPlayer] = useState(false)
   const [rakeVisible, setRakeVisible] = useState(false)
 
+  const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 1000))
+
   const players  = game.players
+  const isClosed = game.status === "closed"
   const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
   const cashedOut = players.filter(p => p.cashedOut)
   const totalOut = cashedOut.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
 
+  // Live bankroll-check invariant: buy-ins = cashed-out + rake + still in
+  // play. Money still on the table mid-game is normal; the only real error
+  // is paying out (cashouts + rake) more than ever came in. This never
+  // blocks further buy-in/cash-out entry — only closing the game (below).
+  const paidOut = totalOut + (game.rake || 0)
+  const overpaid = paidOut - totalIn
+  const overpayError = overpaid > BALANCE_TOLERANCE
+  const stillIn = totalIn - totalOut
+
   const lockedCountFor = (p) => p.buyins.filter(b => !b.epoch || Date.now() - b.epoch >= LOCK_MS).length
 
-  const updatePlayers = (updated) => onUpdateGame({ ...game, players: updated })
+  const updatePlayers = (updated) => { if (!isClosed) onUpdateGame({ ...game, players: updated }) }
+
+  const commitRake = (v) => {
+    if (isClosed) return
+    const amt = Math.max(0, (parseFloat(v) || 0) * 1000)
+    onUpdateGame({ ...game, rake: amt })
+  }
+
+  const removePlayer = (p) => {
+    if (totalBuyinsFor(p) > 0) return // never valid once any buy-in exists
+    updatePlayers(players.filter(pp => pp.name !== p.name))
+    showToast("🗑️", "Player removed", p.name)
+  }
 
   const openSheet = (p) => {
     setSheetFor(p.name)
@@ -1230,7 +1335,20 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
             </button>
           </div>
           {rakeVisible ? (
-            <NumB value={game.rake || 0} size="text-[18px]" className="mt-1 text-amber-400" />
+            isClosed ? (
+              <NumB value={game.rake || 0} size="text-[18px]" className="mt-1 text-amber-400" />
+            ) : (
+              <div className="flex items-center gap-1 mt-1">
+                <input
+                  type="number" min="0" step="1" inputMode="decimal"
+                  value={rakeInput}
+                  onChange={e => setRakeInput(e.target.value)}
+                  onBlur={e => commitRake(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && e.currentTarget.blur()}
+                  className="w-full bg-transparent text-[18px] font-extrabold font-mono text-amber-400 outline-none border-b border-transparent focus:border-amber-400/40"
+                />
+              </div>
+            )
           ) : (
             <div className="mt-1 text-[18px] font-extrabold tracking-[0.15em] text-zinc-600">•••</div>
           )}
@@ -1240,33 +1358,28 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
       {/* Live bankroll check — a poker bankroll manager's core invariant:
           buy-ins = cashed-out + rake + whatever's still in play. Mid-game,
           money still on the table is normal, not an error — the only real
-          error is paying out (cashouts + rake) more than ever came in. */}
-      {(() => {
-        const paidOut = totalOut + (game.rake || 0)
-        const overpaid = paidOut - totalIn
-        const isError = overpaid > BALANCE_TOLERANCE
-        const stillIn = totalIn - totalOut
-        return (
-          <div className="px-5 pt-2.5">
-            <div className={cn(
-              "rounded-xl px-3.5 py-2 text-[11px] font-medium flex items-center gap-2",
-              isError ? "bg-red-500/10 border border-red-500/30 text-red-300" : "bg-felt-surface-2/50 text-zinc-500"
-            )}>
-              {isError ? (
-                <>
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  Paid out <NumB value={overpaid} size="text-[11px]" className="inline-flex" /> more than total buy-ins — check entries
-                </>
-              ) : (
-                <>
-                  <span className="text-emerald-400">●</span>
-                  Bankroll checks out · <NumB value={stillIn} size="text-[11px]" className="inline-flex" /> still in play
-                </>
-              )}
-            </div>
-          </div>
-        )
-      })()}
+          error is paying out (cashouts + rake) more than ever came in. This
+          never blocks further entry — only closing the game does, below.
+          Rake edits above flow into `game.rake` and this recomputes on
+          every render, so editing rake live-updates this banner too. */}
+      <div className="px-5 pt-2.5">
+        <div className={cn(
+          "rounded-xl px-3.5 py-2 text-[11px] font-medium flex items-center gap-2",
+          overpayError ? "bg-red-500/10 border border-red-500/30 text-red-300" : "bg-felt-surface-2/50 text-zinc-500"
+        )}>
+          {overpayError ? (
+            <>
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              Paid out <NumB value={overpaid} size="text-[11px]" className="inline-flex" /> more than total buy-ins — check entries
+            </>
+          ) : (
+            <>
+              <span className="text-emerald-400">●</span>
+              Bankroll checks out · <NumB value={stillIn} size="text-[11px]" className="inline-flex" /> still in play
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Add player */}
       <div className="px-5 mt-4">
@@ -1349,19 +1462,38 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                   <Share2 className="w-3.5 h-3.5" />
                 </button>
               )}
+              {/* Remove player — only ever valid before any buy-in exists for
+                  them (fixes an accidental add). Once a buy-in is recorded,
+                  removal isn't a valid action any more, so it's genuinely
+                  absent, not disabled-with-tooltip. */}
+              {!isClosed && totalBuyinsFor(p) === 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); removePlayer(p) }}
+                  title="Remove player (no buy-ins yet)"
+                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-red-300 hover:border-red-500/40 transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           )
         })}
       </div>
 
-      {players.length > 0 && (
+      {players.length > 0 && !isClosed && (
         <div className="px-5 mt-5">
           <button
+            disabled={overpayError}
             onClick={() => setShowEnd(true)}
-            className="w-full h-12 bg-red-600/80 hover:bg-red-600 border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
+            className="w-full h-12 bg-red-600/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
           >
             End Game & Settle
           </button>
+          {overpayError && (
+            <div className="text-[11px] text-red-300/90 text-center mt-2 leading-relaxed">
+              Can't close while paid out exceeds total buy-ins — fix the entries above first.
+            </div>
+          )}
         </div>
       )}
 
@@ -1369,7 +1501,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
       {/* Buy-in / Cash-out bottom sheet — buy-in is primary; cash-out is a
           small toggle below it, revealing the keypad inline when switched on. */}
-      <BottomSheet
+      <AppSheet
         open={!!sheetFor}
         onClose={closeSheet}
         title={sheetPlayer?.name}
@@ -1378,6 +1510,12 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
       >
         {sheetPlayer && (
           <div className="flex flex-col gap-3.5">
+            {isClosed && (
+              <div className="text-center text-[10.5px] text-zinc-600 -mt-1 mb-0.5">
+                Game closed — figures are final and read-only
+              </div>
+            )}
+
             {!cashoutOn && (
               <>
                 <div className="text-center pt-1 pb-0.5">
@@ -1389,27 +1527,28 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                     buy-in{sliderVal === 1 ? "" : "s"} · <NumB value={sliderVal * game.buyinAmount} size="text-[11px]" className="text-zinc-400 inline-flex" />
                   </div>
                 </div>
-                <BuyinSlider value={sliderVal} onChange={setSliderVal} min={lockedCountFor(sheetPlayer)} />
-                <div className="text-center text-[11px] text-zinc-600">
-                  Locks in <b className="text-zinc-400 font-semibold">1 min</b>
-                </div>
-                <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
-                  Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
-                </button>
+                {!isClosed && (
+                  <>
+                    <BuyinSlider value={sliderVal} onChange={setSliderVal} min={lockedCountFor(sheetPlayer)} />
+                    <div className="text-center text-[11px] text-zinc-600">
+                      Locks in <b className="text-zinc-400 font-semibold">1 min</b> — once locked it's permanent, no override
+                    </div>
+                    <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
+                      Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
+                    </button>
+                  </>
+                )}
               </>
             )}
 
             {/* Cash-out: rare, one-time end-of-game action — a small toggle,
                 not a peer tab of buy-in. Once switched on, buy-ins for this
-                player are locked — no more can be added while cashing out. */}
+                player are locked — no more can be added while cashing out.
+                Cash-out (and rake) stay editable until the game closes;
+                after close this whole sheet renders read-only. */}
             <div className="flex items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5 mt-1">
               <span className="text-xs font-bold text-zinc-300">Cash out this player</span>
-              <button
-                onClick={() => setCashoutOn(v => !v)}
-                className={cn("w-10 h-6 rounded-full relative transition-colors shrink-0", cashoutOn ? "bg-gold" : "bg-zinc-700")}
-              >
-                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", cashoutOn ? "left-[18px]" : "left-0.5")} />
-              </button>
+              <Switch checked={cashoutOn} onCheckedChange={setCashoutOn} disabled={isClosed} />
             </div>
 
             {cashoutOn && (
@@ -1424,19 +1563,23 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                 <div className="text-center text-[11.5px] font-mono -mt-1.5">
                   net <NumB value={cashoutNet} sign size="text-[11.5px]" className={cn("inline-flex", cashoutNet >= 0 ? "text-emerald-400" : "text-red-400")} />
                 </div>
-                <Keypad
-                  onDigit={(d) => setCashoutDigits(prev => (prev === "0" ? "" : prev) + d)}
-                  onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
-                  onClear={() => setCashoutDigits("")}
-                />
-                <button onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
-                  Confirm cash out
-                </button>
+                {!isClosed && (
+                  <>
+                    <Keypad
+                      onDigit={(d) => setCashoutDigits(prev => (prev === "0" ? "" : prev) + d)}
+                      onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
+                      onClear={() => setCashoutDigits("")}
+                    />
+                    <button onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
+                      {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
         )}
-      </BottomSheet>
+      </AppSheet>
     </div>
   )
 }
@@ -1463,20 +1606,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
     net: Math.round((p.cashoutAmount || 0) - totalBuyinsFor(p)),
   }))
 
-  const baseTxns = (() => {
-    const debtors   = positions.filter(p => p.net < 0).map(p => ({ ...p, rem: -p.net })).sort((a, b) => b.rem - a.rem)
-    const creditors = positions.filter(p => p.net > 0).map(p => ({ ...p, rem: p.net })).sort((a, b) => b.rem - a.rem)
-    const out = []
-    let di = 0, ci = 0
-    while (di < debtors.length && ci < creditors.length) {
-      const d = debtors[di], c = creditors[ci]
-      const amt = Math.min(d.rem, c.rem)
-      if (amt > 0) out.push({ from: d.name, to: c.name, amount: Math.round(amt) })
-      d.rem -= amt; c.rem -= amt
-      if (d.rem < 1) di++; if (c.rem < 1) ci++
-    }
-    return out
-  })()
+  const baseTxns = computeSettlement(players)
 
   const [overrides, setOverrides] = useState(() =>
     Object.fromEntries(baseTxns.map((t, i) => [`auto-${i}`, { from: t.from, to: t.to, amount: t.amount }]))
@@ -1659,14 +1789,14 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           className="w-full h-12 bg-[#25d366] hover:bg-[#20bc58] text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
           <Share2 className="w-4 h-4" /> Share via WhatsApp
         </button>
-        <button onClick={onClose}
+        <button onClick={() => onClose(visibleTxns.map(({ from, to, amount }) => ({ from, to, amount })))}
           className="w-full h-12 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-200 font-bold rounded-xl text-sm transition-colors">
           Save to History & Close
         </button>
       </div>
 
       {/* Edit / add payment sheet */}
-      <BottomSheet
+      <AppSheet
         open={!!sheetTxn}
         onClose={closeSheet}
         title={sheetTxn?.isNew ? "Add payment" : "Edit payment"}
@@ -1721,7 +1851,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
             </div>
           </div>
         )}
-      </BottomSheet>
+      </AppSheet>
     </div>
   )
 }
@@ -1732,7 +1862,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 // Role-aware: the host who ran this game sees the full breakdown (every
 // player, total pot, rake). A viewer who only played in it — not the host —
 // sees just their own buy-in/cash-out, nothing about anyone else's numbers.
-function GameDetailScreen({ game, viewerName, onBack }) {
+function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
   const [rakeVisible, setRakeVisible] = useState(false)
   const isHost = !game.hostName || game.hostName === viewerName
   const totalIn  = game.players.reduce((s, p) => s + totalBuyinsFor(p), 0)
@@ -1771,18 +1901,12 @@ function GameDetailScreen({ game, viewerName, onBack }) {
     )
   }
   const positions = game.players.map(p => ({ name: p.name, net: Math.round((p.cashoutAmount || 0) - totalBuyinsFor(p)) }))
-  const txns = (() => {
-    const d = positions.filter(p => p.net < 0).map(p => ({ ...p, rem: -p.net })).sort((a, b) => b.rem - a.rem)
-    const c = positions.filter(p => p.net > 0).map(p => ({ ...p, rem: p.net })).sort((a, b) => b.rem - a.rem)
-    const out = []; let di = 0, ci = 0
-    while (di < d.length && ci < c.length) {
-      const dd = d[di], cc = c[ci], amt = Math.min(dd.rem, cc.rem)
-      if (amt > 0) out.push({ from: dd.name, to: cc.name, amount: Math.round(amt) })
-      dd.rem -= amt; cc.rem -= amt
-      if (dd.rem < 1) di++; if (cc.rem < 1) ci++
-    }
-    return out
-  })()
+  // A closed game's settlement was computed once at close time and stored —
+  // it's read here, never recomputed, so history can't drift even if the
+  // settlement logic changes later. A still-live game (viewed via its
+  // in-progress card) computes a live preview instead.
+  const isClosed = game.status === "closed"
+  const txns = isClosed && game.settlement ? game.settlement : computeSettlement(game.players)
   const medals = ["🥇", "🥈", "🥉"]
 
   return (
@@ -1792,8 +1916,22 @@ function GameDetailScreen({ game, viewerName, onBack }) {
           <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
             <X className="w-4 h-4" /> Back
           </button>
-          <div className="text-white text-xl font-bold">{game.name}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-white text-xl font-bold">{game.name}</div>
+            {isClosed ? (
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-md bg-felt-surface-2 text-zinc-400 border border-felt-border">Closed</span>
+            ) : (
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" /> Game in progress
+              </span>
+            )}
+          </div>
           <div className="text-zinc-500 text-sm mt-1">{game.date} · {game.players.length} players</div>
+          {!isClosed && (
+            <button onClick={() => onNavigateLive?.()} className="mt-2 text-[11.5px] font-semibold text-gold-light hover:text-gold-light/80 transition-colors">
+              Go to Live Game →
+            </button>
+          )}
         </div>
       </div>
 
@@ -1977,8 +2115,16 @@ export default function App() {
     showToast("🃏", "Game Started", game.name)
   }
 
-  const handleCloseGame = () => {
-    if (activeGame) { setPastGames(prev => [{ ...activeGame, id: Date.now() }, ...prev]); setActiveGame(null); setUndoStack([]) }
+  // The true "close" action: locks the game permanently (all buy-ins,
+  // cash-outs, and rake for it become immutable) and stores the settlement
+  // transfer list computed once here — closed games are never recomputed
+  // live again, so history can't drift even if the settlement logic changes.
+  const handleCloseGame = (settlement) => {
+    if (activeGame) {
+      setPastGames(prev => [{ ...activeGame, id: Date.now(), status: "closed", settlement: settlement || [] }, ...prev])
+      setActiveGame(null)
+      setUndoStack([])
+    }
     setScreen("home")
     showToast("🏁", "Saved", "Results added to your dashboard")
   }
@@ -2016,7 +2162,7 @@ export default function App() {
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
-      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} />}
+      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
       {!isFullScreen && <BottomNav screen={screen} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>
