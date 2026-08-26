@@ -1275,7 +1275,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     const idx = players.findIndex(p => p.name === sheetFor)
     if (idx < 0) return
     const p = players[idx]
-    const val = parseInt(cashoutDigits || "0", 10) * 10 // internal units, 2 decimal bank precision
+    const val = parseInt(cashoutDigits || "0", 10) * 1000 // keypad digits are whole banks typed directly
     const updated = [...players]
     const net = val - totalBuyinsFor(p)
     updated[idx] = { ...p, cashedOut: true, cashoutAmount: val }
@@ -1292,7 +1292,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
   const sheetPlayer = players.find(p => p.name === sheetFor)
   const sheetPlayerIn = sheetPlayer ? totalBuyinsFor(sheetPlayer) : 0
-  const cashoutEntered = parseInt(cashoutDigits || "0", 10) * 10
+  const cashoutEntered = parseInt(cashoutDigits || "0", 10) * 1000
   const cashoutNet = cashoutEntered - sheetPlayerIn
 
   return (
@@ -1636,7 +1636,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   const closeSheet = () => setSheetTxn(null)
 
   const saveSheet = () => {
-    const amt = (parseInt(sheetDigits || "0", 10)) * 10
+    const amt = (parseInt(sheetDigits || "0", 10)) * 1000
     if (!sheetFrom || !sheetTo || amt <= 0) { showToast("⚠️", "Invalid", "Pick From, To and an amount"); return }
     if (sheetTxn.isNew) {
       setCustomTxns(prev => [...prev, { key: sheetTxn.key, from: sheetFrom, to: sheetTo, amount: amt, isAuto: false }])
@@ -1832,7 +1832,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 
             <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">Amount</div>
             <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl px-4 py-3 text-right mb-3">
-              <NumB value={(parseInt(sheetDigits || "0", 10)) * 10} size="text-[26px]" className="text-white justify-end" />
+              <NumB value={(parseInt(sheetDigits || "0", 10)) * 1000} size="text-[26px]" className="text-white justify-end" />
             </div>
 
             <Keypad
