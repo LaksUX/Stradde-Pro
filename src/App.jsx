@@ -2229,10 +2229,14 @@ export default function App() {
     }
   }, [])
 
+  // Always point the magic link at the live site, never wherever the request
+  // happened to be sent from — otherwise testing locally sends a link that
+  // opens localhost on your phone, which doesn't exist there.
+  const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin
   const sendMagicLink = async (email) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: SITE_URL },
     })
     if (error) throw error
   }
