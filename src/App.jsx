@@ -4,7 +4,7 @@ import {
   Trophy, Clock, Users, TrendingUp, TrendingDown, Edit3, Check,
   Share2, X, LayoutDashboard, Gamepad2, Home, RotateCcw,
   CheckCircle2, AlertCircle, ChevronsRight, Coins, Hash,
-  LogOut, ChevronRight, Wallet,
+  LogOut, ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
+import { loadRoster, upsertRoster } from "@/lib/roster"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const nowStr = () => {
@@ -266,7 +267,7 @@ function Toast({ toast }) {
   if (!toast) return null
   return (
     <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[100] px-4">
-      <div className="flex items-center gap-3 bg-felt-surface-2 border border-felt-border text-white px-4 py-3 rounded-2xl shadow-2xl shadow-black/50 max-w-[320px]">
+      <div className="flex items-center gap-3 bg-felt-surface-2 border border-felt-border text-white px-4 py-3 rounded-2xl shadow-2xl shadow-black/50 max-w-[320px] sm:max-w-sm">
         <span className="text-lg leading-none">{toast.icon}</span>
         <div>
           <div className="text-sm font-semibold text-zinc-100">{toast.title}</div>
@@ -493,7 +494,7 @@ function AdminScreen({ onBack }) {
           explicitly rather than silently omitting the check the spec asks
           for. */}
       <Dialog open={!!revokeTarget} onOpenChange={(o) => { if (!o) setRevokeTarget(null) }}>
-        <DialogContent className="max-w-[340px] bg-felt-surface border-felt-border text-zinc-100">
+        <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-white">Revoke host approval?</DialogTitle>
             <DialogDescription className="text-zinc-500">
@@ -792,7 +793,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
 // sets below. There is no per-player buy-in count/amount control at creation
 // time — hosts add further buy-ins live during the game instead.
 
-function CreateGameScreen({ pastGames, onCancel, onCreate }) {
+function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }) {
   const lastGame = pastGames[0]
   const [name, setName]         = useState(lastGame?.name || "")
   const [date, setDate]         = useState(new Date().toLocaleDateString("en-IN", { day:"numeric", month:"short" }))
@@ -806,19 +807,19 @@ function CreateGameScreen({ pastGames, onCancel, onCreate }) {
   const [players, setPlayers]   = useState([])
   const [nameInput, setNameInput]   = useState("")
   const [phoneInput, setPhoneInput] = useState("")
-  const [source, setSource]     = useState("Your players")
+  // Default to "Your players" when the shared roster has anyone in it — the
+  // fast/default path per REQUIREMENTS.md → Roster.
+  const [source, setSource]     = useState(roster.length > 0 ? "Your players" : "Type in")
   const [createdGame, setCreatedGame] = useState(null) // set after "Start Game" — shows the invite step
   const [copied, setCopied] = useState(false)
 
-  // Roster remembers name + phone from past games (phone is a stub — seed
-  // data has no phone numbers, so those show as "no number on file").
-  const roster = [...new Map(pastGames.flatMap(g => g.players.map(p => [p.name, { name: p.name, phone: p.phone || "" }]))).values()]
-  const notAdded = roster.filter(r => !players.find(p => p.name === r.name))
+  const notAdded = roster.filter(r => !players.find(p => p.name.toLowerCase() === r.name.toLowerCase()))
 
   const addPlayer = (n, ph) => {
     const t = n.trim(), phone = (ph || "").trim()
     if (!t || !phone || players.find(p => p.name.toLowerCase() === t.toLowerCase())) return
     setPlayers(prev => [...prev, { name: t, phone }])
+    addToRoster(t, phone)
     setNameInput(""); setPhoneInput("")
   }
 
@@ -1086,7 +1087,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-[340px] bg-felt-surface border-felt-border text-zinc-100">
+      <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
         <DialogHeader>
           <DialogTitle className="text-white">End Game & Settle</DialogTitle>
           <DialogDescription className="text-zinc-500">Review accounts before settlement.</DialogDescription>
@@ -1163,14 +1164,16 @@ function EndGameModal({ game, onConfirm, onClose }) {
 // ─── Live Game ────────────────────────────────────────────────────────────────
 const LOCK_MS = 60 * 1000 // buy-ins become un-editable 1 min after being added
 
-function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, showToast }) {
+function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, showToast, roster, addToRoster }) {
   const [sheetFor, setSheetFor] = useState(null)      // player name whose sheet is open
   const [cashoutOn, setCashoutOn] = useState(false)   // cash-out toggle inside the sheet
   const [sliderVal, setSliderVal] = useState(0)
   const [cashoutDigits, setCashoutDigits] = useState("")
   const [showEnd, setShowEnd]   = useState(false)
+  const [addingPlayer, setAddingPlayer] = useState(false) // expandable "Add late player" section
+  const [addMode, setAddMode]   = useState("roster") // roster | new
   const [newName, setNewName]   = useState("")
-  const [addingPlayer, setAddingPlayer] = useState(false)
+  const [newPhone, setNewPhone] = useState("")
   const [rakeVisible, setRakeVisible] = useState(false)
 
   const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 1000))
@@ -1214,10 +1217,6 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   }
   const closeSheet = () => { setSheetFor(null); setCashoutDigits(""); setCashoutOn(false) }
 
-  const askConfirmBank = (p) => {
-    showToast("🔔", "Bank check sent", `Asked ${p.name} to confirm their current bank count (stub — no push backend yet)`)
-  }
-
   const sendCashoutDetails = async (p) => {
     const tIn = totalBuyinsFor(p)
     const text = [
@@ -1234,17 +1233,32 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     }
   }
 
-  const addPlayer = () => {
-    const n = newName.trim()
-    if (!n) return
-    if (players.find(p => p.name.toLowerCase() === n.toLowerCase())) {
-      showToast("⚠️", "Already added", `${n} is in the game`); return
+  // Add-player: same shared roster as Create Game (see src/lib/roster.js).
+  // A roster chip tap adds instantly; the "someone new" fallback requires
+  // both name and phone, and also saves the new person to the roster.
+  const addPlayerToGame = (n, phone) => {
+    const t = n.trim()
+    if (!t) return
+    if (players.find(p => p.name.toLowerCase() === t.toLowerCase())) {
+      showToast("⚠️", "Already added", `${t} is in the game`); return
     }
-    updatePlayers([...players, { name: n, buyins: [{ ts: nowStr(), epoch: Date.now(), amount: game.buyinAmount }], cashedOut: false, cashoutAmount: null }])
-    setNewName("")
-    setAddingPlayer(false)
-    showToast("🃏", "Player Added", `${n} — ${fmtB(game.buyinAmount)}`)
+    updatePlayers([...players, { name: t, phone: (phone || "").trim(), buyins: [{ ts: nowStr(), epoch: Date.now(), amount: game.buyinAmount }], cashedOut: false, cashoutAmount: null }])
+    showToast("🃏", "Player Added", `${t} — ${fmtB(game.buyinAmount)}`)
   }
+
+  const addFromRoster = (r) => addPlayerToGame(r.name, r.phone)
+
+  const addNewPlayer = () => {
+    const n = newName.trim(), phone = newPhone.trim()
+    if (!n || !phone) return
+    addPlayerToGame(n, phone)
+    addToRoster(n, phone)
+    setNewName(""); setNewPhone("")
+    setAddingPlayer(false)
+    setAddMode("roster")
+  }
+
+  const notInGameRoster = roster.filter(r => !players.find(p => p.name.toLowerCase() === r.name.toLowerCase()))
 
   const confirmBuyins = () => {
     const idx = players.findIndex(p => p.name === sheetFor)
@@ -1383,24 +1397,78 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
         </div>
       </div>
 
-      {/* Add player */}
+      {/* Add late player — same shared roster as Create Game: tap a chip to
+          add instantly, or switch to "Someone new" for free-text + mandatory
+          phone (which also saves them to the roster for next time). */}
       <div className="px-5 mt-4">
         {addingPlayer ? (
-          <div className="flex gap-2">
-            <input
-              autoFocus
-              className="flex-1 h-11 bg-felt-surface border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition-all"
-              placeholder="Player name…"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addPlayer()}
-            />
-            <button onClick={addPlayer} className="w-11 h-11 bg-gold hover:bg-gold rounded-xl flex items-center justify-center text-white transition-colors">
-              <Check className="w-4 h-4" />
-            </button>
-            <button onClick={() => { setAddingPlayer(false); setNewName("") }} className="w-11 h-11 bg-felt-surface border border-felt-border rounded-xl flex items-center justify-center text-zinc-500 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+          <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">Add late player</div>
+              <button onClick={() => { setAddingPlayer(false); setAddMode("roster"); setNewName(""); setNewPhone("") }}
+                className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex gap-1.5 mb-3">
+              {["roster", "new"].map(m => (
+                <button key={m} onClick={() => setAddMode(m)}
+                  className={cn(
+                    "flex-1 h-8 rounded-lg text-xs font-bold transition-colors",
+                    addMode === m ? "bg-gold text-white" : "bg-felt-surface-2 text-zinc-400 hover:text-zinc-200"
+                  )}>
+                  {m === "roster" ? "Your players" : "Someone new"}
+                </button>
+              ))}
+            </div>
+
+            {addMode === "roster" && (
+              notInGameRoster.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {notInGameRoster.map(r => (
+                    <button key={r.name} onClick={() => addFromRoster(r)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-transparent hover:bg-felt-surface-2 border border-dashed border-felt-border hover:border-zinc-600 text-zinc-400 hover:text-white rounded-full text-xs font-medium transition-all">
+                      <span className="text-gold-light font-bold">+</span> {r.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-3 text-zinc-700 text-xs font-medium">
+                  Everyone in your roster is already in this game
+                </div>
+              )
+            )}
+
+            {addMode === "new" && (
+              <div className="flex flex-col gap-2">
+                <input
+                  autoFocus
+                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold transition-all"
+                  placeholder="Player's name…"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                />
+                <input
+                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold transition-all"
+                  placeholder="Phone number (required)…"
+                  type="tel"
+                  value={newPhone}
+                  onChange={e => setNewPhone(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addNewPlayer()}
+                />
+                {newName.trim() && !newPhone.trim() && (
+                  <div className="text-[10.5px] text-amber-500 font-medium">Phone number is required to add a player</div>
+                )}
+                <button
+                  disabled={!newName.trim() || !newPhone.trim()}
+                  onClick={addNewPlayer}
+                  className="w-full h-10 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
+                >
+                  Add to game
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button onClick={() => setAddingPlayer(true)}
@@ -1421,8 +1489,13 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
         {players.map((p) => {
           const tIn = totalBuyinsFor(p)
           const net = p.cashedOut ? (p.cashoutAmount - tIn) : null
-          const hasLocked = !p.cashedOut && p.buyins.some(b => !b.epoch || Date.now() - b.epoch >= LOCK_MS)
-          const dotColor = p.cashedOut ? (net >= 0 ? "emerald" : "red") : "indigo"
+          const locked = lockedCountFor(p)
+          const allLocked = p.buyins.length > 0 && locked === p.buyins.length
+          const hasLocked = !p.cashedOut && locked > 0
+          // Status dot: locked/unlocked reflects the buy-in lock state, kept
+          // distinct from cashed-out/settled (which is its own visual —
+          // dimmed row + net figure — not conflated with this dot).
+          const dotColor = p.cashedOut ? (net >= 0 ? "emerald" : "red") : allLocked ? "zinc" : "indigo"
           return (
             <div
               key={p.name}
@@ -1447,15 +1520,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                 )}
                 <Dot color={dotColor} />
               </button>
-              {!p.cashedOut ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); askConfirmBank(p) }}
-                  title="Ask player to confirm their bank"
-                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-gold-light hover:border-gold/40 transition-colors shrink-0"
-                >
-                  <Wallet className="w-3.5 h-3.5" />
-                </button>
-              ) : (
+              {p.cashedOut && (
                 <button
                   onClick={(e) => { e.stopPropagation(); sendCashoutDetails(p) }}
                   title="Send cash-out details"
@@ -1660,22 +1725,26 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
     closeSheet()
   }
 
-  const shareWA = () => {
+  // No deep links (WhatsApp, SMS, etc.) — copy to clipboard only, per the
+  // app-wide no-deep-links interaction principle. The host pastes this
+  // wherever they actually want to send it.
+  const copySettlement = async () => {
     const lines = [
-      `🃏 *${game.name}* — ${game.date}`,
+      `🃏 ${game.name} — ${game.date}`,
       ``,
-      `*Settle Up (${allTxns.length} payments):*`,
-      ...allTxns.map(t => `• ${t.from} → ${t.to}: *${fmtB(t.amount)}*`),
+      `Settle Up (${allTxns.length} payments):`,
+      ...allTxns.map(t => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
       ...(allTxns.length === 0 ? ["• Everyone's even!"] : []),
       ``,
       `Pot: ${fmtB(totalIn)}${rake > 0 ? ` · Rake: ${fmtB(rake)}` : ""} · Out: ${fmtB(totalOut)}`,
     ]
-    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank")
-  }
-
-  const reminderWA = (t) => {
-    const msg = `Hey ${t.from}! Please send *${fmtB(t.amount)}* to ${t.to} to settle ${game.name} 🃏`
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")
+    const text = lines.join("\n")
+    try {
+      await navigator.clipboard.writeText(text)
+      showToast("📋", "Copied", "Settlement summary ready to paste")
+    } catch {
+      showToast("📋", "Settlement summary", text)
+    }
   }
 
   const medals = ["🥇", "🥈", "🥉"]
@@ -1787,9 +1856,9 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 
       {/* Actions */}
       <div className="px-5 flex flex-col gap-3">
-        <button onClick={shareWA}
-          className="w-full h-12 bg-[#25d366] hover:bg-[#20bc58] text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-          <Share2 className="w-4 h-4" /> Share via WhatsApp
+        <button onClick={copySettlement}
+          className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+          <Share2 className="w-4 h-4" /> Copy settlement summary
         </button>
         <button onClick={() => onClose(visibleTxns.map(({ from, to, amount }) => ({ from, to, amount })))}
           className="w-full h-12 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-200 font-bold rounded-xl text-sm transition-colors">
@@ -2006,7 +2075,7 @@ function BottomNav({ screen, onNavigate, showLive }) {
   ].filter(Boolean)
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40 px-3 pb-5">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] sm:max-w-xl md:max-w-2xl z-40 px-3 sm:px-5 pb-5">
       <div className="bg-felt-surface/95 backdrop-blur-xl border border-felt-border rounded-2xl px-2 py-2 flex items-center shadow-2xl shadow-black/50">
         {items.map(item => {
           const Icon = item.icon
@@ -2039,6 +2108,13 @@ export default function App() {
   const [selGame, setSelGame]     = useState(null)
   const [toast, setToast]         = useState(null)
   const toastRef = useRef(null)
+
+  // Shared roster — single source of truth for "Your players", used by both
+  // CreateGameScreen and LiveGameScreen's "Add late player" flow. Lifted to
+  // App root so both screens read/write the same list. Seeded from
+  // pastGames only if localStorage is empty (see src/lib/roster.js).
+  const [roster, setRoster] = useState(() => loadRoster(SEED_PAST_GAMES))
+  const addToRoster = (name, phone) => setRoster(prev => upsertRoster(prev, name, phone))
 
   // Auth bootstrap: pick up any existing session on load (so we don't flash
   // the login screen), then keep listening for sign-in/sign-out/magic-link
@@ -2159,10 +2235,10 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-[430px] min-h-screen bg-felt-bg mx-auto relative">
+    <div className="w-full max-w-[430px] sm:max-w-xl md:max-w-2xl min-h-screen bg-felt-bg mx-auto relative sm:px-2">
       {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} />}
-      {screen === "create-game" && <CreateGameScreen pastGames={pastGames} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
-      {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} />}
+      {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
+      {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
       {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
       {!isFullScreen && <BottomNav screen={screen} onNavigate={navigate} showLive={!!activeGame} />}
