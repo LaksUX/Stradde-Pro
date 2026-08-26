@@ -104,6 +104,13 @@ every game they've played in," every player row needs a defined path to an accou
     note or handling it as cash outside the app. This is a deliberate trust/integrity
     tradeoff (an editable "locked" value isn't really locked) and should be stated to
     hosts in-product, not just assumed.
+  - **[decision, clarifying a real bug found] "Locked" only means the locked
+    portion can't be dragged away — it never means the host stops being able to add
+    MORE buy-ins.** An earlier build fully disabled the slider once every recorded
+    buy-in was past the 1-minute window, which accidentally blocked new buy-ins too,
+    not just editing old ones. Locking is a floor, never a ceiling: a host can always
+    add another buy-in for a player who's still in the game, no matter how many past
+    ones are locked.
 - Once a player's cash-out is being entered, their buy-ins are **locked** — no more
   buy-ins for that player while cashing out.
 - **[decision] A cash-out can be edited freely until the game is closed** (see Game
@@ -200,6 +207,34 @@ game is "done," which the settlement graph and dashboard stats both depend on.)*
   gets its own chart rather than being blended into one misleading combined trend.
 - Tapping any game (from either tab) goes to game detail, which applies the
   host/player visibility rule above.
+
+## Settlements ledger *(new — was missing entirely, this closes that gap)*
+
+There was no way to see settlement obligations *across* games — only one game at a
+time, from inside that game's own Settlement/Game Detail screens. This adds an
+aggregate view, reachable from Home:
+
+- **Player**: a "My Settlements" view listing every settlement line, across every
+  closed game they were a party to (from or to), regardless of who hosted it —
+  who they owe, who owes them, how much, from which game. This is the cross-game
+  answer to "what do I actually owe right now" that no single game's detail screen
+  can give on its own.
+- **Host**: a "Settlement Ledger" view aggregating every settlement transfer across
+  every game *they* hosted (not games they merely played in) — the full picture, not
+  filtered to their own transfers. From here, the host can drill into an individual
+  player to see just that person's transfers across all of the host's games (e.g.
+  "how much has Arjun owed/been owed across every game I've run").
+- **[decision] Source of truth**: only `closed` games contribute — settlement is
+  computed once at close and stored (per Game lifecycle above), so this ledger reads
+  that stored data rather than recomputing anything live. A live game's in-progress
+  numbers don't appear here.
+- **[decision] Settlement summary sharing is one combined message, not per-player.**
+  "Copy settlement summary" (Settlement screen) generates a single text block with
+  every transfer in that game — there's no per-player individual message today. If a
+  host wants to notify just one player, they currently have to manually pick out
+  their line and copy/paste it separately, or use the Settlements Ledger drill-down
+  above to see one player's numbers on-screen. A dedicated "copy for this player
+  only" action is a reasonable future addition but isn't built.
 
 ## Invites (partially stubbed — see gaps below)
 

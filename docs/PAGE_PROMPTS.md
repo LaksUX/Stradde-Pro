@@ -195,10 +195,9 @@ No separate History screen/tab — this covers it.
 
 - Each row: name, **total banks bought in** shown large and bold (not a raw buy-in
   *count* — the bank amount is what matters), a small status dot for locked/unlocked
-  instead of a text badge, tap opens the bottom sheet. No "bank check" action — that
-  stub is removed, it added a row action for no real behavior behind it yet.
-- Cash-out-share stub stays (clipboard-copy summary for a player quitting early) —
-  copy-only, no deep link, per the global no-deep-links principle.
+  instead of a text badge, tap opens the bottom sheet. No per-row stub actions — the
+  "bank check" and "share cash-out details" actions were both removed (dead UI with
+  no real behavior behind them yet; the row itself is the whole interaction).
 - **Remove player** — only available for a row with zero buy-ins recorded (accidental
   add). Once any buy-in exists, the action disappears entirely rather than being
   disabled-with-tooltip, since it's genuinely no longer a valid action per
@@ -225,9 +224,12 @@ cash-out):
 - **Buy-in** is primary: big number + status dot, a slider (shadcn `Slider`, 0–30,
   ticks every 5) whose minimum floors at the player's already-locked buy-in count, a
   quiet "Locks in 1 min" caption (not a boxed warning), "Confirm N buy-ins" button.
-  Once locked, the slider becomes fully non-interactive (not just floored) —
-  `REQUIREMENTS.md` treats the lock as permanent with no override, so the UI
-  shouldn't imply otherwise.
+  **Locking is a floor, not a ceiling** — the slider must stay fully draggable
+  *upward* past the locked count to add more buy-ins, even when every current
+  buy-in is locked. (An earlier version of this doc said "fully non-interactive
+  once locked," which was wrong and caused a real bug — a host couldn't add new
+  buy-ins at all once the existing ones locked. Locking only ever blocks removing
+  what's already locked, never adding more.)
 - **Cash out this player** is a small toggle (shadcn `Switch`) below the buy-in
   section — flipping it on **hides the buy-in slider/confirm entirely** (buy-ins lock
   while cashing out) and reveals: a small "N buy-ins · X banks in — locked while
@@ -305,6 +307,29 @@ flow itself only exists in that pre-close window.
 - **Host viewing a closed game they also played in** — the "full breakdown" and
   "personal net" views need to coexist clearly (their own row shouldn't be visually
   ambiguous in the full player list), since a host is also always a player.
+
+## Settlements Ledger *(new)*
+
+Reachable from Home (an entry point on both tabs, or promoted from a summary card —
+implementer's call on exact placement, but it must be reachable without going through
+an individual game first, since the whole point is the cross-game view a single game
+can't give).
+
+- **Player view ("My Settlements")**: every settlement line across every `closed`
+  game this account was a party to, host's-own-games or not — who they owe, who owes
+  them, how much, which game. Group by counterpart or by game, implementer's call,
+  but don't just dump a flat unsorted list — the point is "what do I actually owe
+  right now" being answerable at a glance.
+- **Host view ("Settlement Ledger")**: every transfer across every `closed` game this
+  account hosted — the aggregate, not filtered to the host's own personal transfers.
+  Tapping a player name drills into that player's transfers across all of the host's
+  games specifically (their running tab with this host, essentially).
+- Both views read from each game's stored `settlement` (computed once at close, per
+  Game Lifecycle) — never recomputed live, never includes `live` games.
+- Empty state: distinct copy for "no closed games yet" vs. "closed games exist but
+  none involved you as a settlement party" (the latter is unusual — most players are
+  in every game's settlement — but a player who was removed pre-buy-in from a game
+  that later closed shouldn't see a confusing empty ledger that looks like a bug).
 
 ## Global
 

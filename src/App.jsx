@@ -113,7 +113,12 @@ function Keypad({ onDigit, onBackspace, onClear }) {
 // genuinely locked, not merely clamped. It re-enables the moment a fresh
 // unlocked buy-in exists (value > min).
 function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
-  const locked = min > 0 && value === min
+  // `min` floors the draggable range at the player's already-locked buy-in
+  // count — locked entries can never be dragged away. The slider itself
+  // must stay fully interactive above that floor: a host can always add
+  // MORE buy-ins regardless of how many past ones are locked. Only the
+  // downward direction below `min` is blocked, never the whole control.
+  const allLocked = min > 0 && value === min
   return (
     <div className="px-1">
       <div className="relative">
@@ -128,7 +133,6 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
           min={min}
           max={max}
           step={1}
-          disabled={locked}
           onValueChange={([v]) => onChange(Math.max(min, v))}
         />
       </div>
@@ -137,9 +141,11 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
           <span key={t} className="text-[10px] font-mono text-zinc-600">{t}</span>
         ))}
       </div>
-      {locked && (
+      {min > 0 && (
         <div className="text-center text-[10.5px] text-zinc-600 mt-1.5">
-          All buy-ins locked — no more can be removed from here
+          {allLocked
+            ? "All buy-ins so far are locked — drag right to add more"
+            : `First ${min} locked — can't go below that`}
         </div>
       )}
     </div>
@@ -1217,22 +1223,6 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   }
   const closeSheet = () => { setSheetFor(null); setCashoutDigits(""); setCashoutOn(false) }
 
-  const sendCashoutDetails = async (p) => {
-    const tIn = totalBuyinsFor(p)
-    const text = [
-      `🃏 ${game.name} — cash-out summary for ${p.name}`,
-      `Buy-ins: ${fmtB(tIn)}`,
-      p.cashedOut ? `Cashed out: ${fmtB(p.cashoutAmount || 0)}` : `Not cashed out yet`,
-      p.cashedOut ? `Net: ${fmtNet((p.cashoutAmount || 0) - tIn)}` : null,
-    ].filter(Boolean).join("\n")
-    try {
-      await navigator.clipboard.writeText(text)
-      showToast("📋", "Cash-out details copied", `Ready to send to ${p.name} (stub — no push backend yet)`)
-    } catch {
-      showToast("📋", "Cash-out details ready", text)
-    }
-  }
-
   // Add-player: same shared roster as Create Game (see src/lib/roster.js).
   // A roster chip tap adds instantly; the "someone new" fallback requires
   // both name and phone, and also saves the new person to the roster.
@@ -1520,15 +1510,6 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                 )}
                 <Dot color={dotColor} />
               </button>
-              {p.cashedOut && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); sendCashoutDetails(p) }}
-                  title="Send cash-out details"
-                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors shrink-0"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                </button>
-              )}
               {/* Remove player — only ever valid before any buy-in exists for
                   them (fixes an accidental add). Once a buy-in is recorded,
                   removal isn't a valid action any more, so it's genuinely
