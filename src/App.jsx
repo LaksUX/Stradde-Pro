@@ -34,10 +34,13 @@ const nowStr = () => {
 // DISPLAY ONLY rounds to the nearest whole bank — underlying stored/computed
 // values (buyins, cashouts, rake, settlement math) stay at full precision;
 // only what's shown on screen is rounded here.
-const fmtBankNum = (n) => String(Math.round(Math.abs(n) / 1000))
+// 1 bank = 10,000 internal units — fixed, this is the app's one unit of
+// value and every buy-in is always exactly 1 bank. Never change this scale.
+const BANK = 10000
+const fmtBankNum = (n) => String(Math.round(Math.abs(n) / BANK))
 
 // Legacy plain-text formatters (still used for WhatsApp share text, toasts).
-const fmtB = (n) => `${fmtBankNum(n)} ${Math.abs(n) / 1000 === 1 ? "bank" : "banks"}`
+const fmtB = (n) => `${fmtBankNum(n)} ${Math.abs(n) / 10000 === 1 ? "bank" : "banks"}`
 const fmtNet = (n) => {
   if (n === 0) return "Even"
   return `${n > 0 ? "+" : "−"}${fmtB(Math.abs(n))}`
@@ -45,7 +48,7 @@ const fmtNet = (n) => {
 
 // ─── Bank-unit number display: bold bright number + small muted unit ──────────
 function NumB({ value, sign = false, size = "text-sm", className }) {
-  const bankCount = Math.abs(value) / 1000
+  const bankCount = Math.abs(value) / 10000
   const label = bankCount === 1 ? "bank" : "banks"
   const prefix = sign ? (value > 0 ? "+" : value < 0 ? "−" : "") : ""
   return (
@@ -694,20 +697,13 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         )}
       </div>
 
-      <div className="px-5 mt-1 flex items-center gap-2">
-        <Tabs value={view} onValueChange={setView} className="flex-1">
+      <div className="px-5 mt-1">
+        <Tabs value={view} onValueChange={setView}>
           <TabsList>
             <TabsTrigger value="player">My Player Stats</TabsTrigger>
             <TabsTrigger value="host">My Hosting Stats</TabsTrigger>
           </TabsList>
         </Tabs>
-        <button
-          onClick={() => onNavigate("settlements")}
-          title="Settlements across every game"
-          className="w-9 h-9 shrink-0 rounded-xl bg-felt-surface border border-felt-border text-zinc-400 hover:text-gold-light hover:border-gold/40 flex items-center justify-center transition-colors"
-        >
-          <LayoutDashboard className="w-4 h-4" />
-        </button>
       </div>
 
       {view === "host" && (
@@ -731,6 +727,10 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           </div>
           <SL>Hosting Overview</SL>
           <HostStatsView pastGames={closedGames} />
+          <SL>Settlement Ledger</SL>
+          <div className="px-5">
+            <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g)} />
+          </div>
         </>
       )}
 
@@ -763,6 +763,15 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           </>
         )
       })()}
+
+      {view === "player" && (
+        <>
+          <SL>My Settlements</SL>
+          <div className="px-5">
+            <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g)} />
+          </div>
+        </>
+      )}
 
       {view === "player" && recent.length > 0 && (
         <>
@@ -802,9 +811,9 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
 }
 
 // ─── Create Game ──────────────────────────────────────────────────────────────
-// Every player starts at exactly 1 buy-in, at the game-wide stake the host
-// sets below. There is no per-player buy-in count/amount control at creation
-// time — hosts add further buy-ins live during the game instead.
+// Every player starts at exactly 1 buy-in = 1 bank — fixed, never a
+// host-set amount. There is no per-player or per-game buy-in amount
+// control at creation time; hosts add further buy-ins live during the game.
 
 function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }) {
   const lastGame = pastGames[0]
@@ -812,11 +821,6 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
   const [date, setDate]         = useState(new Date().toLocaleDateString("en-IN", { day:"numeric", month:"short" }))
   const [time, setTime]         = useState(nowStr())
   const [location, setLocation] = useState(lastGame?.location || "")
-  // Stake (buy-in amount) — blank by default, deliberately not 0/1, so
-  // "Start Game" stays disabled until the host sets a real value. Entered in
-  // whole banks, stored in internal units (1 bank = 1000 units).
-  const [stakeInput, setStakeInput] = useState("")
-  const stakeAmount = (parseFloat(stakeInput) || 0) * 1000
   const [players, setPlayers]   = useState([])
   const [nameInput, setNameInput]   = useState("")
   const [phoneInput, setPhoneInput] = useState("")
@@ -838,19 +842,19 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
 
   const removePlayer = (n) => setPlayers(prev => prev.filter(p => p.name !== n))
 
-  const canStart = name.trim() && players.length > 0 && stakeAmount > 0
+  const canStart = name.trim() && players.length > 0
 
   const handleCreate = () => {
     if (!canStart) return
     const game = {
       id: Date.now(),
       name: name.trim(), date, time, location,
-      buyinAmount: stakeAmount,
+      buyinAmount: BANK,
       rake: 0,
       status: "live",
       players: players.map(p => ({
         name: p.name, phone: p.phone,
-        buyins: [{ ts: nowStr(), epoch: Date.now(), amount: stakeAmount }],
+        buyins: [{ ts: nowStr(), epoch: Date.now(), amount: BANK }],
         cashedOut: false, cashoutAmount: null,
       })),
     }
@@ -941,21 +945,6 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
               <DInput label="Time" value={time} onChange={e => setTime(e.target.value)} />
             </div>
             <DInput label="Location (optional)" placeholder="e.g. Raj's place" value={location} onChange={e => setLocation(e.target.value)} />
-            <div>
-              <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">Buy-in Amount (Banks)</div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number" min="0" step="1" inputMode="decimal" placeholder="e.g. 2"
-                  value={stakeInput}
-                  onChange={e => setStakeInput(e.target.value)}
-                  className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm font-mono placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
-                />
-                <span className="text-zinc-500 text-sm font-bold w-10 shrink-0">/ buy-in</span>
-              </div>
-              <div className="text-[10.5px] text-zinc-600 mt-1.5 leading-relaxed">
-                Every player starts with exactly 1 buy-in at this amount. One stake for the whole game — required before you can start.
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1060,7 +1049,6 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
           Start Game{
             !name.trim() ? " · add a game name"
             : players.length === 0 ? " · add at least 1 player"
-            : stakeAmount <= 0 ? " · set a buy-in amount"
             : ` · ${players.length} players`
           }
         </button>
@@ -1084,13 +1072,13 @@ function DInput({ label, ...props }) {
 
 // ─── End Game Modal ───────────────────────────────────────────────────────────
 function EndGameModal({ game, onConfirm, onClose }) {
-  const [rake, setRake] = useState(String((game.rake || 0) / 1000))
+  const [rake, setRake] = useState(String((game.rake || 0) / 10000))
   const [ackUncashed, setAckUncashed] = useState(false)
   const players  = game.players
   const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
   const totalOut = players.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
   const uncashed = players.filter(p => !p.cashedOut)
-  const rakeAmt  = (parseFloat(rake) || 0) * 1000
+  const rakeAmt  = (parseFloat(rake) || 0) * 10000
   // Invariant: sum(buy-ins) = sum(cash-outs) + rake. `diff` is how far off
   // that is; rake is host revenue skimmed off the table, never a per-player
   // transfer, so it never appears in the settlement transfers below.
@@ -1189,7 +1177,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   const [newPhone, setNewPhone] = useState("")
   const [rakeVisible, setRakeVisible] = useState(false)
 
-  const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 1000))
+  const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 10000))
 
   const players  = game.players
   const isClosed = game.status === "closed"
@@ -1212,7 +1200,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
   const commitRake = (v) => {
     if (isClosed) return
-    const amt = Math.max(0, (parseFloat(v) || 0) * 1000)
+    const amt = Math.max(0, (parseFloat(v) || 0) * 10000)
     onUpdateGame({ ...game, rake: amt })
   }
 
@@ -1226,7 +1214,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     setSheetFor(p.name)
     setCashoutOn(!!p.cashedOut)
     setSliderVal(p.buyins.length)
-    setCashoutDigits(p.cashedOut ? String(Math.round((p.cashoutAmount || 0) / 1000)) : "")
+    setCashoutDigits(p.cashedOut ? String(Math.round((p.cashoutAmount || 0) / 10000)) : "")
   }
   const closeSheet = () => { setSheetFor(null); setCashoutDigits(""); setCashoutOn(false) }
 
@@ -1288,7 +1276,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     const idx = players.findIndex(p => p.name === sheetFor)
     if (idx < 0) return
     const p = players[idx]
-    const val = parseInt(cashoutDigits || "0", 10) * 1000 // keypad digits are whole banks typed directly
+    const val = parseInt(cashoutDigits || "0", 10) * 10000 // keypad digits are whole banks typed directly
     const updated = [...players]
     const net = val - totalBuyinsFor(p)
     updated[idx] = { ...p, cashedOut: true, cashoutAmount: val }
@@ -1305,7 +1293,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
   const sheetPlayer = players.find(p => p.name === sheetFor)
   const sheetPlayerIn = sheetPlayer ? totalBuyinsFor(sheetPlayer) : 0
-  const cashoutEntered = parseInt(cashoutDigits || "0", 10) * 1000
+  const cashoutEntered = parseInt(cashoutDigits || "0", 10) * 10000
   const cashoutNet = cashoutEntered - sheetPlayerIn
 
   return (
@@ -1682,7 +1670,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
     setSheetTxn(t)
     setSheetFrom(t.from)
     setSheetTo(t.to)
-    setSheetDigits(t.amount ? String(Math.round(t.amount / 1000)) : "")
+    setSheetDigits(t.amount ? String(Math.round(t.amount / 10000)) : "")
   }
   const openAdd = () => {
     setSheetTxn({ key: `custom-${customTxns.length}`, isNew: true })
@@ -1691,7 +1679,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   const closeSheet = () => setSheetTxn(null)
 
   const saveSheet = () => {
-    const amt = (parseInt(sheetDigits || "0", 10)) * 1000
+    const amt = (parseInt(sheetDigits || "0", 10)) * 10000
     if (!sheetFrom || !sheetTo || amt <= 0) { showToast("⚠️", "Invalid", "Pick From, To and an amount"); return }
     if (sheetTxn.isNew) {
       setCustomTxns(prev => [...prev, { key: sheetTxn.key, from: sheetFrom, to: sheetTo, amount: amt, isAuto: false }])
@@ -1891,7 +1879,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 
             <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">Amount</div>
             <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl px-4 py-3 text-right mb-3">
-              <NumB value={(parseInt(sheetDigits || "0", 10)) * 1000} size="text-[26px]" className="text-white justify-end" />
+              <NumB value={(parseInt(sheetDigits || "0", 10)) * 10000} size="text-[26px]" className="text-white justify-end" />
             </div>
 
             <Keypad
@@ -1915,18 +1903,14 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   )
 }
 
-// ─── Settlements Ledger ─────────────────────────────────────────────────────────
+// ─── Settlements — inline within Home's Player/Host tabs ──────────────────────
 // Cross-game view — every other settlement surface (Settlement screen, Game
 // Detail) only shows one game at a time. This answers "what do I actually
 // owe right now" / "what's the full picture across everything I've hosted"
 // by reading each closed game's already-computed, stored settlement list —
-// never recomputed live, never includes a `live` game.
-function SettlementsLedgerScreen({ hostName, closedGames, onBack, onSelectGame }) {
-  const [view, setView] = useState("player") // player | host
-  const [drillPlayer, setDrillPlayer] = useState(null)
-
-  // Player: every line across every closed game where this account was a
-  // party (from or to), regardless of who hosted it.
+// never recomputed live, never includes a `live` game. Lives directly inside
+// the Player/Hosting stats tabs on Home, not behind a separate screen.
+function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
   const myLines = closedGames.flatMap(g =>
     (g.settlement || [])
       .filter(t => t.from === hostName || t.to === hostName)
@@ -1935,111 +1919,91 @@ function SettlementsLedgerScreen({ hostName, closedGames, onBack, onSelectGame }
   const iOwe = myLines.filter(t => t.from === hostName)
   const owedToMe = myLines.filter(t => t.to === hostName)
 
-  // Host: every line across every game *this account hosted* — the full
-  // ledger, not filtered down to their own personal transfers.
+  return (
+    <div className="flex flex-col gap-2">
+      {myLines.length === 0 && (
+        <div className="text-zinc-600 text-xs text-center py-6">
+          {closedGames.length === 0
+            ? "No closed games yet — settlements show up here once a game ends."
+            : "No settlements involve you yet in any closed game."}
+        </div>
+      )}
+      {iOwe.length > 0 && (
+        <>
+          <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-1">You owe</div>
+          {iOwe.map((t, i) => (
+            <button key={i} onClick={() => onSelectGame(t.game)}
+              className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
+              <Av name={t.to} size={28} />
+              <div className="flex-1 min-w-0">
+                <div className="text-zinc-100 text-sm font-semibold">To {t.to}</div>
+                <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+              </div>
+              <NumB value={t.amount} sign={false} size="text-base" className="text-red-400" />
+            </button>
+          ))}
+        </>
+      )}
+      {owedToMe.length > 0 && (
+        <>
+          <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-2">Owed to you</div>
+          {owedToMe.map((t, i) => (
+            <button key={i} onClick={() => onSelectGame(t.game)}
+              className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
+              <Av name={t.from} size={28} />
+              <div className="flex-1 min-w-0">
+                <div className="text-zinc-100 text-sm font-semibold">From {t.from}</div>
+                <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+              </div>
+              <NumB value={t.amount} sign={false} size="text-base" className="text-emerald-400" />
+            </button>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
+function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
+  const [drillPlayer, setDrillPlayer] = useState(null)
   const hostedClosed = closedGames.filter(g => !g.hostName || g.hostName === hostName)
   const allHostedLines = hostedClosed.flatMap(g => (g.settlement || []).map(t => ({ ...t, game: g })))
   const hostedPlayers = [...new Set(allHostedLines.flatMap(t => [t.from, t.to]))].sort((a, b) => a.localeCompare(b))
   const drillLines = drillPlayer ? allHostedLines.filter(t => t.from === drillPlayer || t.to === drillPlayer) : allHostedLines
 
   return (
-    <div className="min-h-screen bg-felt-bg pb-8">
-      <div className="px-5 pt-14 pb-6 border-b border-felt-border">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
-          <X className="w-4 h-4" /> Back
-        </button>
-        <div className="text-white text-xl font-bold">Settlements</div>
-        <div className="text-zinc-500 text-sm mt-1">Across every closed game, not just one</div>
-      </div>
-
-      <div className="px-5 mt-4">
-        <Tabs value={view} onValueChange={v => { setView(v); setDrillPlayer(null) }}>
-          <TabsList>
-            <TabsTrigger value="player">My Settlements</TabsTrigger>
-            <TabsTrigger value="host">Settlement Ledger</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {view === "player" && (
-        <div className="px-5 mt-4 flex flex-col gap-2">
-          {myLines.length === 0 && (
-            <div className="text-zinc-600 text-xs text-center py-10">
-              {closedGames.length === 0
-                ? "No closed games yet — settlements show up here once a game ends."
-                : "No settlements involve you yet in any closed game."}
-            </div>
-          )}
-          {iOwe.length > 0 && (
-            <>
-              <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-2">You owe</div>
-              {iOwe.map((t, i) => (
-                <button key={i} onClick={() => onSelectGame(t.game)}
-                  className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
-                  <Av name={t.to} size={28} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-zinc-100 text-sm font-semibold">To {t.to}</div>
-                    <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
-                  </div>
-                  <NumB value={t.amount} sign={false} size="text-base" className="text-red-400" />
-                </button>
-              ))}
-            </>
-          )}
-          {owedToMe.length > 0 && (
-            <>
-              <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-3">Owed to you</div>
-              {owedToMe.map((t, i) => (
-                <button key={i} onClick={() => onSelectGame(t.game)}
-                  className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
-                  <Av name={t.from} size={28} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-zinc-100 text-sm font-semibold">From {t.from}</div>
-                    <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
-                  </div>
-                  <NumB value={t.amount} sign={false} size="text-base" className="text-emerald-400" />
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-
-      {view === "host" && (
-        <div className="px-5 mt-4 flex flex-col gap-2">
-          {hostedPlayers.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-1">
-              <button onClick={() => setDrillPlayer(null)}
-                className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
-                All players
-              </button>
-              {hostedPlayers.map(p => (
-                <button key={p} onClick={() => setDrillPlayer(p)}
-                  className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          )}
-          {drillLines.length === 0 && (
-            <div className="text-zinc-600 text-xs text-center py-10">
-              {hostedClosed.length === 0
-                ? "No games you've hosted have closed yet."
-                : "No settlement lines to show."}
-            </div>
-          )}
-          {drillLines.map((t, i) => (
-            <button key={i} onClick={() => onSelectGame(t.game)}
-              className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
-              <div className="flex-1 min-w-0">
-                <div className="text-zinc-100 text-sm font-semibold">{t.from} → {t.to}</div>
-                <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
-              </div>
-              <NumB value={t.amount} size="text-base" className="text-zinc-200" />
+    <div className="flex flex-col gap-2">
+      {hostedPlayers.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-1">
+          <button onClick={() => setDrillPlayer(null)}
+            className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+            All players
+          </button>
+          {hostedPlayers.map(p => (
+            <button key={p} onClick={() => setDrillPlayer(p)}
+              className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+              {p}
             </button>
           ))}
         </div>
       )}
+      {drillLines.length === 0 && (
+        <div className="text-zinc-600 text-xs text-center py-6">
+          {hostedClosed.length === 0
+            ? "No games you've hosted have closed yet."
+            : "No settlement lines to show."}
+        </div>
+      )}
+      {drillLines.map((t, i) => (
+        <button key={i} onClick={() => onSelectGame(t.game)}
+          className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
+          <div className="flex-1 min-w-0">
+            <div className="text-zinc-100 text-sm font-semibold">{t.from} → {t.to}</div>
+            <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+          </div>
+          <NumB value={t.amount} size="text-base" className="text-zinc-200" />
+        </button>
+      ))}
     </div>
   )
 }
@@ -2322,7 +2286,7 @@ export default function App() {
     showToast("🏁", "Saved", "Results added to your dashboard")
   }
 
-  const isFullScreen = ["create-game", "settlement", "game-detail", "admin", "settlements"].includes(screen)
+  const isFullScreen = ["create-game", "settlement", "game-detail", "admin"].includes(screen)
 
   if (authLoading) {
     return (
@@ -2356,7 +2320,6 @@ export default function App() {
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
       {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
-      {screen === "settlements" && <SettlementsLedgerScreen hostName={hostName} closedGames={pastGames.filter(g => g.status !== "live")} onBack={() => navigate("home")} onSelectGame={g => navigate("game-detail", g)} />}
       {!isFullScreen && <BottomNav screen={screen} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>

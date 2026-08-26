@@ -77,16 +77,16 @@ every game they've played in," every player row needs a defined path to an accou
 
 ## Money model
 
-- **1 bank = 10,000** internal units. All UI amounts are expressed in banks, never in
-  a currency symbol.
-- **[decision] Buy-in amount is a game-level field, set by the host at game
-  creation** (e.g. "2 banks per buy-in"), and applies uniformly to every player in
-  that game — there's no per-player custom buy-in amount. This is the "stake" that
-  the dashboard's net-trend chart later splits by (see Dashboard section) — it didn't
-  have an explicit home before this revision.
-- Every player starts a game with **exactly 1 buy-in** automatically, at the game's
-  buy-in amount — there's no "buy-in amount per player" decision at game creation,
-  only the one game-wide amount above.
+- **1 bank = 10,000 internal units — fixed, never change this scale.** Every
+  buy-in is always exactly 1 bank; there is no host-set stake/buy-in-amount field.
+  This reverses an earlier revision of this doc that introduced a game-level
+  "buy-in amount" field (e.g. "2 banks per buy-in") — that field has been removed.
+  It's worth stating plainly since this exact scale got it wrong twice during
+  development (a leftover `×10` conversion from an even older draft, and later an
+  internal-storage constant of 1,000 instead of 10,000) — both are fixed now, and
+  this line is the permanent reference for what "correct" means.
+- Every player starts a game with **exactly 1 buy-in** automatically, always worth
+  exactly 1 bank — there is no per-player or per-game variation on this amount.
 - Display amounts as **whole banks, no decimals** (e.g. "12 banks", not "12.4"). Only
   the display layer rounds — all stored/calculated amounts stay full-precision.
   - **[decision] Rounding rule:** each individual figure (a player's buy-ins,
@@ -202,28 +202,33 @@ game is "done," which the settlement graph and dashboard stats both depend on.)*
   - **Player tab**: this account's own results across every game they've played in
     (hosted or not), overall net, win count, and a net-trend chart. Only reflects
     games where this account's player row is `claimed` (see identity linking above).
-- The **net-trend chart splits by stake** (the game-level buy-in amount defined
-  above) — different stakes aren't comparable on one line, so each distinct stake
-  gets its own chart rather than being blended into one misleading combined trend.
+- **[vestigial]** The net-trend chart still has by-stake grouping logic in code
+  (a holdover from when buy-in amount was a variable game-level field) — with the
+  stake field removed, every game is always the same "stake" now, so this always
+  collapses to a single chart in practice. Harmless to leave as-is; not worth
+  ripping out for its own sake, but don't treat "split by stake" as a live
+  requirement to preserve if it's ever in the way of something else.
 - Tapping any game (from either tab) goes to game detail, which applies the
   host/player visibility rule above.
 
-## Settlements ledger *(new — was missing entirely, this closes that gap)*
+## Settlements ledger
 
 There was no way to see settlement obligations *across* games — only one game at a
-time, from inside that game's own Settlement/Game Detail screens. This adds an
-aggregate view, reachable from Home:
+time, from inside that game's own Settlement/Game Detail screens. This closes that
+gap by living **directly inside Home's existing Player/Hosting tabs** — not a
+separate screen reached through an icon or extra navigation step. It's part of what
+those tabs already are, the same way stats and recent games are.
 
-- **Player**: a "My Settlements" view listing every settlement line, across every
-  closed game they were a party to (from or to), regardless of who hosted it —
+- **Player tab** gets a "My Settlements" section: every settlement line across every
+  closed game this account was a party to (from or to), regardless of who hosted it —
   who they owe, who owes them, how much, from which game. This is the cross-game
   answer to "what do I actually owe right now" that no single game's detail screen
   can give on its own.
-- **Host**: a "Settlement Ledger" view aggregating every settlement transfer across
-  every game *they* hosted (not games they merely played in) — the full picture, not
-  filtered to their own transfers. From here, the host can drill into an individual
-  player to see just that person's transfers across all of the host's games (e.g.
-  "how much has Arjun owed/been owed across every game I've run").
+- **Hosting tab** gets a "Settlement Ledger" section: every settlement transfer
+  across every game *this account hosted* (not games they merely played in) — the
+  full picture, not filtered to their own transfers. A tap-to-filter player chip
+  drills into one person's transfers across all of the host's games (e.g. "how much
+  has Arjun owed/been owed across every game I've run").
 - **[decision] Source of truth**: only `closed` games contribute — settlement is
   computed once at close and stored (per Game lifecycle above), so this ledger reads
   that stored data rather than recomputing anything live. A live game's in-progress

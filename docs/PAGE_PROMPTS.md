@@ -125,13 +125,13 @@ Below that: Live Game card if one's active, then a **Host / Player** segmented t
 - **Host tab**: "New Game" CTA (hosting-only action, lives here rather than being
   shown universally on both tabs — creating a game is something only a host does),
   then a hosting-stats grid (games hosted, players hosted, rake collected, avg
-  pot/game) + list of recently hosted games. Stats and list reflect **closed games
-  only** — a game in progress doesn't count toward totals yet (see
-  `REQUIREMENTS.md` → Game lifecycle).
-- **Player tab**: overall net + win count summary card, then the **net-trend chart
-  split by stake** (one chart per distinct buy-in amount, never blended), then a list
-  of games played with personal net per game. Reflects only games where this
-  account's player row is `claimed`.
+  pot/game), then a **Settlement Ledger** section (see below), then a list of
+  recently hosted games. Stats and list reflect **closed games only** — a game in
+  progress doesn't count toward totals yet (see `REQUIREMENTS.md` → Game lifecycle).
+- **Player tab**: overall net + win count summary card, then a net-trend chart, then
+  a **My Settlements** section (see below), then a list of games played with
+  personal net per game. Reflects only games where this account's player row is
+  `claimed`.
 
 Tapping any game in either list goes to Game Detail.
 
@@ -152,11 +152,9 @@ No separate History screen/tab — this covers it.
 ## Create Game
 
 - Game name and location **autofill from the most recent past game** (still editable).
-- **Buy-in amount (stake) field** — host sets the game-wide buy-in amount (e.g. "2
-  banks per buy-in"); this is required before "Start Game" enables. No per-player
-  override — one value for the whole game, per `REQUIREMENTS.md`.
-- No per-player buy-in *count* control — every added player gets exactly 1 buy-in
-  automatically, at the stake set above.
+- No buy-in amount field of any kind — every buy-in is always exactly 1 bank,
+  fixed, per `REQUIREMENTS.md`. No per-player buy-in *count* control either — every
+  added player gets exactly 1 buy-in automatically at that fixed amount.
 - Player entry: segmented tabs **Your players / Contacts / Type in** (shadcn `Tabs`).
   - "Your players" = remembered roster (name + phone, persisted per `REQUIREMENTS.md`
     → Roster) — tap to add, this is the fast/default path and should be the tab
@@ -170,10 +168,9 @@ No separate History screen/tab — this covers it.
   - Selected players stay visible as removable chips (✕) regardless of active tab,
     each chip showing name + phone. Removing a chip here is always safe — no buy-in
     exists yet at this stage.
-- "Start Game" is **disabled until at least 1 player is added, a game name is set,
-  and a buy-in amount is set**. This isn't cosmetic — a 0-player game breaks the Live
-  Game screen's settle button, and an unset stake breaks the dashboard's by-stake
-  chart grouping.
+- "Start Game" is **disabled until at least 1 player is added and a game name is
+  set**. This isn't cosmetic — a 0-player game breaks the Live Game screen's settle
+  button entirely (it only renders when players exist).
 - After creating: a "copy WhatsApp invite" step generates formatted text (game name,
   location, time, invited player list, placeholder link) via
   `navigator.clipboard.writeText`. Stub — no real routing/verification yet.
@@ -308,28 +305,28 @@ flow itself only exists in that pre-close window.
   "personal net" views need to coexist clearly (their own row shouldn't be visually
   ambiguous in the full player list), since a host is also always a player.
 
-## Settlements Ledger *(new)*
+## Settlements — inline within Home
 
-Reachable from Home (an entry point on both tabs, or promoted from a summary card —
-implementer's call on exact placement, but it must be reachable without going through
-an individual game first, since the whole point is the cross-game view a single game
-can't give).
+**Not a separate screen.** Lives directly inside Home's existing Player/Hosting
+tabs, as a section within each — the same way stats and recent games are part of
+those tabs, not a click away behind an icon. An earlier version put this behind a
+small icon button next to the tabs; that was wrong and has been undone.
 
-- **Player view ("My Settlements")**: every settlement line across every `closed`
-  game this account was a party to, host's-own-games or not — who they owe, who owes
-  them, how much, which game. Group by counterpart or by game, implementer's call,
-  but don't just dump a flat unsorted list — the point is "what do I actually owe
-  right now" being answerable at a glance.
-- **Host view ("Settlement Ledger")**: every transfer across every `closed` game this
-  account hosted — the aggregate, not filtered to the host's own personal transfers.
-  Tapping a player name drills into that player's transfers across all of the host's
-  games specifically (their running tab with this host, essentially).
-- Both views read from each game's stored `settlement` (computed once at close, per
-  Game Lifecycle) — never recomputed live, never includes `live` games.
+- **Player tab** gets a "My Settlements" section: every settlement line across every
+  `closed` game this account was a party to, host's-own-games or not — who they owe,
+  who owes them, how much, which game. Grouped as "You owe" / "Owed to you" so
+  "what do I actually owe right now" is answerable at a glance, not a flat list.
+- **Hosting tab** gets a "Settlement Ledger" section: every transfer across every
+  `closed` game this account hosted — the aggregate, not filtered to the host's own
+  personal transfers. A tap-to-filter player chip drills into just that player's
+  transfers across all of the host's games (their running tab with this host,
+  essentially).
+- Both sections read from each game's stored `settlement` (computed once at close,
+  per Game Lifecycle) — never recomputed live, never includes `live` games.
 - Empty state: distinct copy for "no closed games yet" vs. "closed games exist but
-  none involved you as a settlement party" (the latter is unusual — most players are
-  in every game's settlement — but a player who was removed pre-buy-in from a game
-  that later closed shouldn't see a confusing empty ledger that looks like a bug).
+  none involved you as a settlement party."
+- Tapping any line goes to that game's Game Detail, same as tapping a game elsewhere
+  on Home.
 
 ## Global
 
