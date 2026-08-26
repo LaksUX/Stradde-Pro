@@ -183,9 +183,13 @@ game is "done," which the settlement graph and dashboard stats both depend on.)*
 
 ## Invites (partially stubbed — see gaps below)
 
+- **[decision] No RSVP flow.** Players are not invited-then-confirmed — a host simply
+  adds them, either at game creation or mid-game via "Add late player." There is no
+  In/Out/Maybe response step and none is planned; a player being added to a game *is*
+  them being in the game.
 - After creating a game, the host gets a "copy WhatsApp invite" action that generates
   a formatted text block (game name, location, time, invited player list) for pasting
-  into a group chat.
+  into a group chat — this is a courtesy notification, not a confirmation request.
 
 ## Known gaps — intentionally deferred, not silently missing
 
