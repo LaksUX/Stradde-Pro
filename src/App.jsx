@@ -1711,8 +1711,6 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       `Settle Up (${allTxns.length} payments):`,
       ...allTxns.map(t => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
       ...(allTxns.length === 0 ? ["• Everyone's even!"] : []),
-      ``,
-      `Pot: ${fmtB(totalIn)}${rake > 0 ? ` · Rake: ${fmtB(rake)}` : ""} · Out: ${fmtB(totalOut)}`,
     ]
     const text = lines.join("\n")
     try {
