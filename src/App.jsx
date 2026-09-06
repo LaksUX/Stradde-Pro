@@ -723,33 +723,33 @@ function HostStatsView({ pastGames, hostName }) {
   )
 }
 
-function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin, view, onTogglePaid }) {
+function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin, onTogglePaid }) {
   // Dashboard stats/lists only ever reflect closed games — a live game in
   // progress doesn't count toward hosting totals or the trend chart yet, and
   // it already has its own separate "active game" card above, so it's
   // excluded here to avoid double-showing it.
   const closedGames = pastGames.filter(g => g.status !== "live")
   const recent = closedGames.slice(0, 6)
-  // Which persona's analytics to show ("player" | "host") — switched from the
-  // Host/Player icons in the bottom nav, not from a tab here. Each defaults
-  // straight to that persona's analytics from previous games.
+  const hosted = closedGames.filter(g => !g.hostName || g.hostName === hostName)
+  const recentHosted = hosted.slice(0, 6)
+
+  // Host/Player is a filter on the two tabs below, not a separate screen —
+  // it swaps which persona's analytics/settlements you're looking at, in
+  // place, rather than navigating anywhere. Local to Home now that nothing
+  // outside it (the bottom nav used to) needs to read or drive it.
+  const [filter, setFilter] = useState("player") // "player" | "host"
+  // Settlements is always the second tab, regardless of filter — both tabs
+  // exist for either persona, only their contents differ.
+  const [tab, setTab] = useState("overview") // "overview" | "settlements"
+
   return (
-    <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
+    <div className="flex flex-col min-h-screen bg-felt-bg pb-16">
       {/* Header */}
-      <div className="relative px-5 pt-14 pb-7 overflow-hidden">
+      <div className="relative px-5 pt-14 pb-6 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.12),transparent_60%)]" />
         <div className="relative z-10 flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              {view === "host" ? (
-                <LayoutDashboard className="w-3 h-3 text-gold-light" />
-              ) : (
-                <User className="w-3 h-3 text-gold-light" />
-              )}
-              <span className="text-gold-light text-[10px] font-bold tracking-[0.15em] uppercase">
-                {view === "host" ? "Host View" : "Player View"}
-              </span>
-            </div>
+            <div className="text-zinc-400 text-xs font-medium mb-1">Welcome back</div>
             <div className="text-white text-2xl font-black tracking-tight">{hostName} <span className="text-zinc-400">♠</span></div>
           </div>
           <div className="flex items-center gap-2 mt-1">
@@ -766,7 +766,9 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
       </div>
 
       <div className="px-5 flex flex-col gap-3">
-        {/* Active game */}
+        {/* Active game — visible no matter which tab/filter you're on below,
+            so the live link is never more than a scroll-up away. A floating
+            reminder (see LiveGameFab, App root) covers the rest of the page. */}
         {activeGame && (
           <button
             onClick={() => onNavigate("live-game")}
@@ -787,11 +789,41 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         )}
       </div>
 
-      {view === "host" && (
+      {/* Host/Player filter — which persona's lens the tabs below use. */}
+      <div className="px-5 mt-4">
+        <div className="inline-flex items-center gap-1 bg-felt-surface-2/70 border border-felt-border rounded-full p-1">
+          <button
+            onClick={() => setFilter("host")}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-colors", filter === "host" ? "bg-gold text-white" : "text-zinc-400 hover:text-zinc-200")}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" /> Host
+          </button>
+          <button
+            onClick={() => setFilter("player")}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-colors", filter === "player" ? "bg-gold text-white" : "text-zinc-400 hover:text-zinc-200")}
+          >
+            <User className="w-3.5 h-3.5" /> Player
+          </button>
+        </div>
+      </div>
+
+      {/* Overview / Settlements — the same two tabs for either persona;
+          Settlements is always second. Only the content inside changes with
+          the filter above. */}
+      <div className="px-5 mt-3">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="settlements">Settlements</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {tab === "overview" && filter === "host" && (
         <>
-          {/* New game — hosting-only action, lives in the Hosting tab rather
-              than being shown universally on both tabs. */}
-          <div className="px-5 mt-3">
+          {/* New game — hosting-only action, lives under the Host filter
+              rather than being shown universally. */}
+          <div className="px-5 mt-4">
             <button
               onClick={() => onNavigate("create-game")}
               className="w-full text-left rounded-2xl bg-felt-surface border border-felt-border hover:border-gold/50 p-4 flex items-center gap-4 transition-all group"
@@ -808,26 +840,90 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           </div>
           <SL>Hosting Overview</SL>
           <HostStatsView pastGames={closedGames} hostName={hostName} />
-          {(() => {
-            // Only games this account actually hosted — same filter as
-            // HostStatsView/SettlementLedgerSection. This is the "games this
-            // account has hosted" list the dashboard spec calls for, distinct
-            // from Player's Recent Games (which includes games hosted by
-            // someone else too).
-            const hosted = closedGames.filter(g => !g.hostName || g.hostName === hostName)
-            const recentHosted = hosted.slice(0, 6)
-            if (recentHosted.length === 0) return null
-            return (
+          {recentHosted.length > 0 && (
+            <>
+              {/* Only games this account actually hosted — same filter as
+                  HostStatsView/Settlement Ledger. Distinct from Player's
+                  Recent Games, which includes games hosted by someone else. */}
+              <SL>Game History</SL>
+              <div className="px-5 flex flex-col gap-2">
+                {recentHosted.map(g => {
+                  const h = g.players.find(p => p.name === hostName)
+                  const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => onNavigate("game-detail", g, true)}
+                      className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
+                    >
+                      <div className={cn(
+                        "w-1 h-9 rounded-full shrink-0",
+                        net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600"
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
+                        <div className="text-zinc-400 text-xs mt-0.5">{g.date} · {g.players.length} players · {fmtB(g.rake || 0)} rake</div>
+                      </div>
+                      {net !== null && (
+                        <div className={cn("font-mono text-sm font-bold shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-400")}>
+                          {fmtNet(net)}
+                        </div>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {tab === "overview" && filter === "player" && (
+        closedGames.length === 0 ? (
+          <div className="text-zinc-400 text-xs text-center py-10 px-5">Play a game to see your stats here.</div>
+        ) : (
+          <>
+            {(() => {
+              // Different stakes aren't comparable on one line — a win at one
+              // bank size doesn't mean the same thing as a win at another —
+              // so each distinct buy-in level gets its own trend chart
+              // rather than being blended into a single misleading line.
+              const stakeGroups = {}
+              for (const g of closedGames) {
+                const key = g.buyinAmount || 0
+                ;(stakeGroups[key] ||= []).push(g)
+              }
+              const stakes = Object.keys(stakeGroups).map(Number).sort((a, b) => b - a)
+              return (
+                <>
+                  <SL>Net Trend{stakes.length > 1 ? ` — by stake` : ""}</SL>
+                  <div className="px-5 flex flex-col gap-3">
+                    {stakes.map(stake => (
+                      <div key={stake}>
+                        {stakes.length > 1 && (
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+                            {fmtB(stake)} / bank stakes
+                          </div>
+                        )}
+                        <NetTrendChart pastGames={stakeGroups[stake]} hostName={hostName} />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
+            {recent.length > 0 && (
               <>
-                <SL>Game History</SL>
+                <SL>Recent Games</SL>
                 <div className="px-5 flex flex-col gap-2">
-                  {recentHosted.map(g => {
+                  {recent.map(g => {
                     const h = g.players.find(p => p.name === hostName)
                     const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
                     return (
                       <button
                         key={g.id}
-                        onClick={() => onNavigate("game-detail", g, true)}
+                        onClick={() => onNavigate("game-detail", g, false)}
                         className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
                       >
                         <div className={cn(
@@ -836,7 +932,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
                         )} />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
-                          <div className="text-zinc-400 text-xs mt-0.5">{g.date} · {g.players.length} players · {fmtB(g.rake || 0)} rake</div>
+                          <div className="text-zinc-400 text-xs mt-0.5">{g.date} · {g.players.length} players</div>
                         </div>
                         {net !== null && (
                           <div className={cn("font-mono text-sm font-bold shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-400")}>
@@ -849,84 +945,20 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
                   })}
                 </div>
               </>
-            )
-          })()}
-          <SL>Settlement Ledger</SL>
-          <div className="px-5">
-            <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, true)} onTogglePaid={onTogglePaid} />
-          </div>
-        </>
-      )}
-
-      {view === "player" && closedGames.length > 0 && (() => {
-        // Different stakes aren't comparable on one line — a win at one bank
-        // size doesn't mean the same thing as a win at another — so each
-        // distinct buy-in level gets its own trend chart rather than being
-        // blended into a single misleading combined line.
-        const stakeGroups = {}
-        for (const g of closedGames) {
-          const key = g.buyinAmount || 0
-          ;(stakeGroups[key] ||= []).push(g)
-        }
-        const stakes = Object.keys(stakeGroups).map(Number).sort((a, b) => b - a)
-        return (
-          <>
-            <SL>Net Trend{stakes.length > 1 ? ` — by stake` : ""}</SL>
-            <div className="px-5 flex flex-col gap-3">
-              {stakes.map(stake => (
-                <div key={stake}>
-                  {stakes.length > 1 && (
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
-                      {fmtB(stake)} / bank stakes
-                    </div>
-                  )}
-                  <NetTrendChart pastGames={stakeGroups[stake]} hostName={hostName} />
-                </div>
-              ))}
-            </div>
+            )}
           </>
         )
-      })()}
-
-      {view === "player" && (
-        <>
-          <SL>My Settlements</SL>
-          <div className="px-5">
-            <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, false)} onTogglePaid={onTogglePaid} />
-          </div>
-        </>
       )}
 
-      {view === "player" && recent.length > 0 && (
+      {tab === "settlements" && (
         <>
-          <SL>Recent Games</SL>
-          <div className="px-5 flex flex-col gap-2">
-            {recent.map(g => {
-              const h = g.players.find(p => p.name === hostName)
-              const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
-              return (
-                <button
-                  key={g.id}
-                  onClick={() => onNavigate("game-detail", g, false)}
-                  className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
-                >
-                  <div className={cn(
-                    "w-1 h-9 rounded-full shrink-0",
-                    net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
-                    <div className="text-zinc-400 text-xs mt-0.5">{g.date} · {g.players.length} players</div>
-                  </div>
-                  {net !== null && (
-                    <div className={cn("font-mono text-sm font-bold shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-400")}>
-                      {fmtNet(net)}
-                    </div>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
-                </button>
-              )
-            })}
+          <SL>{filter === "host" ? "Settlement Ledger" : "My Settlements"}</SL>
+          <div className="px-5">
+            {filter === "host" ? (
+              <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, true)} onTogglePaid={onTogglePaid} />
+            ) : (
+              <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, false)} onTogglePaid={onTogglePaid} />
+            )}
           </div>
         </>
       )}
@@ -1427,9 +1459,17 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.08),transparent_60%)]" />
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
-              <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">Live</span>
+            <div className="flex items-center gap-3">
+              {/* The bottom nav no longer carries a "Home" destination (see
+                  App root) — this is now the only way back to the dashboard
+                  while a game stays running live in the background. */}
+              <button onClick={() => onNavigate("home")} className="w-7 h-7 -ml-1 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface transition-colors" title="Back to Home — game keeps running">
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
+                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">Live</span>
+              </div>
             </div>
             {undoStack.length > 0 && (
               <button onClick={onUndo} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors">
@@ -2303,45 +2343,25 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
 }
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
-// No plain "Home" button — the app's two personas (Host / Player) are the
-// primary navigation, each landing straight on that persona's analytics from
-// previous games. A third "Live" icon appears only while a game is actually
-// in progress, and is reachable from either persona.
-function BottomNav({ screen, homeView, onSelectView, onNavigate, showLive }) {
-  const items = [
-    { id: "host", icon: LayoutDashboard, label: "Host" },
-    { id: "player", icon: User, label: "Player" },
-    showLive && { id: "live", icon: Gamepad2, label: "Live", live: true },
-  ].filter(Boolean)
-
-  const isActive = (item) => {
-    if (item.id === "live") return screen === "live-game"
-    return screen === "home" && homeView === item.id
-  }
-
-  const handleClick = (item) => {
-    if (item.id === "live") onNavigate("live-game")
-    else onSelectView(item.id)
-  }
-
+// Host/Player moved into Home itself as a filter on its two tabs (see
+// HomeScreen), so the bottom nav no longer needs to carry navigation at
+// all — its only remaining job is a floating reminder that a game is live,
+// shown on Home so it's reachable without scrolling back up to the Active
+// Game card. Live Game itself has its own back-to-Home button in its
+// header (see LiveGameScreen), so this never needs to appear there.
+function LiveGameFab({ onClick }) {
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] sm:max-w-xl md:max-w-2xl z-40 px-3 sm:px-5 pb-5">
-      <div className="bg-felt-surface/95 backdrop-blur-xl border border-felt-border rounded-2xl px-2 py-2 flex items-center shadow-2xl shadow-black/50">
-        {items.map(item => {
-          const Icon = item.icon
-          const active = isActive(item)
-          return (
-            <button key={item.id} onClick={() => handleClick(item)}
-              className={cn("flex-1 flex flex-col items-center gap-1.5 py-2 rounded-xl transition-all", active ? "bg-gold" : "text-zinc-400 hover:text-zinc-200")}>
-              <div className="relative">
-                <Icon className={cn("w-5 h-5", active ? "text-white" : "")} />
-                {item.live && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-felt-border animate-blink" />}
-              </div>
-              <span className={cn("text-[10px] font-bold", active ? "text-white" : "")}>{item.label}</span>
-            </button>
-          )
-        })}
-      </div>
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40">
+      <button
+        onClick={onClick}
+        className="flex items-center gap-2 bg-gold hover:bg-gold-dark text-white pl-3 pr-4 py-2.5 rounded-full shadow-2xl shadow-black/50 font-bold text-sm transition-colors"
+      >
+        <span className="relative w-2 h-2 shrink-0">
+          <span className="absolute inset-0 rounded-full bg-white animate-blink" />
+        </span>
+        <Gamepad2 className="w-4 h-4" />
+        Live Game
+      </button>
     </div>
   )
 }
@@ -2352,11 +2372,6 @@ export default function App() {
   const [session, setSession]     = useState(null)
   const [profile, setProfile]     = useState(null)
   const [screen, setScreen]       = useState("home")
-  // Which persona's Home view is showing — driven by the Host/Player icons in
-  // the bottom nav (see BottomNav). Defaults to Player since that's the
-  // lighter-weight, more-common-per-visit view; a host jumps to their view
-  // with one tap and it's remembered until they switch back.
-  const [homeView, setHomeView]   = useState("player")
   const [activeGame, setActiveGame] = useState(null)
   const [undoStack, setUndoStack] = useState([])
   const [pastGames, setPastGames] = useState(() => applyPaidStatus(SEED_PAST_GAMES))
@@ -2435,14 +2450,6 @@ export default function App() {
     setScreen(s)
   }
 
-  // Selecting Host or Player from the bottom nav always lands on Home in
-  // that persona's view — including from the live-game screen, so it also
-  // doubles as a way back to the dashboard.
-  const selectHomeView = (v) => {
-    setHomeView(v)
-    setScreen("home")
-  }
-
   // Flips one settlement transfer's paid/pending status — the account
   // currently signed in can toggle any line (host or player lens), since
   // there's no separate logged-in "other side" to ask for confirmation yet.
@@ -2495,8 +2502,6 @@ export default function App() {
     showToast("🏁", "Saved", "Results added to your dashboard")
   }
 
-  const isFullScreen = ["create-game", "settlement", "game-detail", "admin"].includes(screen)
-
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-felt-bg">
@@ -2524,7 +2529,7 @@ export default function App() {
 
   return (
     <div className="w-full max-w-[430px] sm:max-w-xl md:max-w-2xl min-h-screen bg-felt-bg mx-auto relative sm:px-2">
-      {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} view={homeView} onTogglePaid={toggleSettlementPaid} />}
+      {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} onTogglePaid={toggleSettlementPaid} />}
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
@@ -2542,7 +2547,7 @@ export default function App() {
           onTogglePaid={toggleSettlementPaid}
         />
       )}
-      {!isFullScreen && <BottomNav screen={screen} homeView={homeView} onSelectView={selectHomeView} onNavigate={navigate} showLive={!!activeGame} />}
+      {screen === "home" && !!activeGame && <LiveGameFab onClick={() => navigate("live-game")} />}
       <Toast toast={toast} />
     </div>
   )
