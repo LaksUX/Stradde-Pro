@@ -240,6 +240,28 @@ those tabs already are, the same way stats and recent games are.
   their line and copy/paste it separately, or use the Settlements Ledger drill-down
   above to see one player's numbers on-screen. A dedicated "copy for this player
   only" action is a reasonable future addition but isn't built.
+- **[decision] Every settlement line has a Paid/Pending status, toggleable by
+  whoever's currently signed in.** Without this, the ledger only ever grows —
+  every closed game adds more transfer lines forever, with no way to reflect that a
+  debt was actually settled in real life. A tap on a line (Settlement Ledger,
+  My Settlements, or a closed game's own Payments list — all three read/write the
+  same underlying flag) flips it between paid and pending; paid lines stay in the
+  list (dimmed, struck through) rather than disappearing, so the ledger still reads
+  as a full history, not just an inbox of what's outstanding.
+  - **[decision] Single-sided toggle, not a two-party mark/confirm flow.** The
+    sibling Straddle project models this as the payer marking "I paid" and the
+    payee separately confirming receipt — more trustworthy, but it needs two
+    distinct logged-in accounts to mean anything. Players here don't have real
+    accounts yet (see Known gaps), so for now whoever's signed in (today, always
+    the host) can flip either side's status directly. Revisit the two-step version
+    once player accounts exist.
+  - **[decision, interim] Persisted in `localStorage`, keyed by game id + the
+    transfer's index in that game's stored `settlement` array** — same rationale
+    and same stopgap as the roster (see Roster below): game data itself is local
+    React state, so there's nowhere server-side yet to durably store this. Only the
+    paid/pending bit is cached (not a full copy of game data), so it can't go stale
+    against future edits to game content — an index that no longer exists on a
+    given game is just ignored.
 
 ## Invites (partially stubbed — see gaps below)
 

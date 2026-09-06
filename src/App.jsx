@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
 import { loadRoster, upsertRoster } from "@/lib/roster"
+import { applyPaidStatus, setPaidStatus } from "@/lib/settlementStatus"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const nowStr = () => {
@@ -722,7 +723,7 @@ function HostStatsView({ pastGames, hostName }) {
   )
 }
 
-function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin, view }) {
+function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin, view, onTogglePaid }) {
   // Dashboard stats/lists only ever reflect closed games — a live game in
   // progress doesn't count toward hosting totals or the trend chart yet, and
   // it already has its own separate "active game" card above, so it's
@@ -852,7 +853,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           })()}
           <SL>Settlement Ledger</SL>
           <div className="px-5">
-            <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, true)} />
+            <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, true)} onTogglePaid={onTogglePaid} />
           </div>
         </>
       )}
@@ -891,7 +892,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         <>
           <SL>My Settlements</SL>
           <div className="px-5">
-            <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, false)} />
+            <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, false)} onTogglePaid={onTogglePaid} />
           </div>
         </>
       )}
@@ -2031,11 +2032,26 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 // by reading each closed game's already-computed, stored settlement list —
 // never recomputed live, never includes a `live` game. Lives directly inside
 // the Player/Hosting stats tabs on Home, not behind a separate screen.
-function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
+function PaidToggle({ paid, onToggle }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onToggle() }}
+      title={paid ? "Mark as pending" : "Mark as paid"}
+      className={cn(
+        "w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
+        paid ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-felt-surface-2 border-felt-border text-zinc-500 hover:text-zinc-300"
+      )}
+    >
+      <CheckCircle2 className="w-4 h-4" />
+    </button>
+  )
+}
+
+function MySettlementsSection({ hostName, closedGames, onSelectGame, onTogglePaid }) {
   const myLines = closedGames.flatMap(g =>
     (g.settlement || [])
+      .map((t, idx) => ({ ...t, game: g, idx }))
       .filter(t => t.from === hostName || t.to === hostName)
-      .map(t => ({ ...t, game: g }))
   )
   const iOwe = myLines.filter(t => t.from === hostName)
   const owedToMe = myLines.filter(t => t.to === hostName)
@@ -2053,15 +2069,17 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
         <>
           <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-1">You owe</div>
           {iOwe.map((t, i) => (
-            <button key={i} onClick={() => onSelectGame(t.game)}
-              className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
-              <Av name={t.to} size={28} />
-              <div className="flex-1 min-w-0">
-                <div className="text-zinc-100 text-sm font-semibold">To {t.to}</div>
-                <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
-              </div>
-              <NumB value={t.amount} sign={false} size="text-base" className="text-red-400" />
-            </button>
+            <div key={i} className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
+              <button onClick={() => onSelectGame(t.game)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                <Av name={t.to} size={28} />
+                <div className="flex-1 min-w-0">
+                  <div className={cn("text-sm font-semibold", t.paid ? "text-zinc-400 line-through" : "text-zinc-100")}>To {t.to}</div>
+                  <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+                </div>
+              </button>
+              <NumB value={t.amount} sign={false} size="text-base" className={t.paid ? "text-zinc-500" : "text-red-400"} />
+              <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t.game.id, t.idx)} />
+            </div>
           ))}
         </>
       )}
@@ -2069,15 +2087,17 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
         <>
           <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-2">Owed to you</div>
           {owedToMe.map((t, i) => (
-            <button key={i} onClick={() => onSelectGame(t.game)}
-              className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
-              <Av name={t.from} size={28} />
-              <div className="flex-1 min-w-0">
-                <div className="text-zinc-100 text-sm font-semibold">From {t.from}</div>
-                <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
-              </div>
-              <NumB value={t.amount} sign={false} size="text-base" className="text-emerald-400" />
-            </button>
+            <div key={i} className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
+              <button onClick={() => onSelectGame(t.game)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                <Av name={t.from} size={28} />
+                <div className="flex-1 min-w-0">
+                  <div className={cn("text-sm font-semibold", t.paid ? "text-zinc-400 line-through" : "text-zinc-100")}>From {t.from}</div>
+                  <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+                </div>
+              </button>
+              <NumB value={t.amount} sign={false} size="text-base" className={t.paid ? "text-zinc-500" : "text-emerald-400"} />
+              <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t.game.id, t.idx)} />
+            </div>
           ))}
         </>
       )}
@@ -2085,10 +2105,10 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
   )
 }
 
-function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
+function SettlementLedgerSection({ hostName, closedGames, onSelectGame, onTogglePaid }) {
   const [drillPlayer, setDrillPlayer] = useState(null)
   const hostedClosed = closedGames.filter(g => !g.hostName || g.hostName === hostName)
-  const allHostedLines = hostedClosed.flatMap(g => (g.settlement || []).map(t => ({ ...t, game: g })))
+  const allHostedLines = hostedClosed.flatMap(g => (g.settlement || []).map((t, idx) => ({ ...t, game: g, idx })))
   const hostedPlayers = [...new Set(allHostedLines.flatMap(t => [t.from, t.to]))].sort((a, b) => a.localeCompare(b))
   const drillLines = drillPlayer ? allHostedLines.filter(t => t.from === drillPlayer || t.to === drillPlayer) : allHostedLines
 
@@ -2116,14 +2136,14 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
         </div>
       )}
       {drillLines.map((t, i) => (
-        <button key={i} onClick={() => onSelectGame(t.game)}
-          className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
-          <div className="flex-1 min-w-0">
-            <div className="text-zinc-100 text-sm font-semibold">{t.from} → {t.to}</div>
+        <div key={i} className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
+          <button onClick={() => onSelectGame(t.game)} className="flex-1 min-w-0 text-left">
+            <div className={cn("text-sm font-semibold", t.paid ? "text-zinc-400 line-through" : "text-zinc-100")}>{t.from} → {t.to}</div>
             <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
-          </div>
-          <NumB value={t.amount} size="text-base" className="text-zinc-200" />
-        </button>
+          </button>
+          <NumB value={t.amount} size="text-base" className={t.paid ? "text-zinc-500" : "text-zinc-200"} />
+          <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t.game.id, t.idx)} />
+        </div>
       ))}
     </div>
   )
@@ -2141,7 +2161,7 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
 // having a separate, restricted player view. Real host status still gates
 // it (AND, not OR): the Player lens is always restricted, and the Host lens
 // only ever shows full data for games you actually hosted.
-function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive }) {
+function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive, onTogglePaid }) {
   const [rakeVisible, setRakeVisible] = useState(false)
   const reallyHosted = !game.hostName || game.hostName === viewerName
   const isHost = viewAsHost && reallyHosted
@@ -2263,11 +2283,17 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
           {txns.map((t, i) => (
             <div key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3">
               <Av name={t.from} size={28} />
-              <span className="text-sm font-semibold text-red-400">{t.from}</span>
+              <span className={cn("text-sm font-semibold", t.paid ? "text-zinc-500 line-through" : "text-red-400")}>{t.from}</span>
               <ChevronsRight className="w-4 h-4 text-zinc-400 shrink-0" />
-              <NumB value={t.amount} size="text-sm" className="text-amber-400 flex-1" />
+              <NumB value={t.amount} size="text-sm" className={cn("flex-1", t.paid ? "text-zinc-500" : "text-amber-400")} />
               <Av name={t.to} size={28} />
-              <span className="text-sm font-semibold text-emerald-400">{t.to}</span>
+              <span className={cn("text-sm font-semibold", t.paid ? "text-zinc-500 line-through" : "text-emerald-400")}>{t.to}</span>
+              {/* Paid toggle only makes sense for a closed game's stored
+                  settlement (stable id + index) — a live game's preview is
+                  recomputed on the fly and has nothing to persist yet. */}
+              {isClosed && onTogglePaid && (
+                <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(game.id, i)} />
+              )}
             </div>
           ))}
         </div>
@@ -2333,7 +2359,7 @@ export default function App() {
   const [homeView, setHomeView]   = useState("player")
   const [activeGame, setActiveGame] = useState(null)
   const [undoStack, setUndoStack] = useState([])
-  const [pastGames, setPastGames] = useState(SEED_PAST_GAMES)
+  const [pastGames, setPastGames] = useState(() => applyPaidStatus(SEED_PAST_GAMES))
   const [selGame, setSelGame]     = useState(null)
   // Which lens a game-detail view was opened through — see GameDetailScreen.
   const [selGameAsHost, setSelGameAsHost] = useState(false)
@@ -2417,6 +2443,22 @@ export default function App() {
     setScreen("home")
   }
 
+  // Flips one settlement transfer's paid/pending status — the account
+  // currently signed in can toggle any line (host or player lens), since
+  // there's no separate logged-in "other side" to ask for confirmation yet.
+  // Persists via settlementStatus.js so it survives a reload.
+  const toggleSettlementPaid = (gameId, index) => {
+    const game = pastGames.find(g => g.id === gameId)
+    if (!game?.settlement?.[index]) return
+    const nextPaid = !game.settlement[index].paid
+    setPaidStatus(gameId, index, nextPaid)
+    setPastGames(prev => prev.map(g =>
+      g.id === gameId
+        ? { ...g, settlement: g.settlement.map((t, i) => i === index ? { ...t, paid: nextPaid } : t) }
+        : g
+    ))
+  }
+
   const logout = async () => { await supabase.auth.signOut(); setScreen("home") }
 
   const updateGamePlayers = (updated) => {
@@ -2482,11 +2524,24 @@ export default function App() {
 
   return (
     <div className="w-full max-w-[430px] sm:max-w-xl md:max-w-2xl min-h-screen bg-felt-bg mx-auto relative sm:px-2">
-      {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} view={homeView} />}
+      {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} view={homeView} onTogglePaid={toggleSettlementPaid} />}
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
-      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} viewAsHost={selGameAsHost} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
+      {screen === "game-detail" && selGame && (
+        <GameDetailScreen
+          // Look the game up fresh from pastGames by id rather than using the
+          // navigation-time snapshot directly — so toggling a settlement
+          // line's paid status right here updates on screen immediately,
+          // instead of only after leaving and reopening this game.
+          game={pastGames.find(g => g.id === selGame.id) || selGame}
+          viewerName={hostName}
+          viewAsHost={selGameAsHost}
+          onBack={() => navigate("home")}
+          onNavigateLive={() => navigate("live-game")}
+          onTogglePaid={toggleSettlementPaid}
+        />
+      )}
       {!isFullScreen && <BottomNav screen={screen} homeView={homeView} onSelectView={selectHomeView} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>
