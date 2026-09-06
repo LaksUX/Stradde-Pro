@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react"
 import {
   Plus, Minus, ChevronDown, ChevronUp, Undo2, ArrowRight,
-  Trophy, Clock, Users, TrendingUp, TrendingDown, Edit3, Check,
-  Share2, X, LayoutDashboard, Gamepad2, Home, RotateCcw,
+  Trophy, Clock, Users, User, TrendingUp, TrendingDown, Edit3, Check,
+  Share2, X, LayoutDashboard, Gamepad2, RotateCcw,
   CheckCircle2, AlertCircle, ChevronsRight, Coins, Hash,
   LogOut, ChevronRight,
 } from "lucide-react"
@@ -141,11 +141,11 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
       </div>
       <div className="flex justify-between mt-2 px-0.5">
         {[0,5,10,15,20,25,30].map(t => (
-          <span key={t} className="text-[10px] font-mono text-zinc-600">{t}</span>
+          <span key={t} className="text-[10px] font-mono text-zinc-400">{t}</span>
         ))}
       </div>
       {min > 0 && (
-        <div className="text-center text-[10.5px] text-zinc-600 mt-1.5">
+        <div className="text-center text-[10.5px] text-zinc-400 mt-1.5">
           {allLocked
             ? "All buy-ins so far are locked — drag right to add more"
             : `First ${min} locked — can't go below that`}
@@ -216,38 +216,112 @@ const initials = (n) => n.split(" ").map(w => w[0]).join("").slice(0, 2).toUpper
 // ─── Seed data ────────────────────────────────────────────────────────────────
 const SEED_PAST_GAMES = [
   {
-    id: 1, name: "Friday Night Felts", date: "Apr 11",
-    buyinAmount: 1000, rake: 1000, status: "closed",
+    id: 1, name: "Friday Night Felts", date: "Sep 5", hostName: "Laks",
+    buyinAmount: BANK, rake: 10000, status: "closed",
     players: [
-      { name: "Raj K.",   buyins: [{ts:"8:00 PM",amount:1000},{ts:"9:15 PM",amount:1000}], cashedOut:true, cashoutAmount:2500 },
-      { name: "Priya S.", buyins: [{ts:"8:00 PM",amount:1000},{ts:"8:45 PM",amount:1000}], cashedOut:true, cashoutAmount:1000 },
-      { name: "Arjun M.", buyins: [{ts:"8:00 PM",amount:1000},{ts:"8:30 PM",amount:1000},{ts:"9:10 PM",amount:1000}], cashedOut:true, cashoutAmount:5500 },
-      { name: "Neha R.",  buyins: [{ts:"8:00 PM",amount:1000},{ts:"9:30 PM",amount:1000}], cashedOut:true, cashoutAmount:0 },
-      { name: "Dev P.",   buyins: [{ts:"8:00 PM",amount:1000},{ts:"9:00 PM",amount:1000}], cashedOut:true, cashoutAmount:2000 },
-      { name: "Sana T.",  buyins: [{ts:"8:00 PM",amount:1000}], cashedOut:true, cashoutAmount:0 },
-      { name: "Karan B.", buyins: [{ts:"8:00 PM",amount:1000},{ts:"8:20 PM",amount:1000}], cashedOut:true, cashoutAmount:2000 },
+      { name: "Laks", buyins: [{ts:"8:00 PM",amount:10000},{ts:"8:50 PM",amount:10000},{ts:"9:40 PM",amount:10000}], cashedOut: true, cashoutAmount: 55000 },
+      { name: "Raj K.", buyins: [{ts:"8:00 PM",amount:10000},{ts:"9:15 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Priya S.", buyins: [{ts:"8:00 PM",amount:10000},{ts:"8:45 PM",amount:10000}], cashedOut: true, cashoutAmount: 40000 },
+      { name: "Arjun M.", buyins: [{ts:"8:00 PM",amount:10000},{ts:"8:30 PM",amount:10000},{ts:"9:10 PM",amount:10000}], cashedOut: true, cashoutAmount: 0 },
+      { name: "Neha R.", buyins: [{ts:"8:00 PM",amount:10000},{ts:"9:30 PM",amount:10000}], cashedOut: true, cashoutAmount: 15000 },
+      { name: "Dev P.", buyins: [{ts:"8:00 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Sana T.", buyins: [{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+    ],
+    settlement: [
+      { from: "Arjun M.", to: "Laks", amount: 25000 },
+      { from: "Arjun M.", to: "Priya S.", amount: 5000 },
+      { from: "Dev P.", to: "Priya S.", amount: 10000 },
+      { from: "Raj K.", to: "Priya S.", amount: 5000 },
     ],
   },
   {
-    id: 2, name: "Saturday Shootout", date: "Apr 5",
-    buyinAmount: 1000, rake: 0, status: "closed",
+    id: 2, name: "Saturday Shootout", date: "Aug 29", hostName: "Laks",
+    buyinAmount: BANK, rake: 0, status: "closed",
     players: [
-      { name: "Raj K.",   buyins: [{ts:"7:30 PM",amount:1000},{ts:"9:00 PM",amount:1000}], cashedOut:true, cashoutAmount:1000 },
-      { name: "Priya S.", buyins: [{ts:"7:30 PM",amount:1000}], cashedOut:true, cashoutAmount:4000 },
-      { name: "Arjun M.", buyins: [{ts:"7:30 PM",amount:1000},{ts:"8:50 PM",amount:1000}], cashedOut:true, cashoutAmount:2000 },
-      { name: "Neha R.",  buyins: [{ts:"7:30 PM",amount:1000},{ts:"8:20 PM",amount:1000}], cashedOut:true, cashoutAmount:0 },
-      { name: "Dev P.",   buyins: [{ts:"7:30 PM",amount:1000},{ts:"9:10 PM",amount:1000}], cashedOut:true, cashoutAmount:3000 },
+      { name: "Laks", buyins: [{ts:"7:30 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 5000 },
+      { name: "Raj K.", buyins: [{ts:"7:30 PM",amount:10000}], cashedOut: true, cashoutAmount: 30000 },
+      { name: "Priya S.", buyins: [{ts:"7:30 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Arjun M.", buyins: [{ts:"7:30 PM",amount:10000},{ts:"8:50 PM",amount:10000}], cashedOut: true, cashoutAmount: 20000 },
+      { name: "Neha R.", buyins: [{ts:"7:30 PM",amount:10000}], cashedOut: true, cashoutAmount: 5000 },
+    ],
+    settlement: [
+      { from: "Laks", to: "Raj K.", amount: 15000 },
+      { from: "Neha R.", to: "Raj K.", amount: 5000 },
     ],
   },
   {
-    id: 3, name: "Sunday Deep Stack", date: "Mar 30",
-    buyinAmount: 1000, rake: 2000, status: "closed",
+    id: 3, name: "Sunday Deep Stack", date: "Aug 23", hostName: "Laks",
+    buyinAmount: BANK, rake: 20000, status: "closed",
     players: [
-      { name: "Raj K.",   buyins: [{ts:"6:00 PM",amount:1000},{ts:"7:30 PM",amount:1000},{ts:"9:00 PM",amount:1000}], cashedOut:true, cashoutAmount:7000 },
-      { name: "Priya S.", buyins: [{ts:"6:00 PM",amount:1000},{ts:"7:00 PM",amount:1000},{ts:"8:30 PM",amount:1000}], cashedOut:true, cashoutAmount:1000 },
-      { name: "Arjun M.", buyins: [{ts:"6:00 PM",amount:1000},{ts:"8:00 PM",amount:1000},{ts:"9:15 PM",amount:1000}], cashedOut:true, cashoutAmount:4000 },
-      { name: "Neha R.",  buyins: [{ts:"6:00 PM",amount:1000},{ts:"7:45 PM",amount:1000},{ts:"9:20 PM",amount:1000}], cashedOut:true, cashoutAmount:0 },
-      { name: "Dev P.",   buyins: [{ts:"6:00 PM",amount:1000},{ts:"7:15 PM",amount:1000},{ts:"8:45 PM",amount:1000}], cashedOut:true, cashoutAmount:5000 },
+      { name: "Laks", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:30 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 30000 },
+      { name: "Raj K.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:30 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 60000 },
+      { name: "Priya S.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 0 },
+      { name: "Arjun M.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Neha R.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:45 PM",amount:10000},{ts:"9:20 PM",amount:10000}], cashedOut: true, cashoutAmount: 20000 },
+      { name: "Dev P.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:15 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+    ],
+    settlement: [
+      { from: "Priya S.", to: "Raj K.", amount: 20000 },
+      { from: "Arjun M.", to: "Raj K.", amount: 10000 },
+    ],
+  },
+  {
+    id: 4, name: "Midweek Cash Game", date: "Aug 19", hostName: "Laks",
+    buyinAmount: BANK, rake: 0, status: "closed",
+    players: [
+      { name: "Laks", buyins: [{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 20000 },
+      { name: "Raj K.", buyins: [{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 20000 },
+      { name: "Priya S.", buyins: [{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 0 },
+      { name: "Arjun M.", buyins: [{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 0 },
+    ],
+    settlement: [
+      { from: "Arjun M.", to: "Laks", amount: 10000 },
+      { from: "Priya S.", to: "Raj K.", amount: 10000 },
+    ],
+  },
+  {
+    id: 5, name: "Weekend High Rollers", date: "Aug 9", hostName: "Laks",
+    buyinAmount: BANK, rake: 30000, status: "closed",
+    players: [
+      { name: "Laks", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:00 PM",amount:10000},{ts:"8:00 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 60000 },
+      { name: "Raj K.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:30 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Priya S.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 30000 },
+      { name: "Arjun M.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"6:45 PM",amount:10000},{ts:"7:45 PM",amount:10000},{ts:"8:45 PM",amount:10000}], cashedOut: true, cashoutAmount: 0 },
+      { name: "Neha R.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"8:15 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Dev P.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:15 PM",amount:10000},{ts:"8:30 PM",amount:10000}], cashedOut: true, cashoutAmount: 40000 },
+      { name: "Sana T.", buyins: [{ts:"6:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 20000 },
+      { name: "Karan B.", buyins: [{ts:"6:00 PM",amount:10000},{ts:"7:30 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+    ],
+    settlement: [
+      { from: "Arjun M.", to: "Laks", amount: 20000 },
+      { from: "Arjun M.", to: "Dev P.", amount: 10000 },
+      { from: "Arjun M.", to: "Priya S.", amount: 10000 },
+      { from: "Raj K.", to: "Sana T.", amount: 10000 },
+    ],
+  },
+  {
+    id: 6, name: "Sana's Home Game", date: "Jul 28", hostName: "Sana T.",
+    buyinAmount: BANK, rake: 10000, status: "closed",
+    players: [
+      { name: "Sana T.", buyins: [{ts:"8:00 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 30000 },
+      { name: "Laks", buyins: [{ts:"8:00 PM",amount:10000},{ts:"9:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 5000 },
+      { name: "Priya S.", buyins: [{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Dev P.", buyins: [{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 5000 },
+    ],
+    settlement: [
+      { from: "Laks", to: "Sana T.", amount: 10000 },
+    ],
+  },
+  {
+    id: 7, name: "Old-School Friday", date: "Jun 14", hostName: "Laks",
+    buyinAmount: BANK, rake: 0, status: "closed",
+    players: [
+      { name: "Laks", buyins: [{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 15000 },
+      { name: "Raj K.", buyins: [{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 10000 },
+      { name: "Priya S.", buyins: [{ts:"8:00 PM",amount:10000}], cashedOut: true, cashoutAmount: 5000 },
+    ],
+    settlement: [
+      { from: "Priya S.", to: "Laks", amount: 5000 },
     ],
   },
 ]
@@ -323,7 +397,7 @@ function LoginScreen({ onSendMagicLink }) {
         <div className="relative z-10 w-full max-w-[320px] text-center">
           <div className="text-[48px] leading-none mb-5">✉️</div>
           <h1 className="text-white text-2xl font-black tracking-tight">Check your email</h1>
-          <p className="text-zinc-500 text-sm mt-2 font-medium">
+          <p className="text-zinc-400 text-sm mt-2 font-medium">
             We sent a magic link to <span className="text-zinc-300">{email}</span>. Open it on this device to sign in.
           </p>
           <button
@@ -344,11 +418,11 @@ function LoginScreen({ onSendMagicLink }) {
         <div className="text-center mb-10">
           <div className="text-[48px] leading-none mb-5">♠</div>
           <h1 className="text-white text-3xl font-black tracking-tight">Poker Night</h1>
-          <p className="text-zinc-500 text-sm mt-2 font-medium">Sign in with your email</p>
+          <p className="text-zinc-400 text-sm mt-2 font-medium">Sign in with your email</p>
         </div>
         <div className="flex flex-col gap-3">
           <input
-            className="w-full h-12 bg-felt-surface border border-felt-border rounded-xl px-4 text-white text-sm font-medium placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+            className="w-full h-12 bg-felt-surface border border-felt-border rounded-xl px-4 text-white text-sm font-medium placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
             placeholder="you@example.com"
             type="email"
             value={email}
@@ -380,7 +454,7 @@ function PendingApprovalScreen({ onLogout }) {
       <div className="relative z-10 w-full max-w-[320px] text-center">
         <div className="text-[48px] leading-none mb-5">⏳</div>
         <h1 className="text-white text-2xl font-black tracking-tight">Pending approval</h1>
-        <p className="text-zinc-500 text-sm mt-3 font-medium leading-relaxed">
+        <p className="text-zinc-400 text-sm mt-3 font-medium leading-relaxed">
           Your account is set up. Ask the app admin to approve you as a host to create games.
         </p>
         <button
@@ -437,7 +511,7 @@ function AdminScreen({ onBack }) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.12),transparent_60%)]" />
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <div className="text-zinc-500 text-xs font-medium mb-1">Admin</div>
+            <div className="text-zinc-400 text-xs font-medium mb-1">Admin</div>
             <div className="text-white text-2xl font-black tracking-tight">Approvals</div>
           </div>
           <button onClick={onBack} className="mt-1 p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-zinc-300 transition-colors">
@@ -447,10 +521,10 @@ function AdminScreen({ onBack }) {
       </div>
 
       <div className="px-5 flex flex-col gap-2.5">
-        {loading && <div className="text-zinc-500 text-sm text-center py-8">Loading…</div>}
+        {loading && <div className="text-zinc-400 text-sm text-center py-8">Loading…</div>}
         {error && <div className="text-red-400 text-xs font-medium">{error}</div>}
         {!loading && profiles.length === 0 && (
-          <div className="text-zinc-500 text-sm text-center py-8">No accounts yet.</div>
+          <div className="text-zinc-400 text-sm text-center py-8">No accounts yet.</div>
         )}
         {profiles.map(row => {
           const isApprovedHost = row.role === "host" && row.approved
@@ -459,8 +533,8 @@ function AdminScreen({ onBack }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-white font-bold text-sm truncate">{row.display_name || row.email}</div>
-                  {row.phone && <div className="text-zinc-500 text-xs mt-0.5">{row.phone}</div>}
-                  <div className="text-zinc-600 text-[10px] mt-1 font-mono truncate">{row.id}</div>
+                  {row.phone && <div className="text-zinc-400 text-xs mt-0.5">{row.phone}</div>}
+                  <div className="text-zinc-400 text-[10px] mt-1 font-mono truncate">{row.id}</div>
                 </div>
                 <span
                   className={cn(
@@ -506,7 +580,7 @@ function AdminScreen({ onBack }) {
         <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-white">Revoke host approval?</DialogTitle>
-            <DialogDescription className="text-zinc-500">
+            <DialogDescription className="text-zinc-400">
               {revokeTarget?.display_name || revokeTarget?.email} will no longer be able to create games. This build can't yet check whether they have a live game in progress — confirm you're not pulling approval mid-game.
             </DialogDescription>
           </DialogHeader>
@@ -548,7 +622,7 @@ function NetTrendChart({ pastGames, hostName }) {
 
   if (points.length < 2) {
     return (
-      <div className="bg-felt-surface border border-felt-border rounded-2xl px-4 py-6 text-center text-zinc-700 text-xs font-medium">
+      <div className="bg-felt-surface border border-felt-border rounded-2xl px-4 py-6 text-center text-zinc-400 text-xs font-medium">
         Play a couple more games to see your trend
       </div>
     )
@@ -610,11 +684,15 @@ function NetTrendChart({ pastGames, hostName }) {
 }
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
-function HostStatsView({ pastGames }) {
-  const gamesHosted = pastGames.length
-  const uniquePlayers = new Set(pastGames.flatMap(g => g.players.map(p => p.name))).size
-  const totalRake = pastGames.reduce((s, g) => s + (g.rake || 0), 0)
-  const totalPot = pastGames.reduce((s, g) => s + g.players.reduce((ps, p) => ps + totalBuyinsFor(p), 0), 0)
+function HostStatsView({ pastGames, hostName }) {
+  // Only games this account actually hosted count toward hosting stats —
+  // a closed game someone else ran (Laks was just a player in it) belongs in
+  // their Player stats, not here.
+  const hosted = pastGames.filter(g => !g.hostName || g.hostName === hostName)
+  const gamesHosted = hosted.length
+  const uniquePlayers = new Set(hosted.flatMap(g => g.players.map(p => p.name))).size
+  const totalRake = hosted.reduce((s, g) => s + (g.rake || 0), 0)
+  const totalPot = hosted.reduce((s, g) => s + g.players.reduce((ps, p) => ps + totalBuyinsFor(p), 0), 0)
   const avgPot = gamesHosted ? Math.round(totalPot / gamesHosted) : 0
 
   return (
@@ -638,20 +716,22 @@ function HostStatsView({ pastGames }) {
         </div>
       </div>
       {gamesHosted === 0 && (
-        <div className="text-zinc-600 text-xs text-center py-6">Host a game to see stats here.</div>
+        <div className="text-zinc-400 text-xs text-center py-6">Host a game to see stats here.</div>
       )}
     </div>
   )
 }
 
-function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin }) {
+function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isAdmin, view }) {
   // Dashboard stats/lists only ever reflect closed games — a live game in
   // progress doesn't count toward hosting totals or the trend chart yet, and
   // it already has its own separate "active game" card above, so it's
   // excluded here to avoid double-showing it.
   const closedGames = pastGames.filter(g => g.status !== "live")
   const recent = closedGames.slice(0, 6)
-  const [view, setView] = useState("player") // player | host
+  // Which persona's analytics to show ("player" | "host") — switched from the
+  // Host/Player icons in the bottom nav, not from a tab here. Each defaults
+  // straight to that persona's analytics from previous games.
   return (
     <div className="flex flex-col min-h-screen bg-felt-bg pb-28">
       {/* Header */}
@@ -659,8 +739,17 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(202,160,67,0.12),transparent_60%)]" />
         <div className="relative z-10 flex items-start justify-between">
           <div>
-            <div className="text-zinc-500 text-xs font-medium mb-1">Welcome back</div>
-            <div className="text-white text-2xl font-black tracking-tight">{hostName} <span className="text-zinc-600">♠</span></div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              {view === "host" ? (
+                <LayoutDashboard className="w-3 h-3 text-gold-light" />
+              ) : (
+                <User className="w-3 h-3 text-gold-light" />
+              )}
+              <span className="text-gold-light text-[10px] font-bold tracking-[0.15em] uppercase">
+                {view === "host" ? "Host View" : "Player View"}
+              </span>
+            </div>
+            <div className="text-white text-2xl font-black tracking-tight">{hostName} <span className="text-zinc-400">♠</span></div>
           </div>
           <div className="flex items-center gap-2 mt-1">
             {isAdmin && (
@@ -697,15 +786,6 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         )}
       </div>
 
-      <div className="px-5 mt-1">
-        <Tabs value={view} onValueChange={setView}>
-          <TabsList>
-            <TabsTrigger value="player">My Player Stats</TabsTrigger>
-            <TabsTrigger value="host">My Hosting Stats</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
       {view === "host" && (
         <>
           {/* New game — hosting-only action, lives in the Hosting tab rather
@@ -720,13 +800,13 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
               </div>
               <div>
                 <div className="text-white font-bold text-sm">New Game</div>
-                <div className="text-zinc-500 text-xs mt-0.5">Set up players & buy-ins</div>
+                <div className="text-zinc-400 text-xs mt-0.5">Set up players & buy-ins</div>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-700 ml-auto group-hover:text-zinc-500 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-zinc-400 ml-auto group-hover:text-zinc-500 transition-colors" />
             </button>
           </div>
           <SL>Hosting Overview</SL>
-          <HostStatsView pastGames={closedGames} />
+          <HostStatsView pastGames={closedGames} hostName={hostName} />
           <SL>Settlement Ledger</SL>
           <div className="px-5">
             <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g)} />
@@ -792,14 +872,14 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
                   )} />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
-                    <div className="text-zinc-600 text-xs mt-0.5">{g.date} · {g.players.length} players</div>
+                    <div className="text-zinc-400 text-xs mt-0.5">{g.date} · {g.players.length} players</div>
                   </div>
                   {net !== null && (
-                    <div className={cn("font-mono text-sm font-bold shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-600")}>
+                    <div className={cn("font-mono text-sm font-bold shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-400")}>
                       {fmtNet(net)}
                     </div>
                   )}
-                  <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
                 </button>
               )
             })}
@@ -893,14 +973,14 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
           <div className="text-white text-xl font-bold flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" /> Game Created
           </div>
-          <div className="text-zinc-500 text-sm mt-1">Invite your players, then jump into the game</div>
+          <div className="text-zinc-400 text-sm mt-1">Invite your players, then jump into the game</div>
         </div>
 
         <div className="px-5 pt-5 flex flex-col gap-4">
           <div className="bg-felt-surface border border-felt-border rounded-2xl p-4">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">Invite Preview</div>
             <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-zinc-300 bg-felt-bg/60 border border-felt-border rounded-xl p-3">{inviteText()}</pre>
-            <div className="text-[10.5px] text-zinc-600 mt-2 leading-relaxed">
+            <div className="text-[10.5px] text-zinc-400 mt-2 leading-relaxed">
               Stub: this link doesn't route anywhere real yet and phones aren't verified — anyone with the link could open it once a real join page exists.
             </div>
           </div>
@@ -931,7 +1011,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
           <X className="w-4 h-4" /> Cancel
         </button>
         <div className="text-white text-xl font-bold">New Game</div>
-        <div className="text-zinc-500 text-sm mt-1">Configure the session</div>
+        <div className="text-zinc-400 text-sm mt-1">Configure the session</div>
       </div>
 
       <div className="px-5 pt-5 flex flex-col gap-5">
@@ -981,7 +1061,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
           {source === "Your players" && (
             notAdded.length > 0 ? (
               <div>
-                <div className="text-[10px] text-zinc-600 font-semibold uppercase tracking-wider mb-2">Tap to add · name + saved number</div>
+                <div className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">Tap to add · name + saved number</div>
                 <div className="flex flex-wrap gap-1.5">
                   {notAdded.map(r => (
                     <button key={r.name} onClick={() => r.phone ? addPlayer(r.name, r.phone) : (setSource("Type in"), setNameInput(r.name))}
@@ -994,14 +1074,14 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
                 </div>
               </div>
             ) : (
-              <div className="text-center py-5 text-zinc-700 text-xs font-medium">
+              <div className="text-center py-5 text-zinc-400 text-xs font-medium">
                 Everyone from your history is already added
               </div>
             )
           )}
 
           {source === "Contacts" && (
-            <div className="text-center py-6 text-zinc-600 text-xs font-medium leading-relaxed">
+            <div className="text-center py-6 text-zinc-400 text-xs font-medium leading-relaxed">
               Contacts access isn't wired up yet — this tab is a placeholder.
               <br />Use "Type in" for now.
             </div>
@@ -1010,14 +1090,14 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
           {source === "Type in" && (
             <div className="flex flex-col gap-2">
               <input
-                className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                 placeholder="Player's name…"
                 value={nameInput}
                 onChange={e => setNameInput(e.target.value)}
               />
               <div className="relative">
                 <input
-                  className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 pr-20 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                  className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 pr-20 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                   placeholder="Phone number (required)…"
                   type="tel"
                   value={phoneInput}
@@ -1063,7 +1143,7 @@ function DInput({ label, ...props }) {
     <div>
       {label && <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">{label}</div>}
       <input
-        className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+        className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
         {...props}
       />
     </div>
@@ -1091,7 +1171,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
       <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
         <DialogHeader>
           <DialogTitle className="text-white">End Game & Settle</DialogTitle>
-          <DialogDescription className="text-zinc-500">Review accounts before settlement.</DialogDescription>
+          <DialogDescription className="text-zinc-400">Review accounts before settlement.</DialogDescription>
         </DialogHeader>
 
         {/* Explicit confirmation — closing doesn't require every player to
@@ -1120,7 +1200,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
               onChange={e => setRake(e.target.value)}
               className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm font-mono outline-none focus:border-gold transition-all"
             />
-            <span className="text-zinc-500 text-sm font-bold w-6">B</span>
+            <span className="text-zinc-400 text-sm font-bold w-6">B</span>
           </div>
         </div>
 
@@ -1136,7 +1216,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
             !balanced ? ["Off by", fmtB(Math.abs(diff))] : null,
           ].filter(Boolean).map(([l, v]) => (
             <div key={l} className="flex justify-between">
-              <span className="text-zinc-500 text-sm">{l}</span>
+              <span className="text-zinc-400 text-sm">{l}</span>
               <span className="font-mono text-sm font-semibold text-zinc-200">{v}</span>
             </div>
           ))}
@@ -1308,29 +1388,29 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
               <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">Live</span>
             </div>
             {undoStack.length > 0 && (
-              <button onClick={onUndo} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors">
+              <button onClick={onUndo} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors">
                 <Undo2 className="w-3.5 h-3.5" /> Undo
               </button>
             )}
           </div>
           <div className="text-white text-xl font-bold">{game.name}</div>
-          <div className="text-zinc-500 text-xs mt-1">{players.length} players · {game.date}{game.time ? ` · ${game.time}` : ""}</div>
+          <div className="text-zinc-400 text-xs mt-1">{players.length} players · {game.date}{game.time ? ` · ${game.time}` : ""}</div>
         </div>
       </div>
 
       {/* Stats row */}
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
         <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
-          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">On table</div>
+          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">On table</div>
           <NumB value={totalIn - totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
         <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
-          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Cashed out</div>
+          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Cashed out</div>
           <NumB value={totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
         <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Rake</div>
+            <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</div>
             <button onClick={() => setRakeVisible(v => !v)} className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
               {rakeVisible ? <ChevronUp className="w-3 h-3" /> : <span className="text-[10px]">◐</span>}
             </button>
@@ -1351,7 +1431,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
               </div>
             )
           ) : (
-            <div className="mt-1 text-[18px] font-extrabold tracking-[0.15em] text-zinc-600">•••</div>
+            <div className="mt-1 text-[18px] font-extrabold tracking-[0.15em] text-zinc-400">•••</div>
           )}
         </div>
       </div>
@@ -1419,7 +1499,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-3 text-zinc-700 text-xs font-medium">
+                <div className="text-center py-3 text-zinc-400 text-xs font-medium">
                   Everyone in your roster is already in this game
                 </div>
               )
@@ -1429,13 +1509,13 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
               <div className="flex flex-col gap-2">
                 <input
                   autoFocus
-                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold transition-all"
+                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold transition-all"
                   placeholder="Player's name…"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                 />
                 <input
-                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-600 outline-none focus:border-gold transition-all"
+                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold transition-all"
                   placeholder="Phone number (required)…"
                   type="tel"
                   value={newPhone}
@@ -1467,7 +1547,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
       <SL>Players · tap any to open</SL>
 
       {players.length === 0 && (
-        <div className="text-center py-8 text-zinc-700 text-sm">Add players above to start tracking</div>
+        <div className="text-center py-8 text-zinc-400 text-sm">Add players above to start tracking</div>
       )}
 
       <div className="px-5 flex flex-col gap-2">
@@ -1493,13 +1573,13 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                 <Av name={p.name} size={36} />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm text-zinc-100">{p.name}</div>
-                  <div className="text-[10.5px] text-zinc-600 mt-0.5 font-mono">
+                  <div className="text-[10.5px] text-zinc-400 mt-0.5 font-mono">
                     {p.buyins.length} buy-in{p.buyins.length === 1 ? "" : "s"}
                     {p.cashedOut ? " · cashed out" : hasLocked ? " · locked" : ""}
                   </div>
                 </div>
                 {p.cashedOut ? (
-                  <NumB value={net} sign size="text-[17px]" className={net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-500"} />
+                  <NumB value={net} sign size="text-[17px]" className={net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-400"} />
                 ) : (
                   <NumB value={tIn} size="text-[17px]" className="text-white" />
                 )}
@@ -1554,7 +1634,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
         {sheetPlayer && (
           <div className="flex flex-col gap-3.5">
             {isClosed && (
-              <div className="text-center text-[10.5px] text-zinc-600 -mt-1 mb-0.5">
+              <div className="text-center text-[10.5px] text-zinc-400 -mt-1 mb-0.5">
                 Game closed — figures are final and read-only
               </div>
             )}
@@ -1566,14 +1646,14 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                     <div className="font-mono text-[40px] font-extrabold tracking-tight text-white leading-none">{sliderVal}</div>
                     <Dot color="indigo" className="mt-3" />
                   </div>
-                  <div className="text-[10.5px] font-bold tracking-wider uppercase text-zinc-600 mt-1">
+                  <div className="text-[10.5px] font-bold tracking-wider uppercase text-zinc-400 mt-1">
                     buy-in{sliderVal === 1 ? "" : "s"} · <NumB value={sliderVal * game.buyinAmount} size="text-[11px]" className="text-zinc-400 inline-flex" />
                   </div>
                 </div>
                 {!isClosed && (
                   <>
                     <BuyinSlider value={sliderVal} onChange={setSliderVal} min={lockedCountFor(sheetPlayer)} />
-                    <div className="text-center text-[11px] text-zinc-600">
+                    <div className="text-center text-[11px] text-zinc-400">
                       Locks in <b className="text-zinc-400 font-semibold">1 min</b> — once locked it's permanent, no override
                     </div>
                     <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
@@ -1600,7 +1680,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                   {sheetPlayerIn === 0 ? "no" : sheetPlayer.buyins.length} buy-in{sheetPlayer.buyins.length === 1 ? "" : "s"} · <NumB value={sheetPlayerIn} size="text-[11px]" className="text-zinc-400 inline-flex" /> in — locked while cashing out
                 </div>
                 <div className="text-center pt-1 pb-0.5">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">Cashing out</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Cashing out</div>
                   <NumB value={cashoutEntered} size="text-[40px]" className="text-white justify-center" />
                 </div>
                 <div className="text-center text-[11.5px] font-mono -mt-1.5">
@@ -1730,13 +1810,13 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.06),transparent_60%)]" />
         <div className="relative z-10">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-300 text-sm mb-5 transition-colors">
             <X className="w-4 h-4" /> Back to game
           </button>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-white text-xl font-bold">Settlement</div>
-              <div className="text-zinc-500 text-sm mt-1">{game.name} · {game.date}</div>
+              <div className="text-zinc-400 text-sm mt-1">{game.name} · {game.date}</div>
             </div>
             <Trophy className="w-6 h-6 text-amber-500" />
           </div>
@@ -1770,9 +1850,9 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
               <Av name={pos.name} size={32} />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-zinc-100 text-sm">{pos.name}</div>
-                <div className="text-xs text-zinc-600 font-mono mt-0.5">In {fmtB(totalBuyinsFor(p))} · Out {fmtB(p.cashoutAmount || 0)}</div>
+                <div className="text-xs text-zinc-400 font-mono mt-0.5">In {fmtB(totalBuyinsFor(p))} · Out {fmtB(p.cashoutAmount || 0)}</div>
               </div>
-              <NumB value={pos.net} sign size="text-sm" className={pos.net > 0 ? "text-emerald-400" : pos.net < 0 ? "text-red-400" : "text-zinc-500"} />
+              <NumB value={pos.net} sign size="text-sm" className={pos.net > 0 ? "text-emerald-400" : pos.net < 0 ? "text-red-400" : "text-zinc-400"} />
             </div>
           )
         })}
@@ -1782,7 +1862,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       <SL>Payments — {visibleTxns.length}</SL>
 
       {visibleTxns.length === 0 ? (
-        <div className="text-center py-8 text-zinc-600 text-sm">🎉 Everyone is even</div>
+        <div className="text-center py-8 text-zinc-400 text-sm">🎉 Everyone is even</div>
       ) : (
         <div className="px-5 flex flex-col gap-2.5 mb-3">
           {visibleTxns.map(t => {
@@ -1792,9 +1872,9 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
                 <button onClick={() => openEdit(t)} className="flex-1 min-w-0 flex items-center gap-2.5 text-left">
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-zinc-100 flex items-center gap-1.5 truncate">
-                      {t.from} <span className="text-zinc-600">→</span> {t.to}
+                      {t.from} <span className="text-zinc-400">→</span> {t.to}
                     </div>
-                    <div className="text-[10px] text-zinc-600 font-mono mt-0.5">{!t.isAuto ? "custom" : done ? "settled" : "not yet paid"}</div>
+                    <div className="text-[10px] text-zinc-400 font-mono mt-0.5">{!t.isAuto ? "custom" : done ? "settled" : "not yet paid"}</div>
                   </div>
                   <NumB value={t.amount} size="text-[14.5px]" className="text-white shrink-0" />
                 </button>
@@ -1814,7 +1894,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       {visibleTxns.length > 0 && (
         <div className="px-5 mb-4">
           <div className="flex items-center gap-3 bg-felt-surface border border-felt-border rounded-xl px-4 py-3">
-            <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-wider">Settled</span>
+            <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">Settled</span>
             <Progress value={visibleTxns.length ? (settledCount / visibleTxns.length) * 100 : 0} className="flex-1 bg-felt-surface-2" indicatorClassName="bg-emerald-500" />
             <span className="font-mono text-sm font-bold text-emerald-400">{settledCount}/{visibleTxns.length}</span>
           </div>
@@ -1823,7 +1903,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 
       <div className="px-5 mb-4">
         <button onClick={openAdd}
-          className="w-full border border-dashed border-felt-border hover:border-felt-border hover:bg-felt-surface/50 rounded-xl py-3 text-sm text-zinc-700 hover:text-zinc-500 font-medium transition-all flex items-center justify-center gap-2">
+          className="w-full border border-dashed border-felt-border hover:border-felt-border hover:bg-felt-surface/50 rounded-xl py-3 text-sm text-zinc-400 hover:text-zinc-400 font-medium transition-all flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" /> Add Custom Payment
         </button>
       </div>
@@ -1920,7 +2000,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
   return (
     <div className="flex flex-col gap-2">
       {myLines.length === 0 && (
-        <div className="text-zinc-600 text-xs text-center py-6">
+        <div className="text-zinc-400 text-xs text-center py-6">
           {closedGames.length === 0
             ? "No closed games yet — settlements show up here once a game ends."
             : "No settlements involve you yet in any closed game."}
@@ -1935,7 +2015,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
               <Av name={t.to} size={28} />
               <div className="flex-1 min-w-0">
                 <div className="text-zinc-100 text-sm font-semibold">To {t.to}</div>
-                <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+                <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
               </div>
               <NumB value={t.amount} sign={false} size="text-base" className="text-red-400" />
             </button>
@@ -1951,7 +2031,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame }) {
               <Av name={t.from} size={28} />
               <div className="flex-1 min-w-0">
                 <div className="text-zinc-100 text-sm font-semibold">From {t.from}</div>
-                <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+                <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
               </div>
               <NumB value={t.amount} sign={false} size="text-base" className="text-emerald-400" />
             </button>
@@ -1986,7 +2066,7 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
         </div>
       )}
       {drillLines.length === 0 && (
-        <div className="text-zinc-600 text-xs text-center py-6">
+        <div className="text-zinc-400 text-xs text-center py-6">
           {hostedClosed.length === 0
             ? "No games you've hosted have closed yet."
             : "No settlement lines to show."}
@@ -1997,7 +2077,7 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
           className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-zinc-700 transition-colors">
           <div className="flex-1 min-w-0">
             <div className="text-zinc-100 text-sm font-semibold">{t.from} → {t.to}</div>
-            <div className="text-zinc-600 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
+            <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
           </div>
           <NumB value={t.amount} size="text-base" className="text-zinc-200" />
         </button>
@@ -2025,23 +2105,23 @@ function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
     return (
       <div className="min-h-screen bg-felt-bg pb-8">
         <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-300 text-sm mb-5 transition-colors">
             <X className="w-4 h-4" /> Back
           </button>
           <div className="text-white text-xl font-bold">{game.name}</div>
-          <div className="text-zinc-500 text-sm mt-1">{game.date} · hosted by {game.hostName}</div>
+          <div className="text-zinc-400 text-sm mt-1">{game.date} · hosted by {game.hostName}</div>
         </div>
         <div className="px-5 pt-5 flex flex-col gap-2.5">
           <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Your buy-ins</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your buy-ins</div>
             <NumB value={myIn} size="text-lg" className="text-white" />
           </div>
           <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Your cash-out</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your cash-out</div>
             <NumB value={myOut} size="text-lg" className="text-white" />
           </div>
           <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Your net</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your net</div>
             <NumB value={myNet} sign size="text-xl" className={myNet >= 0 ? "text-emerald-400" : "text-red-400"} />
           </div>
         </div>
@@ -2061,7 +2141,7 @@ function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
     <div className="min-h-screen bg-felt-bg pb-8">
       <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
         <div className="relative z-10">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-300 text-sm mb-5 transition-colors">
             <X className="w-4 h-4" /> Back
           </button>
           <div className="flex items-center gap-2">
@@ -2074,7 +2154,7 @@ function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
               </span>
             )}
           </div>
-          <div className="text-zinc-500 text-sm mt-1">{game.date} · {game.players.length} players</div>
+          <div className="text-zinc-400 text-sm mt-1">{game.date} · {game.players.length} players</div>
           {!isClosed && (
             <button onClick={() => onNavigateLive?.()} className="mt-2 text-[11.5px] font-semibold text-gold-light hover:text-gold-light/80 transition-colors">
               Go to Live Game →
@@ -2085,16 +2165,16 @@ function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
 
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
         <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
-          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Pot</div>
+          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Pot</div>
           <NumB value={totalIn} size="text-[17px]" className="mt-1 text-white" />
         </div>
         <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
-          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Players</div>
+          <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Players</div>
           <div className="mt-1 text-[17px] font-extrabold text-white">{game.players.length}</div>
         </div>
         <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
           <div className="flex items-center justify-between">
-            <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-600">Rake</div>
+            <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</div>
             <button onClick={() => setRakeVisible(v => !v)} className="w-5 h-5 rounded-md bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
               <span className="text-[9px]">◐</span>
             </button>
@@ -2117,22 +2197,22 @@ function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
               <Av name={pos.name} size={30} />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-zinc-200 text-sm">{pos.name}</div>
-                <div className="text-xs text-zinc-600 font-mono">In {fmtB(totalBuyinsFor(p))} · Out {fmtB(p.cashoutAmount || 0)}</div>
+                <div className="text-xs text-zinc-400 font-mono">In {fmtB(totalBuyinsFor(p))} · Out {fmtB(p.cashoutAmount || 0)}</div>
               </div>
-              <NumB value={pos.net} sign size="text-sm" className={pos.net > 0 ? "text-emerald-400" : pos.net < 0 ? "text-red-400" : "text-zinc-500"} />
+              <NumB value={pos.net} sign size="text-sm" className={pos.net > 0 ? "text-emerald-400" : pos.net < 0 ? "text-red-400" : "text-zinc-400"} />
             </div>
           )
         })}
       </div>
 
       <SL>Payments — {txns.length}</SL>
-      {txns.length === 0 ? <div className="text-center py-6 text-zinc-600 text-sm">Everyone was even</div> : (
+      {txns.length === 0 ? <div className="text-center py-6 text-zinc-400 text-sm">Everyone was even</div> : (
         <div className="px-5 flex flex-col gap-2">
           {txns.map((t, i) => (
             <div key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3">
               <Av name={t.from} size={28} />
               <span className="text-sm font-semibold text-red-400">{t.from}</span>
-              <ChevronsRight className="w-4 h-4 text-zinc-700 shrink-0" />
+              <ChevronsRight className="w-4 h-4 text-zinc-400 shrink-0" />
               <NumB value={t.amount} size="text-sm" className="text-amber-400 flex-1" />
               <Av name={t.to} size={28} />
               <span className="text-sm font-semibold text-emerald-400">{t.to}</span>
@@ -2145,24 +2225,39 @@ function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
 }
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
-function BottomNav({ screen, onNavigate, showLive }) {
+// No plain "Home" button — the app's two personas (Host / Player) are the
+// primary navigation, each landing straight on that persona's analytics from
+// previous games. A third "Live" icon appears only while a game is actually
+// in progress, and is reachable from either persona.
+function BottomNav({ screen, homeView, onSelectView, onNavigate, showLive }) {
   const items = [
-    { id: "home", icon: Home, label: "Home" },
-    showLive && { id: "live-game", icon: Gamepad2, label: "Live", live: true },
+    { id: "host", icon: LayoutDashboard, label: "Host" },
+    { id: "player", icon: User, label: "Player" },
+    showLive && { id: "live", icon: Gamepad2, label: "Live", live: true },
   ].filter(Boolean)
+
+  const isActive = (item) => {
+    if (item.id === "live") return screen === "live-game"
+    return screen === "home" && homeView === item.id
+  }
+
+  const handleClick = (item) => {
+    if (item.id === "live") onNavigate("live-game")
+    else onSelectView(item.id)
+  }
 
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] sm:max-w-xl md:max-w-2xl z-40 px-3 sm:px-5 pb-5">
       <div className="bg-felt-surface/95 backdrop-blur-xl border border-felt-border rounded-2xl px-2 py-2 flex items-center shadow-2xl shadow-black/50">
         {items.map(item => {
           const Icon = item.icon
-          const active = screen === item.id
+          const active = isActive(item)
           return (
-            <button key={item.id} onClick={() => onNavigate(item.id)}
-              className={cn("flex-1 flex flex-col items-center gap-1.5 py-2 rounded-xl transition-all", active ? "bg-gold" : "text-zinc-600 hover:text-zinc-400")}>
+            <button key={item.id} onClick={() => handleClick(item)}
+              className={cn("flex-1 flex flex-col items-center gap-1.5 py-2 rounded-xl transition-all", active ? "bg-gold" : "text-zinc-400 hover:text-zinc-200")}>
               <div className="relative">
                 <Icon className={cn("w-5 h-5", active ? "text-white" : "")} />
-                {item.live && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-felt-border" />}
+                {item.live && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-felt-border animate-blink" />}
               </div>
               <span className={cn("text-[10px] font-bold", active ? "text-white" : "")}>{item.label}</span>
             </button>
@@ -2179,6 +2274,11 @@ export default function App() {
   const [session, setSession]     = useState(null)
   const [profile, setProfile]     = useState(null)
   const [screen, setScreen]       = useState("home")
+  // Which persona's Home view is showing — driven by the Host/Player icons in
+  // the bottom nav (see BottomNav). Defaults to Player since that's the
+  // lighter-weight, more-common-per-visit view; a host jumps to their view
+  // with one tap and it's remembered until they switch back.
+  const [homeView, setHomeView]   = useState("player")
   const [activeGame, setActiveGame] = useState(null)
   const [undoStack, setUndoStack] = useState([])
   const [pastGames, setPastGames] = useState(SEED_PAST_GAMES)
@@ -2252,6 +2352,14 @@ export default function App() {
     setScreen(s)
   }
 
+  // Selecting Host or Player from the bottom nav always lands on Home in
+  // that persona's view — including from the live-game screen, so it also
+  // doubles as a way back to the dashboard.
+  const selectHomeView = (v) => {
+    setHomeView(v)
+    setScreen("home")
+  }
+
   const logout = async () => { await supabase.auth.signOut(); setScreen("home") }
 
   const updateGamePlayers = (updated) => {
@@ -2293,7 +2401,7 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-felt-bg">
-        <div className="text-zinc-600 text-sm font-medium">Loading…</div>
+        <div className="text-zinc-400 text-sm font-medium">Loading…</div>
       </div>
     )
   }
@@ -2317,12 +2425,12 @@ export default function App() {
 
   return (
     <div className="w-full max-w-[430px] sm:max-w-xl md:max-w-2xl min-h-screen bg-felt-bg mx-auto relative sm:px-2">
-      {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} />}
+      {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} view={homeView} />}
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
       {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
-      {!isFullScreen && <BottomNav screen={screen} onNavigate={navigate} showLive={!!activeGame} />}
+      {!isFullScreen && <BottomNav screen={screen} homeView={homeView} onSelectView={selectHomeView} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>
   )
