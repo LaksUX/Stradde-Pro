@@ -807,9 +807,52 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           </div>
           <SL>Hosting Overview</SL>
           <HostStatsView pastGames={closedGames} hostName={hostName} />
+          {(() => {
+            // Only games this account actually hosted — same filter as
+            // HostStatsView/SettlementLedgerSection. This is the "games this
+            // account has hosted" list the dashboard spec calls for, distinct
+            // from Player's Recent Games (which includes games hosted by
+            // someone else too).
+            const hosted = closedGames.filter(g => !g.hostName || g.hostName === hostName)
+            const recentHosted = hosted.slice(0, 6)
+            if (recentHosted.length === 0) return null
+            return (
+              <>
+                <SL>Game History</SL>
+                <div className="px-5 flex flex-col gap-2">
+                  {recentHosted.map(g => {
+                    const h = g.players.find(p => p.name === hostName)
+                    const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
+                    return (
+                      <button
+                        key={g.id}
+                        onClick={() => onNavigate("game-detail", g, true)}
+                        className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
+                      >
+                        <div className={cn(
+                          "w-1 h-9 rounded-full shrink-0",
+                          net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-zinc-100 text-sm truncate">{g.name}</div>
+                          <div className="text-zinc-400 text-xs mt-0.5">{g.date} · {g.players.length} players · {fmtB(g.rake || 0)} rake</div>
+                        </div>
+                        {net !== null && (
+                          <div className={cn("font-mono text-sm font-bold shrink-0", net > 0 ? "text-emerald-400" : net < 0 ? "text-red-400" : "text-zinc-400")}>
+                            {fmtNet(net)}
+                          </div>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          })()}
           <SL>Settlement Ledger</SL>
           <div className="px-5">
-            <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g)} />
+            <SettlementLedgerSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, true)} />
           </div>
         </>
       )}
@@ -848,7 +891,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         <>
           <SL>My Settlements</SL>
           <div className="px-5">
-            <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g)} />
+            <MySettlementsSection hostName={hostName} closedGames={closedGames} onSelectGame={g => onNavigate("game-detail", g, false)} />
           </div>
         </>
       )}
@@ -863,7 +906,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
               return (
                 <button
                   key={g.id}
-                  onClick={() => onNavigate("game-detail", g)}
+                  onClick={() => onNavigate("game-detail", g, false)}
                   className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
                 >
                   <div className={cn(
@@ -2090,9 +2133,18 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame }) {
 // Role-aware: the host who ran this game sees the full breakdown (every
 // player, total pot, rake). A viewer who only played in it — not the host —
 // sees just their own buy-in/cash-out, nothing about anyone else's numbers.
-function GameDetailScreen({ game, viewerName, onBack, onNavigateLive }) {
+// `viewAsHost` is which lens you tapped in from (Host tab's Game History /
+// Settlement Ledger vs Player tab's Recent Games / My Settlements) — not
+// just "did this account technically host this game." Someone who hosts
+// every one of their own games would otherwise see the full host breakdown
+// every time they open a game from their Player tab, defeating the point of
+// having a separate, restricted player view. Real host status still gates
+// it (AND, not OR): the Player lens is always restricted, and the Host lens
+// only ever shows full data for games you actually hosted.
+function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive }) {
   const [rakeVisible, setRakeVisible] = useState(false)
-  const isHost = !game.hostName || game.hostName === viewerName
+  const reallyHosted = !game.hostName || game.hostName === viewerName
+  const isHost = viewAsHost && reallyHosted
   const totalIn  = game.players.reduce((s, p) => s + totalBuyinsFor(p), 0)
   const totalOut = game.players.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
   const rake     = game.rake || 0
@@ -2283,6 +2335,8 @@ export default function App() {
   const [undoStack, setUndoStack] = useState([])
   const [pastGames, setPastGames] = useState(SEED_PAST_GAMES)
   const [selGame, setSelGame]     = useState(null)
+  // Which lens a game-detail view was opened through — see GameDetailScreen.
+  const [selGameAsHost, setSelGameAsHost] = useState(false)
   const [toast, setToast]         = useState(null)
   const toastRef = useRef(null)
 
@@ -2347,8 +2401,11 @@ export default function App() {
     toastRef.current = setTimeout(() => setToast(null), 3000)
   }
 
-  const navigate = (s, data) => {
-    if (s === "game-detail" && data) setSelGame(data)
+  const navigate = (s, data, asHost) => {
+    if (s === "game-detail" && data) {
+      setSelGame(data)
+      setSelGameAsHost(!!asHost)
+    }
     setScreen(s)
   }
 
@@ -2429,7 +2486,7 @@ export default function App() {
       {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
       {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("live-game")} showToast={showToast} />}
-      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
+      {screen === "game-detail" && selGame && <GameDetailScreen game={selGame} viewerName={hostName} viewAsHost={selGameAsHost} onBack={() => navigate("home")} onNavigateLive={() => navigate("live-game")} />}
       {!isFullScreen && <BottomNav screen={screen} homeView={homeView} onSelectView={selectHomeView} onNavigate={navigate} showLive={!!activeGame} />}
       <Toast toast={toast} />
     </div>
