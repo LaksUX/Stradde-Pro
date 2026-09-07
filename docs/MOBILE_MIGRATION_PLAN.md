@@ -4,6 +4,9 @@ Companion to `REQUIREMENTS.md`, which stays the source of truth for *what the ap
 does*. This file is about *how we get it onto Android and iOS* without breaking or
 re-litigating what's already been decided there.
 
+**Progress:** Phase 0 done (`src/core/money.js`, `src/core/settlement.js`, first
+test coverage in the project — commit `caf84cf`). Phase 1 (Supabase + RLS) next.
+
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
 Kotlin/Swift apps (doubles every future change forever). Full reasoning is in the
