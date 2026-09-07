@@ -1,12 +1,20 @@
-// ─── Settlement "paid" status (interim, localStorage-backed) ──────────────
-// [decision, interim] Same rationale as roster.js: game/settlement data is
-// still local React state (see REQUIREMENTS.md → Known gaps), so there's
-// nowhere server-side yet to durably store a per-transfer "paid" flag.
-// Persisted separately from the games themselves (keyed by game id + the
-// transfer's index within that game's stored `settlement` array) rather than
-// folding it into a full pastGames cache, so it survives reloads without
-// shadowing future edits to the seed/demo data — only the paid/pending bit
-// is cached, nothing about the games or amounts themselves.
+// ─── Settlement "paid" status — MIGRATION ONLY ─────────────────────────────
+// [superseded] This used to be the live store for per-transfer paid/pending
+// flags, kept separate from the games (keyed by game id + the transfer's
+// index in that game's `settlement` array) because games themselves weren't
+// persisted at all and a full pastGames cache would have shadowed the demo
+// seed data.
+//
+// Games are now persisted properly (src/lib/gameStore.js), so the flag lives
+// on the transfer object itself and is saved with the game. Keeping a second
+// copy here would just be two stores for one fact, which is how they drift —
+// and index-keying is fragile the moment a settlement array is ever edited
+// or recomputed.
+//
+// `applyPaidStatus` survives only to carry flags written by the older
+// version into the new store, once, the first time an account's games are
+// seeded. Nothing writes to this key any more; it can be deleted outright
+// once no browser is likely to still hold the old data.
 //
 // [decision] Only the account that's currently signed in can flip this
 // toggle (there's no separate logged-in "other player" to ask for a second
@@ -25,15 +33,6 @@ function readMap() {
     return parsed && typeof parsed === "object" ? parsed : {}
   } catch {
     return {}
-  }
-}
-
-function writeMap(map) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(map))
-  } catch {
-    // localStorage unavailable (private mode, quota, etc.) — status just
-    // won't persist across reloads this session; not fatal.
   }
 }
 
@@ -59,8 +58,6 @@ export function applyPaidStatus(games) {
   })
 }
 
-export function setPaidStatus(gameId, index, paid) {
-  const map = readMap()
-  map[statusKey(gameId, index)] = paid
-  writeMap(map)
-}
+// [removed] setPaidStatus() is gone — the paid flag is written onto the
+// transfer and persisted with its game now. Nothing should write to this
+// key again.
