@@ -30,6 +30,25 @@ import { BANK } from "@/core/money"
 
 const toEpoch = (isoString) => (isoString ? new Date(isoString).getTime() : null)
 
+// [decision, REQUIREMENTS.md -> "dates/times must be stored as real
+// timestamps, format at the display layer"] games.started_at is the only
+// timestamp stored — game.date/game.time below are DERIVED display strings,
+// computed fresh on every hydrate, in the exact format App.jsx has always
+// rendered (see its own nowStr()/toLocaleDateString usage). This is what
+// lets every existing `{game.date}` / `{game.time}` render call site in
+// App.jsx keep working completely unchanged, while the actual stored value
+// underneath is a real timestamp, not a locale string.
+function fmtDateDisplay(iso) {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+}
+function fmtTimeDisplay(iso) {
+  const d = new Date(iso)
+  let h = d.getHours(), m = d.getMinutes()
+  const ap = h >= 12 ? "PM" : "AM"
+  h = h % 12 || 12
+  return `${h}:${String(m).padStart(2, "0")} ${ap}`
+}
+
 function hydratePlayer(row) {
   return {
     id: row.id,
@@ -42,25 +61,47 @@ function hydratePlayer(row) {
       .map((b) => ({ id: b.id, amount: b.amount, epoch: toEpoch(b.created_at) })),
     cashoutAmount: row.cashout_amount,
     cashedOutAt: toEpoch(row.cashed_out_at),
+    // Derived, not stored separately — "cashed out" has always just meant
+    // "has a cash-out timestamp" at the DB layer. Kept as a plain boolean
+    // here because nearly every render call site in App.jsx already checks
+    // `p.cashedOut` as a boolean flag.
+    cashedOut: row.cashed_out_at != null,
   }
 }
 
 function hydrateGame(row) {
+  // Settlement transfers are stored keyed by game_player id (from/to), but
+  // every existing render/comparison in App.jsx works with player NAMES
+  // (e.g. `t.from === hostName`). Resolve id -> name here, once, so nothing
+  // downstream needs to know settlements are id-keyed in the database.
+  const playerNameById = Object.fromEntries((row.game_players || []).map((p) => [p.id, p.display_name]))
+
   return {
     id: row.id,
     name: row.name,
     location: row.location || "",
     status: row.status,
     rake: row.rake || 0,
+    // Fixed per REQUIREMENTS.md -> Money model ("every buy-in is always
+    // exactly 1 bank; there is no host-set stake field") — not a stored
+    // column, just BANK, kept as a field because App.jsx reads
+    // `game.buyinAmount` throughout.
+    buyinAmount: BANK,
     startedAt: toEpoch(row.started_at),
     endedAt: toEpoch(row.ended_at),
+    date: row.started_at ? fmtDateDisplay(row.started_at) : "",
+    time: row.started_at ? fmtTimeDisplay(row.started_at) : "",
     lastBankCheckAt: toEpoch(row.last_bank_check_at),
     bankChecks: (row.bank_checks || []).map((c) => toEpoch(c.checked_at)).sort((a, b) => a - b),
     players: (row.game_players || []).map(hydratePlayer),
-    settlements: (row.settlements || []).map((s) => ({
+    // Singular `settlement`, matching every existing App.jsx reference
+    // (`game.settlement`) — not `settlements`.
+    settlement: (row.settlements || []).map((s) => ({
       id: s.id,
       fromPlayerId: s.from_game_player_id,
       toPlayerId: s.to_game_player_id,
+      from: playerNameById[s.from_game_player_id] || s.from_game_player_id,
+      to: playerNameById[s.to_game_player_id] || s.to_game_player_id,
       amount: s.amount,
       note: s.note || "",
       isCustom: s.is_custom,
@@ -203,10 +244,33 @@ export async function addBuyin(gamePlayerId, amount = BANK) {
   return { id: data.id, amount: data.amount, epoch: toEpoch(data.created_at) }
 }
 
+// Bulk version of addBuyin — one INSERT statement for N rows instead of N
+// separate round trips. A single INSERT is atomic (all rows land or none
+// do), so a network blip partway through a multi-buy-in slider drag can no
+// longer leave the game with some-but-not-all of the intended buy-ins added
+// and no clear record of which.
+export async function addBuyins(gamePlayerId, count, amount = BANK) {
+  if (count <= 0) return []
+  const { data, error } = await supabase
+    .from("buyins")
+    .insert(Array.from({ length: count }, () => ({ game_player_id: gamePlayerId, amount })))
+    .select()
+  if (error) throw error
+  return data.map((d) => ({ id: d.id, amount: d.amount, epoch: toEpoch(d.created_at) }))
+}
+
 // Removes one buy-in (e.g. the slider stepping down). Caller must only ever
 // pass an unlocked buy-in's id — same client-side-guard rule as removePlayer.
 export async function removeBuyin(buyinId) {
   const { error } = await supabase.from("buyins").delete().eq("id", buyinId)
+  if (error) throw error
+}
+
+// Bulk version of removeBuyin — one DELETE statement for N rows, same
+// atomicity reasoning as addBuyins above.
+export async function removeBuyins(buyinIds) {
+  if (!buyinIds.length) return
+  const { error } = await supabase.from("buyins").delete().in("id", buyinIds)
   if (error) throw error
 }
 

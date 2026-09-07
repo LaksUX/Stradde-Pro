@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import {
-  Plus, Minus, ChevronDown, ChevronUp, Undo2, ArrowRight,
+  Plus, Minus, ChevronDown, ChevronUp, ArrowRight,
   Trophy, Clock, Users, User, TrendingUp, TrendingDown, Edit3, Check,
   Share2, X, LayoutDashboard, Gamepad2, RotateCcw,
   CheckCircle2, AlertCircle, ChevronsRight, Coins, Hash,
@@ -18,8 +18,14 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
 import { loadRoster, upsertRoster } from "@/lib/roster"
-import { applyPaidStatus } from "@/lib/settlementStatus"
-import { loadGames, saveGames } from "@/lib/gameStore"
+// [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 1] Game data now lives in
+// Supabase, not localStorage — src/lib/gameStore.js and the paid-status
+// migration shim in src/lib/settlementStatus.js are retired from the app's
+// runtime path as of this wiring (gameStore.js itself is left in the repo
+// only as a reference for the interim design it replaced; nothing imports
+// it any more). Roster (src/lib/roster.js) is a deliberately separate,
+// not-yet-migrated follow-up — see that file's own Phase 1 note.
+import * as gamesApi from "@/lib/gamesApi"
 // [decision, Phase 0 of docs/MOBILE_MIGRATION_PLAN.md] Money math and
 // settlement logic live in src/core — dependency-free, tested, and meant to
 // be reused unchanged by the future React Native rebuild. Don't re-add a
@@ -933,7 +939,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
 // every downstream calc that already treats buy-ins as a list of discrete
 // events needed no changes. See REQUIREMENTS.md → Money model.
 
-function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }) {
+function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, showToast }) {
   const lastGame = pastGames[0]
   const [name, setName]         = useState(lastGame?.name || "")
   const [date, setDate]         = useState(new Date().toLocaleDateString("en-IN", { day:"numeric", month:"short" }))
@@ -947,6 +953,13 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
   const [source, setSource]     = useState(roster.length > 0 ? "Your players" : "Type in")
   const [createdGame, setCreatedGame] = useState(null) // set after "Start Game" — shows the invite step
   const [copied, setCopied] = useState(false)
+  // [decision, Phase 1] Date/Time above are preview-only now — the actual
+  // persisted game always starts "now" (games.started_at, DB default). The
+  // free-text fields here still shape the invite-preview text and can't
+  // reliably round-trip back into a real timestamp, so rather than silently
+  // pretend a chosen date persists, this is a deliberate, documented
+  // simplification: see docs/MOBILE_MIGRATION_PLAN.md Phase 1 notes.
+  const [creating, setCreating] = useState(false)
 
   const notAdded = roster.filter(r => !players.find(p => p.name.toLowerCase() === r.name.toLowerCase()))
 
@@ -1038,10 +1051,14 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate }
           </button>
 
           <button
-            onClick={() => onCreate(createdGame)}
-            className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+            disabled={creating}
+            onClick={async () => {
+              setCreating(true)
+              try { await onCreate(createdGame) } catch { /* handleCreateGame already reported it */ } finally { setCreating(false) }
+            }}
+            className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
           >
-            <Gamepad2 className="w-4 h-4" /> Continue to Live Game
+            <Gamepad2 className="w-4 h-4" /> {creating ? "Starting…" : "Continue to Live Game"}
           </button>
         </div>
       </div>
@@ -1310,7 +1327,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
 // (2b) only — a player who quits mid-game can be settled right here without
 // ending buy-ins for anyone else.
 
-function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, showToast, roster, addToRoster }) {
+function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToRoster }) {
   const [sheetFor, setSheetFor] = useState(null)      // player name whose sheet is open
   const [cashoutOn, setCashoutOn] = useState(false)   // cash-out toggle inside the sheet (early-leaver case)
   const [sliderVal, setSliderVal] = useState(0)
@@ -1324,6 +1341,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   const [editingPlayer, setEditingPlayer] = useState(null) // player name being renamed
   const [editName, setEditName]   = useState("")
   const [editPhone, setEditPhone] = useState("")
+  const [busy, setBusy] = useState(false) // one write in flight at a time — guards double-tap on confirm buttons
 
   const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 10000))
 
@@ -1343,20 +1361,39 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   const hoursSinceCheck = game.lastBankCheckAt ? (Date.now() - game.lastBankCheckAt) / 3.6e6 : null
   const checkOverdue = hoursSinceCheck === null || hoursSinceCheck >= 2
 
-  const updatePlayers = (updated) => { if (!isClosed) onUpdateGame({ ...game, players: updated }) }
+  // [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 1] Every mutation below
+  // writes straight to Supabase via gamesApi, then calls onMutated() (App
+  // root's refreshAllGames) to pull the fresh game back down — no local
+  // optimistic state here any more. `run` is the shared wrapper: guards
+  // against overlapping writes and reports failures the same way everywhere.
+  const run = async (fn) => {
+    if (busy) return
+    setBusy(true)
+    try {
+      await fn()
+      await onMutated()
+    } catch (err) {
+      console.error(err)
+      showToast("⚠️", "Couldn't save that", err?.message || "Please try again")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const commitRake = (v) => {
     if (isClosed) return
     const amt = Math.max(0, (parseFloat(v) || 0) * 10000)
-    onUpdateGame({ ...game, rake: amt })
+    run(() => gamesApi.updateRake(game.id, amt))
   }
 
   // Removable exactly as long as none of a player's buy-ins have been locked
   // by a bank check yet — see REQUIREMENTS.md -> Roles inside a game.
   const removePlayer = (p) => {
     if (lockedCountFor(p, game) > 0) return
-    updatePlayers(players.filter(pp => pp.name !== p.name))
-    showToast("🗑️", "Player removed", p.name)
+    run(async () => {
+      await gamesApi.removePlayer(p.id)
+      showToast("🗑️", "Player removed", p.name)
+    })
   }
 
   const openEditPlayer = (p) => {
@@ -1373,23 +1410,33 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     if (players.find(p => p.name.toLowerCase() === n.toLowerCase() && p.name !== editingPlayer)) {
       showToast("⚠️", "Name already in use", n); return
     }
-    updatePlayers(players.map(p => p.name === editingPlayer ? { ...p, name: n, phone: ph } : p))
-    closeEditPlayer()
-    showToast("✏️", "Player updated", n)
+    const target = players.find(p => p.name === editingPlayer)
+    if (!target) return
+    run(async () => {
+      await gamesApi.editPlayer(target.id, { name: n, phone: ph })
+      closeEditPlayer()
+      showToast("✏️", "Player updated", n)
+    })
   }
 
   // Confirms a bank check: everything entered so far locks; nothing already
   // in progress in an open sheet is affected until it's confirmed there too.
+  // run_bank_check (see supabase/schema.sql) bumps lastBankCheckAt and logs
+  // the audit row atomically, server-side.
   const confirmBankCheck = () => {
-    onUpdateGame({ ...game, lastBankCheckAt: Date.now(), bankChecks: [...(game.bankChecks || []), Date.now()] })
-    setShowBankCheck(false)
-    showToast("🏦", "Bank check confirmed", `${sinceLastCheck} buy-in${sinceLastCheck === 1 ? "" : "s"} locked`)
+    run(async () => {
+      await gamesApi.runBankCheck(game.id)
+      setShowBankCheck(false)
+      showToast("🏦", "Bank check confirmed", `${sinceLastCheck} buy-in${sinceLastCheck === 1 ? "" : "s"} locked`)
+    })
   }
 
   const handleEndBuyins = () => {
-    onUpdateGame({ ...game, status: "cashout" })
-    onNavigate("cashout-entry")
-    showToast("➡️", "Buy-ins ended", "Enter cash-outs next")
+    run(async () => {
+      await gamesApi.setGameStatus(game.id, "cashout")
+      onNavigate("cashout-entry")
+      showToast("➡️", "Buy-ins ended", "Enter cash-outs next")
+    })
   }
 
   const openSheet = (p) => {
@@ -1409,8 +1456,10 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
     if (players.find(p => p.name.toLowerCase() === t.toLowerCase())) {
       showToast("⚠️", "Already added", `${t} is in the game`); return
     }
-    updatePlayers([...players, { name: t, phone: (phone || "").trim(), buyins: [{ ts: nowStr(), epoch: Date.now(), amount: game.buyinAmount }], cashedOut: false, cashoutAmount: null }])
-    showToast("🃏", "Player Added", `${t} — ${fmtB(game.buyinAmount)}`)
+    run(async () => {
+      await gamesApi.addPlayer(game.id, { name: t, phone: (phone || "").trim(), startBuyins: 1 })
+      showToast("🃏", "Player Added", `${t} — ${fmtB(game.buyinAmount)}`)
+    })
   }
 
   const addFromRoster = (r) => addPlayerToGame(r.name, r.phone)
@@ -1428,43 +1477,43 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
   const notInGameRoster = roster.filter(r => !players.find(p => p.name.toLowerCase() === r.name.toLowerCase()))
 
   const confirmBuyins = () => {
-    const idx = players.findIndex(p => p.name === sheetFor)
-    if (idx < 0) return
-    const p = players[idx]
+    const p = players.find(pp => pp.name === sheetFor)
+    if (!p) return
     const currentCount = p.buyins.length
     // The slider can never be dragged below the player's already-locked
     // buy-in count (amounts locked by a past bank check) — see the slider's
     // `min` prop below, which enforces this at drag time too.
     const target = Math.max(sliderVal, lockedCountFor(p, game))
     if (target === currentCount) { closeSheet(); return }
-    const updated = [...players]
-    if (target > currentCount) {
-      const added = Array.from({ length: target - currentCount }, () => ({ ts: nowStr(), epoch: Date.now(), amount: game.buyinAmount, isNew: true }))
-      updated[idx] = { ...p, buyins: [...p.buyins, ...added] }
-      showToast("🏦", "Buy-in added", `${p.name} · now ${target}×`)
-      setTimeout(() => {
-        onUpdateGame(prev => prev.map((pp, i) => i === idx ? { ...pp, buyins: pp.buyins.map(b => ({ ...b, isNew: false })) } : pp))
-      }, 4000)
-    } else {
-      // removing only ever trims unlocked entries from the end
-      updated[idx] = { ...p, buyins: p.buyins.slice(0, target) }
-      showToast("↩️", "Buy-in removed", `${p.name} · now ${target}×`)
-    }
-    updatePlayers(updated)
-    closeSheet()
+    run(async () => {
+      if (target > currentCount) {
+        // One INSERT for every new buy-in, not a loop of separate round
+        // trips — a single INSERT is atomic (all rows land or none do), so
+        // a network blip mid-drag can't leave a half-added count on record.
+        await gamesApi.addBuyins(p.id, target - currentCount, game.buyinAmount)
+        showToast("🏦", "Buy-in added", `${p.name} · now ${target}×`)
+      } else {
+        // Removing only ever trims unlocked entries from the end — buyins
+        // are hydrated oldest-first (see gamesApi.js), so the tail is
+        // exactly the most-recently-added, still-unlocked ones. One DELETE
+        // for all of them, same atomicity reasoning as the add branch.
+        await gamesApi.removeBuyins(p.buyins.slice(target).map(b => b.id))
+        showToast("↩️", "Buy-in removed", `${p.name} · now ${target}×`)
+      }
+      closeSheet()
+    })
   }
 
   const confirmCashout = () => {
-    const idx = players.findIndex(p => p.name === sheetFor)
-    if (idx < 0) return
-    const p = players[idx]
+    const p = players.find(pp => pp.name === sheetFor)
+    if (!p) return
     const val = parseInt(cashoutDigits || "0", 10) * 10000 // keypad digits are whole banks typed directly
-    const updated = [...players]
     const net = val - totalBuyinsFor(p)
-    updated[idx] = { ...p, cashedOut: true, cashoutAmount: val }
-    updatePlayers(updated)
-    closeSheet()
-    showToast(net >= 0 ? "🟢" : "🔴", `${p.name} cashed out`, `${fmtB(val)} · Net ${fmtNet(net)}`)
+    run(async () => {
+      await gamesApi.setCashout(p.id, val)
+      closeSheet()
+      showToast(net >= 0 ? "🟢" : "🔴", `${p.name} cashed out`, `${fmtB(val)} · Net ${fmtNet(net)}`)
+    })
   }
 
   const sheetPlayer = players.find(p => p.name === sheetFor)
@@ -1492,11 +1541,16 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {undoStack.length > 0 && (
-                <button onClick={onUndo} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors">
-                  <Undo2 className="w-3.5 h-3.5" /> Undo
-                </button>
-              )}
+              {/* [decision, Phase 1] Undo was a local-state convenience — it
+                  rolled back the in-memory game object before anything was
+                  actually saved. Now that every action here writes straight
+                  to Supabase (see gamesApi.js), there's no in-memory snapshot
+                  left to roll back to; a real undo would mean issuing an
+                  equal-and-opposite database write per action, which is out
+                  of scope for this pass. Each action here already requires
+                  its own explicit confirm tap, which is most of what undo
+                  was protecting against. See docs/MOBILE_MIGRATION_PLAN.md
+                  Phase 1 notes. */}
               {/* Bank check — locks every buy-in entered so far once the host
                   confirms with the table. Badged once ~2hrs have passed since
                   the last one (or since the game started, if there's never
@@ -1738,8 +1792,9 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
       {players.length > 0 && !isClosed && (
         <div className="px-5 mt-5">
           <button
+            disabled={busy}
             onClick={handleEndBuyins}
-            className="w-full h-12 bg-red-600/80 hover:bg-red-600 border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
+            className="w-full h-12 bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
           >
             End Buy-ins →
           </button>
@@ -1780,7 +1835,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
           <div className="flex gap-3">
             <button onClick={() => setShowBankCheck(false)} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
             <button
-              disabled={sinceLastCheck === 0}
+              disabled={sinceLastCheck === 0 || busy}
               onClick={confirmBankCheck}
               className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
             >
@@ -1802,7 +1857,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
           </div>
           <div className="flex gap-3">
             <button onClick={closeEditPlayer} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
-            <button onClick={saveEditPlayer} disabled={!editName.trim()} className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">Save</button>
+            <button onClick={saveEditPlayer} disabled={!editName.trim() || busy} className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">Save</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1841,7 +1896,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                     <div className="text-center text-[11px] text-zinc-400">
                       Locks at your <b className="text-zinc-400 font-semibold">next bank check</b> — once locked it's permanent, no override
                     </div>
-                    <button onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
+                    <button disabled={busy} onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">
                       Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
                     </button>
                   </>
@@ -1879,7 +1934,7 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
                       onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
                       onClear={() => setCashoutDigits("")}
                     />
-                    <button onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
+                    <button disabled={busy} onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">
                       {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
                     </button>
                   </>
@@ -1899,12 +1954,13 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 // cash-out from a dedicated sheet — see REQUIREMENTS.md -> Game lifecycle.
 // The bankroll-check math here is identical to step 2's; it just no longer
 // shares a screen with buy-in editing.
-function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
+function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
   const [sheetFor, setSheetFor] = useState(null)
   const [cashoutDigits, setCashoutDigits] = useState("")
   const [showEnd, setShowEnd] = useState(false)
   const [rakeVisible, setRakeVisible] = useState(false)
   const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 10000))
+  const [busy, setBusy] = useState(false)
 
   const players  = game.players
 
@@ -1913,9 +1969,26 @@ function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
   // too; only paying out more than ever came in is an error.
   const { totalIn, totalOut, overpaid, overpayError, stillIn } = computeBankroll(players, game.rake || 0)
 
+  // Same pattern as LiveGameScreen — see its own `run` for the full
+  // explanation. Every write here goes to Supabase, then pulls the fresh
+  // game back down via onMutated (App root's refreshAllGames).
+  const run = async (fn) => {
+    if (busy) return
+    setBusy(true)
+    try {
+      await fn()
+      await onMutated()
+    } catch (err) {
+      console.error(err)
+      showToast("⚠️", "Couldn't save that", err?.message || "Please try again")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const commitRake = (v) => {
     const amt = Math.max(0, (parseFloat(v) || 0) * 10000)
-    onUpdateGame({ ...game, rake: amt })
+    run(() => gamesApi.updateRake(game.id, amt))
   }
 
   const openSheet = (p) => {
@@ -1925,22 +1998,35 @@ function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
   const closeSheet = () => { setSheetFor(null); setCashoutDigits("") }
 
   const confirmCashout = () => {
-    const idx = players.findIndex(p => p.name === sheetFor)
-    if (idx < 0) return
-    const p = players[idx]
+    const p = players.find(pp => pp.name === sheetFor)
+    if (!p) return
     const val = parseInt(cashoutDigits || "0", 10) * 10000
-    const updated = [...players]
     const net = val - totalBuyinsFor(p)
-    updated[idx] = { ...p, cashedOut: true, cashoutAmount: val }
-    onUpdateGame({ ...game, players: updated })
-    closeSheet()
-    showToast(net >= 0 ? "🟢" : "🔴", `${p.name} cashed out`, `${fmtB(val)} · Net ${fmtNet(net)}`)
+    run(async () => {
+      await gamesApi.setCashout(p.id, val)
+      closeSheet()
+      showToast(net >= 0 ? "🟢" : "🔴", `${p.name} cashed out`, `${fmtB(val)} · Net ${fmtNet(net)}`)
+    })
   }
 
+  // Rake was already committed live (commitRake, same as step 2) — this
+  // just carries the EndGameModal's final reviewed rake value forward in
+  // case the host adjusted it there, then moves to settlement. No status
+  // change happens here; step 3 -> step 4 isn't a stored transition (see
+  // supabase/schema.sql's games.status comment).
   const handleReviewContinue = (rake) => {
-    onUpdateGame({ ...game, rake })
-    setShowEnd(false)
-    onNavigate("settlement")
+    run(async () => {
+      await gamesApi.updateRake(game.id, rake)
+      setShowEnd(false)
+      onNavigate("settlement")
+    })
+  }
+
+  const backToBuyins = () => {
+    run(async () => {
+      await gamesApi.setGameStatus(game.id, "live")
+      onNavigate("live-game")
+    })
   }
 
   const sheetPlayer = players.find(p => p.name === sheetFor)
@@ -1967,7 +2053,7 @@ function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
             {/* Reversible — nothing here has finally locked yet (see
                 REQUIREMENTS.md -> Game lifecycle), so going back to buy-ins
                 is always available, not just for the first few seconds. */}
-            <button onClick={() => { onUpdateGame({ ...game, status: "live" }); onNavigate("live-game") }} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors">
+            <button disabled={busy} onClick={backToBuyins} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <ChevronUp className="w-3.5 h-3.5" /> Back to buy-ins
             </button>
           </div>
@@ -2065,7 +2151,7 @@ function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
       {players.length > 0 && (
         <div className="px-5 mt-5">
           <button
-            disabled={overpayError}
+            disabled={overpayError || busy}
             onClick={() => setShowEnd(true)}
             className="w-full h-12 bg-red-600/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
           >
@@ -2107,7 +2193,7 @@ function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
               onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
               onClear={() => setCashoutDigits("")}
             />
-            <button onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors">
+            <button disabled={busy} onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">
               {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
             </button>
           </div>
@@ -2462,7 +2548,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame, onTogglePai
                 </div>
               </button>
               <NumB value={t.amount} sign={false} size="text-base" className={t.paid ? "text-zinc-500" : "text-red-400"} />
-              <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t.game.id, t.idx)} />
+              <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t)} />
             </div>
           ))}
         </>
@@ -2480,7 +2566,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame, onTogglePai
                 </div>
               </button>
               <NumB value={t.amount} sign={false} size="text-base" className={t.paid ? "text-zinc-500" : "text-emerald-400"} />
-              <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t.game.id, t.idx)} />
+              <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t)} />
             </div>
           ))}
         </>
@@ -2526,7 +2612,7 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame, onToggle
             <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
           </button>
           <NumB value={t.amount} size="text-base" className={t.paid ? "text-zinc-500" : "text-zinc-200"} />
-          <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t.game.id, t.idx)} />
+          <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t)} />
         </div>
       ))}
     </div>
@@ -2676,7 +2762,7 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
                   settlement (stable id + index) — a live game's preview is
                   recomputed on the fly and has nothing to persist yet. */}
               {isClosed && onTogglePaid && (
-                <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(game.id, i)} />
+                <PaidToggle paid={t.paid} onToggle={() => onTogglePaid(t)} />
               )}
             </div>
           ))}
@@ -2716,20 +2802,22 @@ export default function App() {
   const [session, setSession]     = useState(null)
   const [profile, setProfile]     = useState(null)
   const [screen, setScreen]       = useState("home")
-  // Games start empty and are loaded from storage once the account is known
-  // (they're stored per account id) — see the persistence effect below and
-  // src/lib/gameStore.js. `undoStack` is deliberately NOT persisted: undo is
-  // a within-session convenience, and restoring a half-unwound stack after a
-  // reload would be more confusing than starting fresh.
+  // [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 1] Games live in
+  // Supabase now, not localStorage — see refreshAllGames below. `activeGame`
+  // is derived as "the one non-closed game this account hosts" (the local
+  // model has only ever supported one at a time); `pastGames` is every
+  // closed one. `gamesLoading` distinguishes "haven't fetched yet" from
+  // "fetched, there's nothing" — there's a real network round trip now,
+  // where local state never had that ambiguity.
   const [activeGame, setActiveGame] = useState(null)
-  const [undoStack, setUndoStack] = useState([])
   const [pastGames, setPastGames] = useState([])
-  const [gamesLoaded, setGamesLoaded] = useState(false)
+  const [gamesLoading, setGamesLoading] = useState(true)
   const [selGame, setSelGame]     = useState(null)
   // Which lens a game-detail view was opened through — see GameDetailScreen.
   const [selGameAsHost, setSelGameAsHost] = useState(false)
   const [toast, setToast]         = useState(null)
   const toastRef = useRef(null)
+  const togglingRef = useRef(new Set()) // in-flight settlement ids — see toggleSettlementPaid
 
   // Shared roster — single source of truth for "Your players", used by both
   // CreateGameScreen and LiveGameScreen's "Add late player" flow. Lifted to
@@ -2792,45 +2880,61 @@ export default function App() {
     toastRef.current = setTimeout(() => setToast(null), 3000)
   }
 
-  // ─── Game persistence ─────────────────────────────────────────────────────
-  // Load this account's games once we know who's signed in, then save on
-  // every subsequent change. `gamesLoaded` gates the save effect so the empty
-  // initial state can never overwrite stored games before the load has run —
-  // without that guard, the first render would wipe exactly the data we're
-  // trying to protect. See src/lib/gameStore.js for the storage decisions.
+  // ─── Game data (Supabase, Phase 1) ────────────────────────────────────────
+  // [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 1] Refetch, not
+  // realtime, for v1 — see that doc's "Open decision this phase forced."
+  // Every mutation anywhere below writes via gamesApi.js, then calls
+  // refreshAllGames() to pull the fresh server state back into
+  // activeGame/pastGames — one source of truth, no optimistic-update-vs-
+  // server-truth drift to reason about. `pastGames` includes every non-live
+  // game (cashout OR closed) except whichever one is currently `activeGame`,
+  // so a game that's mid-close (rare: a refresh landed between closeGame()
+  // and the follow-up refresh) still shows up somewhere rather than
+  // vanishing from both lists.
   const accountId = session?.user?.id || null
-  const saveWarnedRef = useRef(false)
+
+  const refreshAllGames = async (id = accountId) => {
+    if (!id) return
+    const games = await gamesApi.fetchHostedGames(id)
+    const withHostName = games.map(g => ({ ...g, hostName }))
+    const active = withHostName.find(g => g.status !== "closed") || null
+    setActiveGame(active)
+    setPastGames(withHostName.filter(g => g !== active))
+  }
 
   useEffect(() => {
+    let cancelled = false
     if (!accountId) {
-      // Signed out: drop games from memory (their stored copy stays put for
-      // the next sign-in) and re-arm the load guard.
       setActiveGame(null)
       setPastGames([])
-      setUndoStack([])
-      setGamesLoaded(false)
+      setGamesLoading(false)
       return
     }
-    const stored = loadGames(accountId, SEED_PAST_GAMES)
-    setActiveGame(stored.activeGame)
-    // applyPaidStatus only matters on a first-ever seed for this account: it
-    // carries paid/pending flags written by the older standalone store into
-    // the games themselves, which now hold that flag directly.
-    setPastGames(stored.seeded ? applyPaidStatus(stored.pastGames) : stored.pastGames)
-    setGamesLoaded(true)
+    setGamesLoading(true)
+    gamesApi.fetchHostedGames(accountId)
+      .then(games => {
+        if (cancelled) return
+        const withHostName = games.map(g => ({ ...g, hostName }))
+        const active = withHostName.find(g => g.status !== "closed") || null
+        setActiveGame(active)
+        setPastGames(withHostName.filter(g => g !== active))
+      })
+      .catch(err => {
+        console.error("Failed to load games", err)
+        if (!cancelled) showToast("⚠️", "Couldn't load your games", err.message || "Check your connection")
+      })
+      .finally(() => { if (!cancelled) setGamesLoading(false) })
+    return () => { cancelled = true }
   }, [accountId])
 
-  useEffect(() => {
-    if (!gamesLoaded || !accountId) return
-    if (saveGames(accountId, activeGame, pastGames)) return
-    // Storage is full or unavailable. Say so once rather than letting the
-    // host find out by losing a game — that silence is the exact failure
-    // this persistence layer exists to prevent.
-    if (!saveWarnedRef.current) {
-      saveWarnedRef.current = true
-      showToast("⚠️", "Not saving locally", "This game may not survive a refresh")
-    }
-  }, [gamesLoaded, accountId, activeGame, pastGames])
+  // A single place to report "a write to Supabase failed" — every mutation
+  // handler below funnels its catch block through this, so the failure mode
+  // is consistent (a toast, not a silently stuck UI) no matter which screen
+  // it happened on.
+  const reportError = (err, title = "Something went wrong") => {
+    console.error(title, err)
+    showToast("⚠️", title, err?.message || "Please try again")
+  }
 
   const navigate = (s, data, asHost) => {
     if (s === "game-detail" && data) {
@@ -2843,55 +2947,76 @@ export default function App() {
   // Flips one settlement transfer's paid/pending status — the account
   // currently signed in can toggle any line (host or player lens), since
   // there's no separate logged-in "other side" to ask for confirmation yet.
-  // The flag now lives on the transfer itself and is persisted with the game
-  // (gameStore.js), so there's no separate paid/pending store to keep in
-  // step — settlementStatus.js is kept only to migrate flags written by the
-  // older standalone version. Two stores for one fact is how they drift.
-  const toggleSettlementPaid = (gameId, index) => {
-    const game = pastGames.find(g => g.id === gameId)
-    if (!game?.settlement?.[index]) return
-    const nextPaid = !game.settlement[index].paid
-    setPastGames(prev => prev.map(g =>
-      g.id === gameId
-        ? { ...g, settlement: g.settlement.map((t, i) => i === index ? { ...t, paid: nextPaid } : t) }
-        : g
-    ))
+  // `settlement.paid_by`/`paid_at` (set server-side by setSettlementPaid)
+  // are the durable record of who flipped it and when — see
+  // REQUIREMENTS.md -> Settlements ledger.
+  //
+  // `togglingRef` guards against a fast double-tap: the button itself isn't
+  // visually disabled mid-request (this line renders in three different
+  // list components), so without this a second tap before the first
+  // request's refetch lands would read the same stale `settlement.paid` and
+  // fire the exact same write twice instead of toggling back — silently
+  // leaving the wrong status on a real-money ledger line.
+  const toggleSettlementPaid = async (settlement) => {
+    if (togglingRef.current.has(settlement.id)) return
+    togglingRef.current.add(settlement.id)
+    try {
+      await gamesApi.setSettlementPaid(settlement.id, !settlement.paid, accountId)
+      await refreshAllGames()
+    } catch (err) {
+      reportError(err, "Couldn't update payment status")
+    } finally {
+      togglingRef.current.delete(settlement.id)
+    }
   }
 
   const logout = async () => { await supabase.auth.signOut(); setScreen("home") }
 
-  const updateGamePlayers = (updated) => {
-    if (typeof updated === "function") {
-      setActiveGame(prev => ({ ...prev, players: updated(prev.players) }))
-    } else {
-      setUndoStack(s => [...s.slice(-9), activeGame])
-      setActiveGame(updated)
+  // Persists the game the CreateGameScreen preview built (name/location/
+  // players/starting buy-ins) and moves straight into Live Game once it's
+  // actually in the database. Throws on failure so CreateGameScreen's own
+  // button can reset its pending state — the toast here is the user-facing
+  // half of that.
+  const handleCreateGame = async (previewGame) => {
+    try {
+      const created = await gamesApi.createGame({
+        hostId: accountId,
+        name: previewGame.name,
+        location: previewGame.location,
+        rake: 0,
+        players: previewGame.players.map(p => ({ name: p.name, phone: p.phone, startBuyins: p.startBuyins || 1 })),
+      })
+      setActiveGame({ ...created, hostName })
+      navigate("live-game")
+      showToast("🃏", "Game Started", created.name)
+    } catch (err) {
+      reportError(err, "Couldn't start game")
+      throw err
     }
-  }
-
-  const handleUndo = () => {
-    if (!undoStack.length) return
-    setActiveGame(undoStack[undoStack.length - 1])
-    setUndoStack(s => s.slice(0, -1))
-  }
-
-  const handleCreateGame = (game) => {
-    setActiveGame({ ...game, hostName }); setUndoStack([]); navigate("live-game")
-    showToast("🃏", "Game Started", game.name)
   }
 
   // The true "close" action: locks the game permanently (all buy-ins,
   // cash-outs, and rake for it become immutable) and stores the settlement
   // transfer list computed once here — closed games are never recomputed
   // live again, so history can't drift even if the settlement logic changes.
-  const handleCloseGame = (settlement) => {
-    if (activeGame) {
-      setPastGames(prev => [{ ...activeGame, id: Date.now(), status: "closed", settlement: settlement || [] }, ...prev])
-      setActiveGame(null)
-      setUndoStack([])
+  // `transfers` is keyed by player NAME (SettlementScreen/computeSettlement's
+  // shape) — resolved to game_player ids here, once, right before the write,
+  // since that's the only shape gamesApi.writeSettlement accepts.
+  const handleCloseGame = async (transfers) => {
+    if (!activeGame) { setScreen("home"); return }
+    try {
+      const idByName = Object.fromEntries(activeGame.players.map(p => [p.name, p.id]))
+      const withIds = (transfers || [])
+        .map(t => ({ fromPlayerId: idByName[t.from], toPlayerId: idByName[t.to], amount: t.amount }))
+        .filter(t => t.fromPlayerId && t.toPlayerId)
+      await gamesApi.writeSettlement(activeGame.id, withIds)
+      await gamesApi.closeGame(activeGame.id, { rake: activeGame.rake })
+      await refreshAllGames()
+      setScreen("home")
+      showToast("🏁", "Saved", "Results added to your dashboard")
+    } catch (err) {
+      reportError(err, "Couldn't close game")
     }
-    setScreen("home")
-    showToast("🏁", "Saved", "Results added to your dashboard")
   }
 
   if (authLoading) {
@@ -2919,12 +3044,24 @@ export default function App() {
     return <PendingApprovalScreen onLogout={logout} />
   }
 
+  // Games load over the network now (Supabase, not localStorage) — this is
+  // the window where accountId is known but the fetch hasn't resolved yet.
+  // Gated here rather than earlier: Admin/PendingApproval above don't touch
+  // game data at all, so there's no reason to block on it for those.
+  if (gamesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-felt-bg">
+        <div className="text-zinc-400 text-sm font-medium">Loading your games…</div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full max-w-[430px] sm:max-w-xl md:max-w-2xl min-h-screen bg-felt-bg mx-auto relative sm:px-2">
       {screen === "home"        && <HomeScreen hostName={hostName} activeGame={activeGame} pastGames={pastGames} onNavigate={navigate} onLogout={logout} isAdmin={isAdmin} onTogglePaid={toggleSettlementPaid} />}
-      {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} />}
-      {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onUpdateGame={updateGamePlayers} undoStack={undoStack} onUndo={handleUndo} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
-      {screen === "cashout-entry" && activeGame && <CashoutEntryScreen game={activeGame} onUpdateGame={updateGamePlayers} onNavigate={navigate} showToast={showToast} />}
+      {screen === "create-game" && <CreateGameScreen pastGames={pastGames} roster={roster} addToRoster={addToRoster} onCancel={() => navigate("home")} onCreate={handleCreateGame} showToast={showToast} />}
+      {screen === "live-game" && activeGame && <LiveGameScreen game={activeGame} onMutated={refreshAllGames} onNavigate={navigate} showToast={showToast} roster={roster} addToRoster={addToRoster} />}
+      {screen === "cashout-entry" && activeGame && <CashoutEntryScreen game={activeGame} onMutated={refreshAllGames} onNavigate={navigate} showToast={showToast} />}
       {screen === "settlement" && activeGame && <SettlementScreen game={activeGame} onClose={handleCloseGame} onBack={() => navigate("cashout-entry")} showToast={showToast} />}
       {screen === "game-detail" && selGame && (
         <GameDetailScreen

@@ -374,21 +374,22 @@ those tabs already are, the same way stats and recent games are.
     a second store for one fact is just two things to keep in step — which is how
     they drift. The old store is retained only to migrate existing flags once, and
     nothing writes to it any more.
-  - **[decision, schema built 2026-09-07, not yet wired to the app] Settlement
-    transfers need stable ids before any reopen/edit path ships.** Addressing a
-    transfer by its index in the settlement array is safe only while a closed
-    game's settlement is immutable. The moment a game can be reopened and
-    re-settled (see Game lifecycle), indices shift and a paid flag silently
-    lands on the wrong line — the worst class of bug this app can have, because
-    it's wrong about money and gives no sign of it. The `settlements` table
-    already has a real `id uuid` (not an array index) — this stops being a risk
-    once the app writes settlements there instead of a local array.
-  - **[decision, schema built 2026-09-07, not yet wired to the app] Record who
-    marked a line paid and when.** Even single-sided, `paid_at` and `paid_by`
-    cost nothing now and are what make the eventual two-party mark/confirm flow
-    a data migration rather than a redesign. A ledger that says a debt was
-    settled but not who said so is hard to trust the moment two people
-    disagree. `settlements.paid_by` now exists in the schema.
+  - **[decision, built 2026-09-07] Settlement transfers need stable ids before
+    any reopen/edit path ships.** Addressing a transfer by its index in the
+    settlement array is safe only while a closed game's settlement is
+    immutable. The moment a game can be reopened and re-settled (see Game
+    lifecycle), indices shift and a paid flag silently lands on the wrong line
+    — the worst class of bug this app can have, because it's wrong about money
+    and gives no sign of it. The `settlements` table has a real `id uuid` (not
+    an array index), and `App.jsx` now writes settlements there and addresses
+    every toggle/paid-status action by that id — no risk left here.
+  - **[decision, built 2026-09-07] Record who marked a line paid and when.**
+    Even single-sided, `paid_at` and `paid_by` cost nothing now and are what
+    make the eventual two-party mark/confirm flow a data migration rather than
+    a redesign. A ledger that says a debt was settled but not who said so is
+    hard to trust the moment two people disagree. `settlements.paid_by` exists
+    in the schema and `gamesApi.setSettlementPaid` now records the signed-in
+    account id on every toggle.
 
 ## Invites (partially stubbed — see gaps below)
 
@@ -410,22 +411,24 @@ those tabs already are, the same way stats and recent games are.
     that a player only ever sees their own numbers (see Roles inside a game): a
     signed-out visitor with the link sees nothing, and a signed-in visitor sees
     only the rows their claimed player identity is actually a party to.
-  - **[decision, schema built 2026-09-07, still a stub in the app] The results
-    link is a stub, like the invite link, and was blocked for a more
-    fundamental reason than "not wired up yet."** Game data has lived in each
-    host's own browser storage (see Persistence above) — there was no shared
-    backend a second device could query, so a real per-game results link
-    couldn't resolve to anything for anyone but the host's own browser no
-    matter how much link-generation code got written. The blocker itself is
-    now resolved at the data layer: `games`/`game_players`/`settlements` are
-    real Supabase tables with RLS already enforcing exactly "a signed-in,
-    claimed player sees their own rows and nothing else" (`MOBILE_MIGRATION_PLAN.md`
-    Phase 1) — a results link can now just be a normal in-app URL
-    (`/game/:id`), no separate token/sharing scheme needed, since RLS already
-    does the gating a public link would otherwise have to reinvent. It's still
-    a stub in the actual UI until `App.jsx` is wired to read from these tables
-    instead of local state — that's the pending follow-up, not a new open
-    question.
+  - **[decision, still a stub in the app] The results link is a stub, like the
+    invite link, and was blocked for a more fundamental reason than "not wired
+    up yet."** Game data used to live in each host's own browser storage (see
+    Persistence above) — there was no shared backend a second device could
+    query, so a real per-game results link couldn't resolve to anything for
+    anyone but the host's own browser no matter how much link-generation code
+    got written. That blocker is now gone: `games`/`game_players`/`settlements`
+    are real Supabase tables with RLS enforcing exactly "a signed-in, claimed
+    player sees their own rows and nothing else" (`MOBILE_MIGRATION_PLAN.md`
+    Phase 1), and as of 2026-09-07 `App.jsx` itself reads and writes those
+    tables instead of local state for every game screen — so a second device
+    querying the same game id would now actually see correct, live data. A
+    results link can just be a normal in-app URL (`/game/:id`), no separate
+    token/sharing scheme needed, since RLS already does the gating a public
+    link would otherwise have to reinvent. What's still missing is purely the
+    UI: no route/screen exists yet that resolves `/game/:id` for a
+    non-host visitor and no "send results" action generates that link — that's
+    the pending follow-up, not a new open question.
 
 ## Roster (known players)
 
@@ -448,39 +451,46 @@ those tabs already are, the same way stats and recent games are.
 
 ## Persistence and data durability
 
-*(New section. This was the single most serious problem in the app and it wasn't
-written down anywhere — the closest thing was a Known Gap framed around access
-control, which is a different concern.)*
+*(Originally written when this was the single most serious problem in the app and
+localStorage was the fix. Superseded 2026-09-07 by the Supabase wiring
+(`MOBILE_MIGRATION_PLAN.md` Phase 1) — kept below for the history, since the
+underlying durability requirement it was solving for hasn't changed, only the
+mechanism.)*
 
-- **[decision, built] The live game and all closed games are persisted locally, per
-  account.** Before this, `activeGame` and `pastGames` were plain React state with no
-  persistence: a refresh during a game destroyed the entire game, and a refresh after
-  closing one reverted history to demo seed data. No feature matters more than this —
-  an app that loses the night's numbers when a phone locks cannot be used for a real
-  game night. Implemented in `src/lib/gameStore.js`.
-- **[decision] Storage is scoped per account id.** `localStorage` is per-browser, so
-  unscoped storage would show one account another's games on a shared computer. Names
-  and phone numbers are real PII even in a play-money app. Signing out clears games
-  from memory but leaves that account's stored copy for their next sign-in.
-- **[decision] A failed save is surfaced, not swallowed.** If storage is full or
-  unavailable the host is told once that the game isn't being saved. Silently failing
-  to persist would recreate the exact failure this layer exists to prevent — the
-  other local stores can fail quietly because losing a roster is an inconvenience;
-  losing a game is the product failing.
-- **Be precise about what this does and doesn't buy: durability, not sync.** The game
-  survives a reload on the same device and browser. It does **not** follow a host to
-  another device, does not survive clearing site data, and is not a substitute for
-  wiring the game screens to Supabase. It closes the data-loss hole; the multi-device
-  and access-control holes are still open below.
-- **[decision] The undo stack is deliberately not persisted.** Undo is a
-  within-session convenience; restoring a half-unwound stack after a reload would be
-  more confusing than starting clean.
-- **[decision, not yet built] Dates and times must be stored as real timestamps.**
-  A game's date and each buy-in's time are currently stored as locale-formatted
-  display strings (`"7 Sep"`, `"9:40 PM"`). Sorting history, the net-trend chart, and
-  any future "this month" stat are therefore built on text, and break across
-  timezones and locales. Store timestamps, format at the display layer. This gets
-  more expensive to fix every week it persists.
+- **[decision, superseded] `src/lib/gameStore.js` (localStorage, scoped per
+  account id) is no longer what persists games.** It used to be: before that,
+  `activeGame` and `pastGames` were plain React state with no persistence at
+  all, so a refresh during a game destroyed it outright. `gameStore.js` fixed
+  that with per-account `localStorage`, but that only ever bought durability
+  on one device/browser, never sync. As of this wiring pass, `App.jsx` reads
+  and writes games directly through `src/lib/gamesApi.js` to Supabase —
+  durability, multi-device access, and the account-scoping RLS already
+  enforces (see RLS policies, `MOBILE_MIGRATION_PLAN.md` Phase 1) all come
+  from the database now, not from a browser store. `gameStore.js` is dead code
+  at this point; nothing in `App.jsx` still calls it.
+- **A failed write is surfaced, not swallowed.** Every `gamesApi` call that
+  `App.jsx` awaits is wrapped so a thrown error shows a toast naming what
+  failed, rather than failing silently — same principle the old localStorage
+  layer had ("a failed save is surfaced"), now applied to network writes
+  instead.
+- **[decision, built] The undo stack was removed entirely, not just left
+  unpersisted.** The original decision here was narrower — "don't persist
+  undo across a reload" — back when actions only touched local React state and
+  a reload could plausibly still have something to un-add. Now every mutation
+  is already a persisted Supabase write the instant it happens; there is no
+  local-only state left for an "undo" to rewind, and a client-side undo that
+  can't actually reverse a database write would be misleading. A mistaken
+  action now needs a real correction (edit/remove, same as any other fix),
+  not an undo button.
+- **[decision, built 2026-09-07] Dates and times are now stored as real
+  timestamps.** They used to be locale-formatted display strings
+  (`"7 Sep"`, `"9:40 PM"`), which broke sorting and any timezone-aware stat.
+  The Supabase tables store real `timestamptz` columns (`games.started_at`,
+  `buyins.created_at`, etc.); `gamesApi.js` derives the display strings
+  (`fmtDateDisplay`/`fmtTimeDisplay`) at read time instead of storing them.
+  One related, deliberate behavior change: Create Game's date/time fields are
+  now preview-only — the persisted game's `started_at` is always the server's
+  `now()` at creation, not whatever the host had typed in the form.
 
 ## Monetization
 
@@ -553,24 +563,34 @@ deliberately rather than by accident.)*
 - **Phone number reuse**: if a phone number is reassigned to a different real person
   over time, the claim-by-phone flow (above) could attach a stranger's past games to
   a new account. No detection/resolution built for this yet.
-- **No live database on game screens [schema + RLS now built, wiring still
-  pending]**: game screens (buy-ins, cash-out, settlement) are still wired to
-  local state plus local persistence, not Supabase — that part of this gap is
-  unchanged. What's new (`MOBILE_MIGRATION_PLAN.md` Phase 1, 2026-09-07): the
-  actual `games`/`game_players`/`buyins`/`bank_checks`/`settlements` tables,
-  their RLS policies enforcing the host/player visibility rules above, and an
-  async data layer (`src/lib/gamesApi.js`) that mirrors the local shapes, all
-  exist now and have a passing isolation proof
-  (`scripts/test-rls-isolation.mjs`). Until `App.jsx` is actually rewired to
-  call it instead of local state, none of that protects real usage — the gap
-  should be considered **closed in the database, still open in the app** until
-  that wiring lands.
-- **Roster is not account-scoped [schema now built, wiring still pending]**:
-  games are stored per account id, but the roster (`poker-night:roster`) is
-  still a single per-browser localStorage list — unchanged. `known_players`
-  gained a `phone` column and `src/lib/knownPlayersApi.js` has the async
-  read/write functions; `roster.js`'s call sites (CreateGameScreen, "Add late
-  player") haven't been switched over yet — same follow-up as above.
+- **No live database on game screens [closed 2026-09-07]**: game screens
+  (buy-ins, cash-out, settlement) used to be wired to local state plus local
+  persistence, not Supabase. As of `MOBILE_MIGRATION_PLAN.md` Phase 1, the
+  `games`/`game_players`/`buyins`/`bank_checks`/`settlements` tables, their RLS
+  policies enforcing the host/player visibility rules above, and an async data
+  layer (`src/lib/gamesApi.js`) that mirrors the local shapes all exist, and
+  `App.jsx` now calls that layer directly for every mutation on every game
+  screen (create game, add/edit/remove player, buy-ins, bank check, cash-out,
+  end-buyins/back-to-buyins/close, settlement writes, paid/pending toggle) —
+  local React state is now just a cache of what Supabase returns, refetched
+  after every write. Two deliberate behavior changes came with this: the local
+  undo stack was removed (there's no local-only state left to "undo" against —
+  every action is already a persisted write, and a wrong one needs a real
+  correction, not a client-side rewind), and Create Game's date/time fields are
+  now preview-only display — the persisted game always uses the server's
+  `now()` as `started_at`. The RLS access-control proof
+  (`scripts/test-rls-isolation.mjs`) still needs to actually be *run* against
+  the live project (two real signed-in accounts) before this is fully closed
+  end-to-end — see `MOBILE_MIGRATION_PLAN.md` Phase 1.
+- **Roster is not account-scoped [schema built, wiring still pending — the
+  one remaining piece of Phase 1]**: games are now stored in and read from
+  Supabase (see above), but the roster (`poker-night:roster`) is still a
+  single per-browser localStorage list. `known_players` gained a `phone`
+  column and `src/lib/knownPlayersApi.js` has the async read/write functions;
+  `roster.js`'s call sites (CreateGameScreen, "Add late player") haven't been
+  switched over yet. This is the only remaining local-state gap from Phase 1 —
+  small in isolation, but worth closing before Phase 2 (native) starts,
+  per `MOBILE_MIGRATION_PLAN.md`.
 - **No PII deletion or export path**: the app stores real names and phone numbers
   with no retention policy and no way for a player to be removed or to get their
   data out. Tolerable in a private test; a legal requirement the moment money
@@ -594,11 +614,12 @@ visually distinct from the green background. Tokens live in `src/index.css` unde
 
 - React + Vite + Tailwind v4 (CSS-first config, no `tailwind.config.js`)
 - Supabase: Postgres + Auth + RLS (schema in `supabase/schema.sql`, migration for the
-  existing project in `supabase/migrations/20260907_phase1_game_data_and_rls.sql`) —
-  **note: the game screens are currently still on local React state, not wired to
-  live Supabase data**, even though the tables, RLS policies, and an async API layer
-  (`src/lib/gamesApi.js`) for them now exist. Only auth/profiles/admin-approval
-  actually hit the database from the app today. See "No live database on game
-  screens" under Known gaps.
+  existing project in `supabase/migrations/20260907_phase1_game_data_and_rls.sql`,
+  applied to the live project 2026-09-07) — game screens (buy-ins, cash-out,
+  settlement, everything in `LiveGameScreen`/`CashoutEntryScreen`/`SettlementScreen`)
+  are wired to live Supabase data via `src/lib/gamesApi.js`, refetching after every
+  write rather than using realtime subscriptions (a deliberate v1 choice, see
+  `MOBILE_MIGRATION_PLAN.md`). The one remaining piece on local state is the roster
+  (`roster.js`, not yet switched to `knownPlayersApi.js`) — see Known gaps.
 - PWA via `vite-plugin-pwa`
 - Deployed on Vercel, repo at `github.com/LaksUX/Stradde-Pro`

@@ -5,9 +5,13 @@ does*. This file is about *how we get it onto Android and iOS* without breaking 
 re-litigating what's already been decided there.
 
 **Progress:** Phase 0 done (`src/core/money.js`, `src/core/settlement.js`, first
-test coverage in the project — commit `caf84cf`). Phase 1's schema/RLS/API-layer
-half is done (see below) — **App.jsx is not wired to it yet**, deliberately: that's
-its own follow-up pass, not bundled into this one.
+test coverage in the project — commit `caf84cf`). Phase 1 is now fully done for
+the web app: schema + RLS + API layer, and `App.jsx`'s game screens (Live Game,
+Cash-out Entry, Settlement, Create Game, the Home dashboard's settlement
+sections) are wired to Supabase instead of local state/localStorage. `roster.js`
+is the one piece deliberately still local — see its own Phase 1 note — and the
+DB migration still needs to be *run* against the live project plus the RLS
+isolation script actually executed once (see "What's actually wired up" below).
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -176,19 +180,61 @@ player-facing live view actually exists as a feature to build, not before.
 
 ### What's actually wired up vs. what's still local state
 
-This phase shipped the schema, the RLS policies, the access-control proof, and
-an async data-access layer (`src/lib/gamesApi.js`, `src/lib/knownPlayersApi.js`,
-plus the claim-on-login call in `src/lib/auth.js`) that mirrors the exact
-local-state shapes `App.jsx` and `src/core/*` already use. **It deliberately
-does not yet touch `App.jsx` or `roster.js`** — both are still 100% synchronous
-local state plus `localStorage` (`gameStore.js`). Rewiring ~2700 lines of
-synchronous `setState`/`gameStore.saveGames` calls into async Supabase reads and
-writes (loading states, error handling, optimistic updates, the roster
-`fetchRoster`/`upsertRosterEntry` swap) is a substantially bigger and riskier
-change than anything in this pass, and this project's own history (money math
-breaking twice from unreviewed big changes) is exactly the argument for doing it
-as its own small, verified, iteratively-committed follow-up — not folding it into
-the same pass as the schema design. **This is the next concrete step.**
+**`App.jsx` is now wired up.** Every game-data mutation (create game, add/edit/
+remove player, add/remove buy-ins, bank check, cash-out entry, end buy-ins,
+back-to-buy-ins, close game, edit a settlement transfer, toggle paid/pending)
+calls an async `src/lib/gamesApi.js` function, then refetches
+(`refreshAllGames`, App root) to bring the fresh server state back down — no
+local game state persists to `localStorage` any more; `src/lib/gameStore.js`
+is retired from the runtime path (left in the repo only as a reference for the
+interim design it replaced). Two things worth knowing about the shape of that
+rewiring:
+
+- **Multi-row writes go through one bulk statement, not a loop.** Adding or
+  removing several buy-ins at once (dragging the slider by more than 1) is a
+  single `INSERT`/`DELETE` for all the rows (`gamesApi.addBuyins`/
+  `removeBuyins`) rather than N sequential round trips — a single SQL
+  statement is atomic, so a network blip mid-drag can't leave a
+  half-committed buy-in count with no clear record of what actually landed.
+- **A `run()` wrapper in `LiveGameScreen`/`CashoutEntryScreen`** guards every
+  write: one in flight at a time, errors surface as a toast instead of a
+  silently stuck screen, `onMutated()` only fires after a successful write.
+  The settlement paid/pending toggle (used from three different list
+  components) has its own equivalent guard (`togglingRef` in the App root)
+  since threading a `busy` prop through all three wasn't worth it for one
+  button.
+
+**Two things this rewiring deliberately changed, not oversights:**
+
+- **Undo is gone.** It rolled back an in-memory game object before anything
+  was saved; there's no local snapshot left to roll back to now that every
+  action writes straight to the database, and a real undo would mean issuing
+  an equal-and-opposite write per action — out of scope here. Every action
+  already requires its own explicit confirm tap, which was most of what undo
+  protected against.
+- **Create Game's date/time fields are preview-only.** A persisted game's
+  displayed date/time is always derived from `games.started_at` (real
+  timestamp, set at creation) — see the schema section above. The host can no
+  longer backdate/schedule a game by typing a different date there; the
+  fields still shape the invite-preview text, they just don't round-trip into
+  the database. Free-text locale date parsing back into a real timestamp
+  wasn't worth the complexity for a feature nothing in `REQUIREMENTS.md`
+  actually asked to keep.
+
+**`roster.js` is the one piece still not wired up** — still 100% synchronous
+`localStorage`, with `src/lib/knownPlayersApi.js` sitting ready as its async
+replacement (see that file's own Phase 1 note). It was kept separate from the
+`App.jsx` rewiring because every call site is synchronous today
+(`CreateGameScreen`, "Add late player"), and converting those to handle an
+async/loading roster is a self-contained follow-up, not free to fold into an
+already-large change.
+
+**Still needs a human, not more code:** the migration SQL has to actually be
+*run* once against the live Supabase project (SQL editor — no CLI link exists
+for this repo), and `scripts/test-rls-isolation.mjs` has to actually be
+*executed* once against it afterward (needs two real accounts' session
+tokens — see the script's header). Both are one-time, manual steps; nothing
+about them can be scripted from here.
 
 ---
 
@@ -294,10 +340,13 @@ engineering:
 
 - ~~Realtime multi-device sync vs. simple refetch (Phase 1).~~ Resolved:
   refetch for v1 — see Phase 1 above.
-- **Finish wiring `App.jsx` and `roster.js` to the Phase 1 data layer** before
-  starting Phase 2 — Expo screens should be built against a data layer that's
-  already proven itself on the web app, not against something still untested
-  end-to-end. This is the actual next step, not a nice-to-have.
+- **Finish wiring `roster.js` to `knownPlayersApi.js`** before starting Phase
+  2 — `App.jsx` itself is done, this is what's left. Small in isolation, but
+  Expo screens should still be built against a data layer that's fully proven
+  on the web app first, not one with a known remaining gap.
+- **Actually run the migration SQL and the RLS isolation script** against the
+  live Supabase project (see "What's actually wired up" in Phase 1 above) —
+  both are one-time manual steps, neither has happened yet.
 - Phone OTP vs. email magic-link on mobile (Phase 2).
 - `expo-router` vs. React Navigation (Phase 2) — low-stakes, pick one and move.
 - Tamagui vs. React Native Paper vs. gluestack-ui (Phase 2) — pick once, don't
