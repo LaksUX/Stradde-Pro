@@ -20,6 +20,13 @@ import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
 import { loadRoster, upsertRoster } from "@/lib/roster"
 import { applyPaidStatus } from "@/lib/settlementStatus"
 import { loadGames, saveGames } from "@/lib/gameStore"
+// [decision, Phase 0 of docs/MOBILE_MIGRATION_PLAN.md] Money math and
+// settlement logic live in src/core — dependency-free, tested, and meant to
+// be reused unchanged by the future React Native rebuild. Don't re-add a
+// local copy of any of these here; import from core instead, same as the
+// tests do.
+import { BANK, fmtBankNum, fmtB, fmtNet, computeBankroll } from "@/core/money"
+import { totalBuyinsFor, lockedCountFor, computeSettlement } from "@/core/settlement"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const nowStr = () => {
@@ -28,24 +35,6 @@ const nowStr = () => {
   const ap = h >= 12 ? "PM" : "AM"
   h = h % 12 || 12
   return `${h}:${String(m).padStart(2, "0")} ${ap}`
-}
-
-// 1 Bank = 1000 internal units. All amounts are shown as plain bank-unit
-// numbers — no currency symbol anywhere. "banks"/"bank" is a small muted
-// unit label next to the number (singular only when the value is exactly 1).
-// DISPLAY ONLY rounds to the nearest whole bank — underlying stored/computed
-// values (buyins, cashouts, rake, settlement math) stay at full precision;
-// only what's shown on screen is rounded here.
-// 1 bank = 10,000 internal units — fixed, this is the app's one unit of
-// value and every buy-in is always exactly 1 bank. Never change this scale.
-const BANK = 10000
-const fmtBankNum = (n) => String(Math.round(Math.abs(n) / BANK))
-
-// Legacy plain-text formatters (still used for WhatsApp share text, toasts).
-const fmtB = (n) => `${fmtBankNum(n)} ${Math.abs(n) / 10000 === 1 ? "bank" : "banks"}`
-const fmtNet = (n) => {
-  if (n === 0) return "Even"
-  return `${n > 0 ? "+" : "−"}${fmtB(Math.abs(n))}`
 }
 
 // ─── Bank-unit number display: bold bright number + small muted unit ──────────
@@ -156,48 +145,6 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
     </div>
   )
 }
-
-const totalBuyinsFor = (p) => p.buyins.reduce((s, b) => s + b.amount, 0)
-
-// ─── Bank-check locking ─────────────────────────────────────────────────────
-// [decision, supersedes the old 60-second auto-lock] A buy-in locks when the
-// host runs a "bank check" and confirms — not on a timer. Everything entered
-// before `game.lastBankCheckAt` is locked; everything after stays freely
-// editable until the *next* check. Before the game's first check, nothing is
-// locked at all, however long ago it was entered. See REQUIREMENTS.md ->
-// Money model.
-const lockedCountFor = (p, game) => p.buyins.filter(b => b.epoch != null && b.epoch <= (game.lastBankCheckAt || 0)).length
-
-// ─── Deterministic settlement (debt simplification) ───────────────────────────
-// Winners are paid by losers, biggest matched against biggest, rake excluded
-// (rake never appears as a transfer). Ties on remaining net — both the
-// initial sort and mid-simplification remainders — are broken by ascending
-// player name, since this local-state model has no numeric player id. This
-// guarantees the same inputs always produce the same transfer list.
-function computeSettlement(players) {
-  const positions = players.map(p => ({
-    name: p.name,
-    net: Math.round((p.cashoutAmount || 0) - totalBuyinsFor(p)),
-  }))
-  const byNetThenName = (a, b) => (b.rem - a.rem) || a.name.localeCompare(b.name)
-  const debtors   = positions.filter(p => p.net < 0).map(p => ({ ...p, rem: -p.net })).sort(byNetThenName)
-  const creditors = positions.filter(p => p.net > 0).map(p => ({ ...p, rem: p.net })).sort(byNetThenName)
-  const out = []
-  let di = 0, ci = 0
-  while (di < debtors.length && ci < creditors.length) {
-    const d = debtors[di], c = creditors[ci]
-    const amt = Math.min(d.rem, c.rem)
-    if (amt > 0) out.push({ from: d.name, to: c.name, amount: Math.round(amt) })
-    d.rem -= amt; c.rem -= amt
-    if (d.rem < 1) di++
-    if (c.rem < 1) ci++
-  }
-  return out
-}
-
-// Rounding tolerance for the settlement invariant check — amounts round to
-// the nearest 100 units on screen, so allow half that as noise.
-const BALANCE_TOLERANCE = 50
 
 // ─── Small status dot (replaces text pills/badges for in-play/settled state) ──
 function Dot({ color, className }) {
@@ -1271,15 +1218,12 @@ function EndGameModal({ game, onConfirm, onClose }) {
   const [rake, setRake] = useState(String((game.rake || 0) / 10000))
   const [ackUncashed, setAckUncashed] = useState(false)
   const players  = game.players
-  const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
-  const totalOut = players.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
   const uncashed = players.filter(p => !p.cashedOut)
   const rakeAmt  = (parseFloat(rake) || 0) * 10000
-  // Invariant: sum(buy-ins) = sum(cash-outs) + rake. `diff` is how far off
-  // that is; rake is host revenue skimmed off the table, never a per-player
-  // transfer, so it never appears in the settlement transfers below.
-  const diff     = totalIn - (totalOut + rakeAmt)
-  const balanced = Math.abs(diff) < BALANCE_TOLERANCE
+  // Invariant: sum(buy-ins) = sum(cash-outs) + rake — see src/core/money.js.
+  // Rake is host revenue skimmed off the table, never a per-player transfer,
+  // so it never appears in the settlement transfers below.
+  const { totalIn, totalOut, diff, balanced } = computeBankroll(players, rakeAmt)
   const canProceed = balanced && (uncashed.length === 0 || ackUncashed)
 
   return (
@@ -1385,18 +1329,13 @@ function LiveGameScreen({ game, onUpdateGame, undoStack, onUndo, onNavigate, sho
 
   const players  = game.players
   const isClosed = game.status === "closed"
-  const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
-  const cashedOut = players.filter(p => p.cashedOut)
-  const totalOut = cashedOut.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
 
   // Live bankroll-check invariant: buy-ins = cashed-out + rake + still in
   // play. Money still on the table mid-game is normal; the only real error
   // is paying out (cashouts + rake) more than ever came in. This never
   // blocks further buy-in/cash-out entry — only ending step 3 does (below).
-  const paidOut = totalOut + (game.rake || 0)
-  const overpaid = paidOut - totalIn
-  const overpayError = overpaid > BALANCE_TOLERANCE
-  const stillIn = totalIn - totalOut
+  // See src/core/money.js -> computeBankroll.
+  const { totalIn, totalOut, overpaid, overpayError, stillIn } = computeBankroll(players, game.rake || 0)
 
   // Every buy-in entered since the last confirmed bank check, across the
   // whole table — what a "Confirm Bank Check" tap is about to lock.
@@ -1968,17 +1907,11 @@ function CashoutEntryScreen({ game, onUpdateGame, onNavigate, showToast }) {
   const [rakeInput, setRakeInput] = useState(String((game.rake || 0) / 10000))
 
   const players  = game.players
-  const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
-  const cashedOut = players.filter(p => p.cashedOut)
-  const totalOut = cashedOut.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
 
   // Same invariant as step 2 — see there for the full explanation. Money
   // still on the table (players who haven't cashed out yet) is normal here
   // too; only paying out more than ever came in is an error.
-  const paidOut = totalOut + (game.rake || 0)
-  const overpaid = paidOut - totalIn
-  const overpayError = overpaid > BALANCE_TOLERANCE
-  const stillIn = totalIn - totalOut
+  const { totalIn, totalOut, overpaid, overpayError, stillIn } = computeBankroll(players, game.rake || 0)
 
   const commitRake = (v) => {
     const amt = Math.max(0, (parseFloat(v) || 0) * 10000)
@@ -2195,11 +2128,8 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
 
   const players = game.players
   const rake    = game.rake || 0
-  const totalIn  = players.reduce((s, p) => s + totalBuyinsFor(p), 0)
-  const totalOut = players.reduce((s, p) => s + (p.cashoutAmount || 0), 0)
   // Same invariant as EndGameModal: sum(buy-ins) = sum(cash-outs) + rake.
-  const delta    = totalIn - (totalOut + rake)
-  const balanced = Math.abs(delta) < BALANCE_TOLERANCE
+  const { totalIn, totalOut, diff: delta, balanced } = computeBankroll(players, rake)
 
   const positions = players.map(p => ({
     name: p.name,
