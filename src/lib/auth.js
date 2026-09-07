@@ -1,4 +1,17 @@
 import { supabase } from "./supabase"
+import { claimMyPlayerRows } from "./gamesApi"
+
+// [decision, REQUIREMENTS.md -> Player identity vs. account linking]
+// Claiming happens on login by phone match. Best-effort and non-blocking:
+// a failure here shouldn't stop the person from signing in, it just means
+// their player rows stay unclaimed until the next successful sign-in.
+async function claimPlayerRowsQuietly() {
+  try {
+    await claimMyPlayerRows()
+  } catch (err) {
+    console.warn("claimMyPlayerRows failed (non-fatal):", err)
+  }
+}
 
 // Ensures a `profiles` row exists for the given auth user.
 // Never attempts to set role/approved — the DB trigger blocks self-promotion
@@ -12,7 +25,10 @@ export async function ensureProfile(user) {
     .maybeSingle()
 
   if (selectError) throw selectError
-  if (existing) return existing
+  if (existing) {
+    await claimPlayerRowsQuietly()
+    return existing
+  }
 
   const defaultName = user.email ? user.email.split("@")[0] : (user.phone || "Player")
 
@@ -23,6 +39,7 @@ export async function ensureProfile(user) {
     .single()
 
   if (insertError) throw insertError
+  await claimPlayerRowsQuietly()
   return inserted
 }
 

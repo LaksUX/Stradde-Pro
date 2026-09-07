@@ -5,7 +5,9 @@ does*. This file is about *how we get it onto Android and iOS* without breaking 
 re-litigating what's already been decided there.
 
 **Progress:** Phase 0 done (`src/core/money.js`, `src/core/settlement.js`, first
-test coverage in the project — commit `caf84cf`). Phase 1 (Supabase + RLS) next.
+test coverage in the project — commit `caf84cf`). Phase 1's schema/RLS/API-layer
+half is done (see below) — **App.jsx is not wired to it yet**, deliberately: that's
+its own follow-up pass, not bundled into this one.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -75,34 +77,50 @@ Known Gaps as a side effect: no live database on game screens, no RLS enforcemen
 roster not account-scoped, and the "settlement transfers need stable ids"
 not-yet-built item — all in one pass, instead of four separate future projects.
 
-### Schema sketch
+### Schema — built, not just sketched (2026-09-07)
+
+The schema sketch that used to live in this section was written before this
+project's *actual* `supabase/schema.sql` was rediscovered — that file already had
+a fuller design than the sketch assumed (a real `profiles`/`known_players`/
+`games`/`game_players`/`buyins`/`settlements` schema with RLS, from an earlier
+pass that predates the local-state/localStorage detour). Rather than design a
+second, incompatible schema from scratch, Phase 1 **reconciled the existing
+schema forward** to match the current 3-state lifecycle and bank-check locking
+model, instead of replacing it:
 
 ```
 games
-  id, host_account_id, name, location,
-  scheduled_at (timestamptz — real timestamp, not "7 Sep" text),
-  rake, status ('live' | 'closed'), closed_at, created_at
+  id, host_id, name, location,
+  status ('live' | 'cashout' | 'closed'),   -- was ('live' | 'settled')
+  rake, started_at, ended_at,
+  last_bank_check_at                          -- new; what lockedCountFor reads
 
 game_players
-  id, game_id, name, phone_e164,
-  account_id (nullable — null until claimed, per identity-linking rules),
-  cashed_out (bool), cashout_amount (nullable)
+  id, game_id, display_name, phone,           -- phone is new: the claim-by-phone join key
+  profile_id (nullable — null until claimed; "claimed" IS profile_id not null,
+              no separate status column),
+  known_player_id, cashout_amount, cashed_out_at, cashout_confirmed
 
 buyins
   id, game_player_id, amount, created_at
-  -- "locked" is derived (now() - created_at >= LOCK_MS), never stored as a flag
+  -- "locked" is derived (created_at <= games.last_bank_check_at), never stored
+  -- as a flag — same rule as src/core/settlement.js's lockedCountFor, so the
+  -- database and the tested JS logic can never disagree about what's locked
 
-settlement_transfers
-  id, game_id, from_game_player_id, to_game_player_id, amount,
-  paid (bool), paid_at, paid_by_account_id
-  -- a real id, not an array index — this is what fixes the fragility flagged
-  -- in REQUIREMENTS.md under Settlements ledger
+bank_checks   -- new table: append-only audit trail, one row per host bank check
+
+settlements   -- the plan's old "settlement_transfers" name — the table already
+  id, game_id, from_game_player_id, to_game_player_id, amount,   -- existed as `settlements`, already
+  paid, paid_at, paid_by                                          -- had a real id; paid_by is new
 ```
 
-`known_players` already exists in `supabase/schema.sql` and is unused — this is
-also the moment to actually wire the roster to it, fixing the "roster is not
-account-scoped" gap instead of carrying `poker-night:roster` forward as a fourth
-localStorage-only store.
+Full DDL + comments: `supabase/schema.sql` (target shape for a fresh project) and
+`supabase/migrations/20260907_phase1_game_data_and_rls.sql` (idempotent, run this
+one against the existing live project — every statement is safe to re-run).
+
+`known_players` gained a `phone` column and `src/lib/knownPlayersApi.js` now has
+async read/write functions for it — the roster itself isn't wired to them yet
+(see "What's actually wired up" below), same reasoning as App.jsx.
 
 ### RLS policies (the part that's actually new, not just a data move)
 
@@ -115,26 +133,62 @@ network.
 
 - Host account: full read/write on every row of games they host.
 - Player account: read-only on their own `game_players` row, and on
-  `settlement_transfers` where they're the `from` or `to` party. No access to
-  other players' `buyins`/`cashout_amount` in a game they don't host.
-- Write access to `paid`/`paid_at` on a transfer: either party to that transfer,
-  matching the existing single-sided toggle decision — this is a data-layer
-  version of a rule that's currently just a React handler.
+  `settlements` where they're the `from` or `to` party. No access to other
+  players' `buyins`/`cashout_amount` in a game they don't host.
+- Write access to `paid`/`paid_at`/`paid_by` on a transfer: either party to that
+  transfer, matching the existing single-sided toggle decision — this is a
+  data-layer version of a rule that's currently just a React handler.
+- Two narrow RPCs instead of plain client writes, each for a specific reason
+  (see `supabase/schema.sql` for the full comments): `run_bank_check` (atomic
+  audit-row + cache-column update — a host already has RLS access to both
+  writes separately, the RPC just guarantees they land together) and
+  `claim_my_player_rows` (a claiming account has no standing RLS access to a row
+  it doesn't own *yet* — a security-definer function is the only safe way to
+  bridge that specific gap).
+- **No money-math or business-rule validation at the RLS/RPC layer** — RLS
+  enforces *who* can touch which rows, not game rules like "can't remove a
+  locked player" or "books must balance to close." Those stay exactly where
+  Phase 0 already tested them (`src/core/money.js`, `src/core/settlement.js`)
+  and get enforced client-side, the same way today. Duplicating them in SQL
+  would recreate the exact two-copies-drift failure mode Phase 0 existed to
+  end.
 
 **Before this phase is considered done**, write and run an explicit check (a
 script or a test, not eyeballing the UI) that a non-host account genuinely cannot
 read another player's buy-ins/cash-out for a game it didn't host. This is the one
 place in the whole migration where "looks right in the app" is not sufficient
 evidence — RLS bugs are invisible from the UI until someone goes looking.
+**Done:** `scripts/test-rls-isolation.mjs` — six checks (own-row read, other-row
+read denied, own/other buy-ins, direct-write denied, broad-query leak check)
+against two real signed-in accounts. Needs to actually be *run* once against the
+live project after the migration is applied — see the script's own header for
+the two-JWT setup, which needs a person to sign in twice, so it isn't something
+this migration pass could run unattended.
 
-### Open decision this phase forces
+### Open decision this phase forced — resolved
 
-**Realtime or refetch?** Once game data is server-side, multiple devices *can*
-watch the same live game (a host on their phone, someone checking on their
-laptop). Supabase Realtime subscriptions would make buy-ins appear live across
-devices; a simple refetch-on-focus would not, but is far less to build and debug
-for a v1. Flagging this as a decision to make explicitly here rather than an
-assumption either way — it changes the shape of the data layer.
+**Realtime or refetch? Refetch, for v1.** Nothing in the current UI has a
+player-facing live-multi-device view yet (players don't interact with a live
+game at all today — only the host enters data), so there's no screen that would
+even display a realtime update if one arrived. Building Realtime subscriptions
+now would be speculative complexity with no consumer. Revisit this once a
+player-facing live view actually exists as a feature to build, not before.
+
+### What's actually wired up vs. what's still local state
+
+This phase shipped the schema, the RLS policies, the access-control proof, and
+an async data-access layer (`src/lib/gamesApi.js`, `src/lib/knownPlayersApi.js`,
+plus the claim-on-login call in `src/lib/auth.js`) that mirrors the exact
+local-state shapes `App.jsx` and `src/core/*` already use. **It deliberately
+does not yet touch `App.jsx` or `roster.js`** — both are still 100% synchronous
+local state plus `localStorage` (`gameStore.js`). Rewiring ~2700 lines of
+synchronous `setState`/`gameStore.saveGames` calls into async Supabase reads and
+writes (loading states, error handling, optimistic updates, the roster
+`fetchRoster`/`upsertRosterEntry` swap) is a substantially bigger and riskier
+change than anything in this pass, and this project's own history (money math
+breaking twice from unreviewed big changes) is exactly the argument for doing it
+as its own small, verified, iteratively-committed follow-up — not folding it into
+the same pass as the schema design. **This is the next concrete step.**
 
 ---
 
@@ -238,7 +292,12 @@ engineering:
 
 ## Decisions still open (don't guess on these — ask before Phase 2 starts)
 
-- Realtime multi-device sync vs. simple refetch (Phase 1).
+- ~~Realtime multi-device sync vs. simple refetch (Phase 1).~~ Resolved:
+  refetch for v1 — see Phase 1 above.
+- **Finish wiring `App.jsx` and `roster.js` to the Phase 1 data layer** before
+  starting Phase 2 — Expo screens should be built against a data layer that's
+  already proven itself on the web app, not against something still untested
+  end-to-end. This is the actual next step, not a nice-to-have.
 - Phone OTP vs. email magic-link on mobile (Phase 2).
 - `expo-router` vs. React Navigation (Phase 2) — low-stakes, pick one and move.
 - Tamagui vs. React Native Paper vs. gluestack-ui (Phase 2) — pick once, don't

@@ -4,6 +4,7 @@ node_modules
 dist
 .env
 .env.local
+.env.rls-test.local
 dev-dist
 q
 q.pub

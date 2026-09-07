@@ -374,17 +374,21 @@ those tabs already are, the same way stats and recent games are.
     a second store for one fact is just two things to keep in step — which is how
     they drift. The old store is retained only to migrate existing flags once, and
     nothing writes to it any more.
-  - **[decision, not yet built] Settlement transfers need stable ids before any
-    reopen/edit path ships.** Addressing a transfer by its index in the settlement
-    array is safe only while a closed game's settlement is immutable. The moment a
-    game can be reopened and re-settled (see Game lifecycle), indices shift and a
-    paid flag silently lands on the wrong line — the worst class of bug this app
-    can have, because it's wrong about money and gives no sign of it.
-  - **[decision, not yet built] Record who marked a line paid and when.** Even
-    single-sided, `paid_at` and `paid_by` cost nothing now and are what make the
-    eventual two-party mark/confirm flow a data migration rather than a redesign.
-    A ledger that says a debt was settled but not who said so is hard to trust the
-    moment two people disagree.
+  - **[decision, schema built 2026-09-07, not yet wired to the app] Settlement
+    transfers need stable ids before any reopen/edit path ships.** Addressing a
+    transfer by its index in the settlement array is safe only while a closed
+    game's settlement is immutable. The moment a game can be reopened and
+    re-settled (see Game lifecycle), indices shift and a paid flag silently
+    lands on the wrong line — the worst class of bug this app can have, because
+    it's wrong about money and gives no sign of it. The `settlements` table
+    already has a real `id uuid` (not an array index) — this stops being a risk
+    once the app writes settlements there instead of a local array.
+  - **[decision, schema built 2026-09-07, not yet wired to the app] Record who
+    marked a line paid and when.** Even single-sided, `paid_at` and `paid_by`
+    cost nothing now and are what make the eventual two-party mark/confirm flow
+    a data migration rather than a redesign. A ledger that says a debt was
+    settled but not who said so is hard to trust the moment two people
+    disagree. `settlements.paid_by` now exists in the schema.
 
 ## Invites (partially stubbed — see gaps below)
 
@@ -406,16 +410,22 @@ those tabs already are, the same way stats and recent games are.
     that a player only ever sees their own numbers (see Roles inside a game): a
     signed-out visitor with the link sees nothing, and a signed-in visitor sees
     only the rows their claimed player identity is actually a party to.
-  - **[decision, blocked on the Supabase migration, not a web-app bug to fix
-    now] The results link is a stub, like the invite link, and for a more
-    fundamental reason than "not wired up yet."** Game data currently lives in
-    each host's own browser storage (see Persistence above) — there is no
-    shared backend a second device could query, so a real per-game results link
-    cannot resolve to anything for anyone but the host's own browser no matter
-    how much link-generation code is written today. This becomes buildable
-    once game data moves to Supabase with RLS (`MOBILE_MIGRATION_PLAN.md`,
-    Phase 1) — worth treating as a concrete, motivating example of why that
-    phase matters, not a separate future feature to plan again later.
+  - **[decision, schema built 2026-09-07, still a stub in the app] The results
+    link is a stub, like the invite link, and was blocked for a more
+    fundamental reason than "not wired up yet."** Game data has lived in each
+    host's own browser storage (see Persistence above) — there was no shared
+    backend a second device could query, so a real per-game results link
+    couldn't resolve to anything for anyone but the host's own browser no
+    matter how much link-generation code got written. The blocker itself is
+    now resolved at the data layer: `games`/`game_players`/`settlements` are
+    real Supabase tables with RLS already enforcing exactly "a signed-in,
+    claimed player sees their own rows and nothing else" (`MOBILE_MIGRATION_PLAN.md`
+    Phase 1) — a results link can now just be a normal in-app URL
+    (`/game/:id`), no separate token/sharing scheme needed, since RLS already
+    does the gating a public link would otherwise have to reinvent. It's still
+    a stub in the actual UI until `App.jsx` is wired to read from these tables
+    instead of local state — that's the pending follow-up, not a new open
+    question.
 
 ## Roster (known players)
 
@@ -543,17 +553,24 @@ deliberately rather than by accident.)*
 - **Phone number reuse**: if a phone number is reassigned to a different real person
   over time, the claim-by-phone flow (above) could attach a stranger's past games to
   a new account. No detection/resolution built for this yet.
-- **No live database on game screens**: game screens (buy-ins, cash-out, settlement)
-  are wired to local state plus local persistence, not Supabase — meaning there is
-  currently **no server-side access control (RLS)** actually enforcing the
-  host/player visibility rules described above, and no cross-device sync. Names and
-  phone numbers are real PII even in a play-money app; this should be closed before
-  any real usage, not treated as cosmetic. (The related *data-loss* problem is now
-  fixed — see Persistence above — but durability is not sync and not access control.)
-- **Roster is not account-scoped**: games are now stored per account id, but the
-  roster (`poker-night:roster`) is still a single per-browser list, so two accounts
-  on one browser share known players — including their phone numbers. Inconsistent
-  with the games store and worth closing at the same time as the Supabase move.
+- **No live database on game screens [schema + RLS now built, wiring still
+  pending]**: game screens (buy-ins, cash-out, settlement) are still wired to
+  local state plus local persistence, not Supabase — that part of this gap is
+  unchanged. What's new (`MOBILE_MIGRATION_PLAN.md` Phase 1, 2026-09-07): the
+  actual `games`/`game_players`/`buyins`/`bank_checks`/`settlements` tables,
+  their RLS policies enforcing the host/player visibility rules above, and an
+  async data layer (`src/lib/gamesApi.js`) that mirrors the local shapes, all
+  exist now and have a passing isolation proof
+  (`scripts/test-rls-isolation.mjs`). Until `App.jsx` is actually rewired to
+  call it instead of local state, none of that protects real usage — the gap
+  should be considered **closed in the database, still open in the app** until
+  that wiring lands.
+- **Roster is not account-scoped [schema now built, wiring still pending]**:
+  games are stored per account id, but the roster (`poker-night:roster`) is
+  still a single per-browser localStorage list — unchanged. `known_players`
+  gained a `phone` column and `src/lib/knownPlayersApi.js` has the async
+  read/write functions; `roster.js`'s call sites (CreateGameScreen, "Add late
+  player") haven't been switched over yet — same follow-up as above.
 - **No PII deletion or export path**: the app stores real names and phone numbers
   with no retention policy and no way for a player to be removed or to get their
   data out. Tolerable in a private test; a legal requirement the moment money
@@ -576,9 +593,12 @@ visually distinct from the green background. Tokens live in `src/index.css` unde
 ## Stack
 
 - React + Vite + Tailwind v4 (CSS-first config, no `tailwind.config.js`)
-- Supabase: Postgres + Auth + RLS (schema in `supabase/schema.sql`) — **note: the game
-  screens are currently still on local React state, not wired to live Supabase data.**
-  Only auth/profiles/admin-approval actually hit the database right now. See "No live
-  database on game screens" under Known gaps.
+- Supabase: Postgres + Auth + RLS (schema in `supabase/schema.sql`, migration for the
+  existing project in `supabase/migrations/20260907_phase1_game_data_and_rls.sql`) —
+  **note: the game screens are currently still on local React state, not wired to
+  live Supabase data**, even though the tables, RLS policies, and an async API layer
+  (`src/lib/gamesApi.js`) for them now exist. Only auth/profiles/admin-approval
+  actually hit the database from the app today. See "No live database on game
+  screens" under Known gaps.
 - PWA via `vite-plugin-pwa`
 - Deployed on Vercel, repo at `github.com/LaksUX/Stradde-Pro`

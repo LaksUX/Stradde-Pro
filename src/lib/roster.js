@@ -5,6 +5,15 @@
 // `known_players` already exists in supabase/schema.sql and is unused —
 // moving roster storage there is part of the eventual Supabase-wiring phase.
 //
+// [Phase 1 note] The Supabase side of that move is now built —
+// src/lib/knownPlayersApi.js has async equivalents of the two functions
+// below, reading/writing known_players with the same case-insensitive
+// upsert-by-name behavior. This file hasn't been swapped out yet: every
+// call site here is synchronous (CreateGameScreen, the "Add late player"
+// flow), and converting them to handle an async/loading roster is being
+// done as part of the same App.jsx async-rewiring pass as the game screens
+// themselves, not as its own step — see docs/MOBILE_MIGRATION_PLAN.md Phase 1.
+//
 // This is the SINGLE source of truth for "Your players" — used by both
 // CreateGameScreen and LiveGameScreen's "Add late player" flow, so a player
 // added anywhere shows up everywhere else next time.
