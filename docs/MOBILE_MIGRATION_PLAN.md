@@ -15,12 +15,12 @@ retired in favor of `knownPlayersApi.js`, the last piece still on local state.
 Nothing in the web app reads or writes `localStorage` for game or roster data
 any more. **Phase 2's skeleton is built** (`mobile/`, same repo): expo-router
 + TypeScript template, NativeWind (felt/gold theme matching the web app),
-React Native Paper, an email-magic-link login screen (reversed from an
-initial phone-OTP choice — see Phase 2 below for why), and a minimal
-signed-in home screen wired to the same Supabase project via
-`mobile/src/lib/supabase.ts`. Verified as far as this environment allows
-(`tsc` clean, Metro resolves all 1770 modules with no errors) — real
-device/simulator testing is still outstanding, see Phase 2 below.
+React Native Paper, an email-OTP-code login screen (reversed twice now:
+phone-OTP → email magic-link → email OTP code — see Phase 2 below for both
+reversals), and a minimal signed-in home screen wired to the same Supabase
+project via `mobile/src/lib/supabase.ts`. **Run on a real device for the
+first time this pass** — magic-link tap-to-sign-in did not work end to end
+(see below), OTP code entry does.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -300,6 +300,38 @@ would clear it:
   that cost. The real price of this choice: it reintroduces the mobile
   deep-link round trip phone OTP was originally chosen to avoid — see below.
 
+**Then email magic-link itself was reversed to email OTP code entry, after
+actually trying it on a real device (2026-09-08).** Tapping the emailed link
+never completed a sign-in, across a long troubleshooting pass:
+
+- Gmail's in-app browser doesn't reliably complete custom-URL-scheme
+  handoffs (`exp://…` while testing in Expo Go) — tapping the link either
+  did nothing visible or silently consumed the one-time token without
+  completing the app handoff.
+- Independent of that, Supabase kept redirecting to the project's **Site
+  URL** — which turned out to be set to an unrelated app (`stradde-pro`,
+  a different project sharing this same Supabase backend) — instead of the
+  `exp://<lan-ip>:<port>` `redirect_to` the app actually requested, *even
+  after* that exact address was added to Authentication → URL Configuration
+  → Redirect URLs (confirmed via the raw `/auth/v1/verify` link's own
+  `redirect_to` query param, captured *before* ever tapping it, and via
+  Supabase's own Auth Logs). Tried: broadening `exp://*` to `exp://**`,
+  adding the literal exact-match address alongside the wildcard, confirming
+  via hard-refresh that the allowlist entries actually persisted, waiting
+  out possible propagation delay, and requesting fully fresh links each
+  time. None of it changed the outcome. Root cause not conclusively
+  identified — plausibly a Supabase-side quirk with non-`http(s)` custom
+  URL schemes in the redirect allowlist, not a bug in this app's code.
+- Rather than keep chasing an unconfirmed platform issue, switched
+  `src/app/login.tsx` to use the 6-digit code Supabase's OTP email already
+  includes alongside the link, verified via
+  `supabase.auth.verifyOtp({ email, token, type: "email" })`. This needs no
+  redirect URL, no browser handoff, and no deep link at all — it sidesteps
+  the entire class of problem. `RootLayout`'s magic-link deep-link handling
+  (`createSessionFromUrl`) is left in place as a bonus path in case the link
+  ever does complete successfully on its own, but code entry is now the
+  primary, verified-working flow. Commit `923e7b0`.
+
 **Built:** `npx create-expo-app` scaffolded `mobile/` (Expo SDK 57, RN 0.86,
 React 19.2, TypeScript, `expo-router`, `src/` as the routes root — this
 template puts routes under `src/app`, not root `app/`, matching the `@/*` →
@@ -316,12 +348,14 @@ removed (moved to `_to_delete/`, not committed) and replaced with:
   pattern (`@react-native-async-storage/async-storage` + a manual storage
   adapter) is what most existing tutorials/training data would suggest and
   is no longer the recommended approach.
-- `src/app/login.tsx` — email entry → `signInWithOtp` with
-  `emailRedirectTo: makeRedirectUri()` (from `expo-auth-session`) → a "check
-  your email" state, matching the web `LoginScreen`'s copy and flow exactly.
-  No manual navigation on success; `RootLayout` picks up the resulting deep
-  link itself (see below) and its `onAuthStateChange` listener reacts to the
-  new session and redirects away from `/login`.
+- `src/app/login.tsx` — email entry → `signInWithOtp({ email })` → a
+  6-digit-code entry screen → `verifyOtp({ email, token, type: "email" })`.
+  (Originally magic-link tap, matching the web `LoginScreen` exactly;
+  switched to code entry after the magic-link round trip didn't work on a
+  real device — see the reversal note above.) No manual navigation on
+  success; `verifyOtp()` sets the session on the client itself, which fires
+  `RootLayout`'s `onAuthStateChange` listener and redirects away from
+  `/login`.
 - `src/app/_layout.tsx` — session bootstrap (pick up an existing session,
   listen for changes) plus a redirect effect between `/login` and the
   signed-in screens based on session state — expo-router's equivalent of
@@ -363,26 +397,28 @@ Deliverable at the end of this phase: a login screen and an empty home screen,
 signed in against the same Supabase project as the web app. **Code-complete;
 run-verified is still open** — see "Still needs a human" below.
 
-**Still needs a human, not more code:**
-1. `cd mobile && npm install` if you haven't already run one fresh (this
-   was installed and verified in this sandbox, but a real run should confirm
-   your own machine's install is clean too).
-2. **Add the app's redirect URL(s) to Supabase** — Dashboard → Authentication
-   → URL Configuration → Redirect URLs → add `pokernight://**`. While testing
-   in Expo Go specifically (not a real device build), also add an `exp://*`
-   pattern — Expo Go proxies deep links through its own `exp://` scheme
-   rather than the app's real `pokernight://` one, so the magic link won't
-   find its way back to the app without it. Without this step, tapping the
-   emailed link will fail or land somewhere that isn't the app.
-3. Run it for real: `npx expo start`, open in Expo Go or a dev build on an
-   actual device/simulator, request a magic link, and confirm the full round
-   trip — email arrives, tapping it opens the app, the app lands signed in
-   on the home screen. Nothing above has been exercised at runtime; this is
-   the actual remaining risk in this phase, not a formality.
-4. Phone OTP itself is still viable later if DLT registration ever makes
-   sense to take on — nothing about this reversal makes it harder to add
+**Still needs a human to confirm:** try the new OTP-code flow end to end —
+`npx expo start` + Expo Go on a real device, email → 6-digit code → should
+land signed in on the home screen. This is what the magic-link version
+never managed to do; the code-entry version is expected to work but hasn't
+been confirmed on-device yet as of this edit.
+
+**Still open regardless of the above:**
+1. The magic-link Site-URL/redirect_to mismatch (see the reversal note
+   above) was never root-caused — only worked around. If it ever matters
+   again (e.g. wanting the tap-the-link flow back, or noticing the same
+   Site-URL-fallback behavior elsewhere), start from Supabase's Auth Logs
+   for the specific failing request rather than re-guessing at the
+   allowlist.
+2. Phone OTP itself is still viable later if DLT registration ever makes
+   sense to take on — nothing about either reversal makes it harder to add
    back; it just isn't worth pursuing on this pass. See the "auth was phone
    OTP, then reversed" note above for the full reasoning if revisiting.
+3. This Supabase project is shared with at least one unrelated app
+   (`stradde-pro` — its Site URL is set to that app's Vercel deployment,
+   discovered via Auth Logs while debugging the above). Worth being
+   deliberate about whether that's still the right setup, since project-wide
+   settings (Site URL, rate limits, email templates) affect both apps.
 
 ---
 
