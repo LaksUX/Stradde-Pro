@@ -5,14 +5,15 @@ does*. This file is about *how we get it onto Android and iOS* without breaking 
 re-litigating what's already been decided there.
 
 **Progress:** Phase 0 done (`src/core/money.js`, `src/core/settlement.js`, first
-test coverage in the project — commit `caf84cf`). Phase 1 is now fully done,
-including the manual verification steps: schema + RLS + API layer, `App.jsx`'s
-game screens (Live Game, Cash-out Entry, Settlement, Create Game, the Home
-dashboard's settlement sections) wired to Supabase instead of local
-state/localStorage, the migration SQL run against the live project, and the RLS
-isolation script actually executed (2026-09-08, `PASS — 0 check(s) failed`).
-`roster.js` is the one piece deliberately still local — see its own Phase 1
-note — and is the only remaining work before Phase 1 is 100% closed out.
+test coverage in the project — commit `caf84cf`). **Phase 1 is fully done**:
+schema + RLS + API layer, `App.jsx`'s game screens (Live Game, Cash-out Entry,
+Settlement, Create Game, the Home dashboard's settlement sections) wired to
+Supabase instead of local state/localStorage, the migration SQL run against
+the live project, the RLS isolation script actually executed and passing
+(2026-09-08, `PASS — 0 check(s) failed`), and — as of this pass — `roster.js`
+retired in favor of `knownPlayersApi.js`, the last piece still on local state.
+Nothing in the web app reads or writes `localStorage` for game or roster data
+any more. Phase 2 (Expo) is next.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -233,18 +234,25 @@ rewiring:
   wasn't worth the complexity for a feature nothing in `REQUIREMENTS.md`
   actually asked to keep.
 
-**`roster.js` is the one piece still not wired up** — still 100% synchronous
-`localStorage`, with `src/lib/knownPlayersApi.js` sitting ready as its async
-replacement (see that file's own Phase 1 note). It was kept separate from the
-`App.jsx` rewiring because every call site is synchronous today
-(`CreateGameScreen`, "Add late player"), and converting those to handle an
-async/loading roster is a self-contained follow-up, not free to fold into an
-already-large change.
+**`roster.js` is now wired up too (2026-09-08)**, closing out the one piece
+that was kept separate from the main `App.jsx` rewiring. The shape mirrors the
+games refetch pattern above, with one deliberate difference: `addToRoster`
+updates local state optimistically *before* the write, rather than waiting on
+a refetch, because it's a low-stakes side effect of adding a player (both call
+sites — `CreateGameScreen`'s `addPlayer`, `LiveGameScreen`'s `addNewPlayer` —
+already call it fire-and-forget, with no loading state of their own to thread
+through) — the roster chip should appear instantly either way, with the real
+`known_players` write happening in the background and only a toast if it
+actually fails. `src/lib/roster.js` itself is retired the same way
+`gameStore.js` was — left in the repo as a reference, nothing imports it.
+Existing `localStorage` roster data (`poker-night:roster`) is not migrated
+into `known_players`; that data is deliberately abandoned in place, the same
+tradeoff already made for local game data before this phase.
 
 **The two one-time manual steps are both done now:** the migration SQL was run
 against the live Supabase project (SQL editor — no CLI link exists for this
 repo), and `scripts/test-rls-isolation.mjs` was executed against it afterward
-and passed (see above). Phase 1's only remaining item is wiring `roster.js`.
+and passed (see above). **Phase 1 is fully closed — nothing left in it.**
 
 ---
 
@@ -350,12 +358,9 @@ engineering:
 
 - ~~Realtime multi-device sync vs. simple refetch (Phase 1).~~ Resolved:
   refetch for v1 — see Phase 1 above.
-- **Finish wiring `roster.js` to `knownPlayersApi.js`** before starting Phase
-  2 — this is the only thing left in Phase 1. `App.jsx` is done, the migration
-  SQL is applied, and the RLS isolation script has actually been run and
-  passed (see Phase 1 above). Small in isolation, but Expo screens should
-  still be built against a data layer that's fully proven on the web app
-  first, not one with a known remaining gap.
+- ~~Finish wiring `roster.js` to `knownPlayersApi.js`.~~ Resolved: done
+  2026-09-08 — see Phase 1 above. **Phase 1 is fully closed; nothing here is
+  blocking Phase 2 anymore.**
 - Phone OTP vs. email magic-link on mobile (Phase 2).
 - `expo-router` vs. React Navigation (Phase 2) — low-stakes, pick one and move.
 - Tamagui vs. React Native Paper vs. gluestack-ui (Phase 2) — pick once, don't

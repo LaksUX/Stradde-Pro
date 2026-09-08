@@ -17,14 +17,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
-import { loadRoster, upsertRoster } from "@/lib/roster"
+import * as knownPlayersApi from "@/lib/knownPlayersApi"
 // [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 1] Game data now lives in
 // Supabase, not localStorage — src/lib/gameStore.js and the paid-status
 // migration shim in src/lib/settlementStatus.js are retired from the app's
 // runtime path as of this wiring (gameStore.js itself is left in the repo
 // only as a reference for the interim design it replaced; nothing imports
-// it any more). Roster (src/lib/roster.js) is a deliberately separate,
-// not-yet-migrated follow-up — see that file's own Phase 1 note.
+// it any more). Roster (src/lib/roster.js) is retired the same way, as of
+// this pass — src/lib/knownPlayersApi.js is what the app actually calls now;
+// roster.js is left in the repo only as a reference, nothing imports it.
 import * as gamesApi from "@/lib/gamesApi"
 // [decision, Phase 0 of docs/MOBILE_MIGRATION_PLAN.md] Money math and
 // settlement logic live in src/core — dependency-free, tested, and meant to
@@ -2821,10 +2822,10 @@ export default function App() {
 
   // Shared roster — single source of truth for "Your players", used by both
   // CreateGameScreen and LiveGameScreen's "Add late player" flow. Lifted to
-  // App root so both screens read/write the same list. Seeded from
-  // pastGames only if localStorage is empty (see src/lib/roster.js).
-  const [roster, setRoster] = useState(() => loadRoster(SEED_PAST_GAMES))
-  const addToRoster = (name, phone) => setRoster(prev => upsertRoster(prev, name, phone))
+  // App root so both screens read/write the same list. Fetched from Supabase
+  // (known_players) below, once accountId is known — see addToRoster and the
+  // fetch effect further down, near the games equivalents.
+  const [roster, setRoster] = useState([])
 
   // Auth bootstrap: pick up any existing session on load (so we don't flash
   // the login screen), then keep listening for sign-in/sign-out/magic-link
@@ -2934,6 +2935,42 @@ export default function App() {
   const reportError = (err, title = "Something went wrong") => {
     console.error(title, err)
     showToast("⚠️", title, err?.message || "Please try again")
+  }
+
+  // ─── Roster (Supabase known_players, Phase 1) ─────────────────────────────
+  // Same refetch-after-write shape as game data above. addToRoster updates
+  // local state optimistically first — a roster save is a low-stakes,
+  // non-blocking side effect of adding a player, not something either caller
+  // (CreateGameScreen's addPlayer, LiveGameScreen's addNewPlayer) awaits or
+  // guards against failure for — so the roster chip should appear instantly
+  // either way, with the real write happening in the background and only a
+  // toast if it actually fails.
+  useEffect(() => {
+    let cancelled = false
+    if (!accountId) { setRoster([]); return }
+    knownPlayersApi.fetchRoster(accountId)
+      .then(list => { if (!cancelled) setRoster(list) })
+      .catch(err => { if (!cancelled) reportError(err, "Couldn't load your roster") })
+    return () => { cancelled = true }
+  }, [accountId])
+
+  const addToRoster = (name, phone) => {
+    const n = (name || "").trim()
+    const ph = (phone || "").trim()
+    if (!n) return
+    setRoster(prev => {
+      const idx = prev.findIndex(r => r.name.toLowerCase() === n.toLowerCase())
+      if (idx >= 0) {
+        const next = prev.slice()
+        next[idx] = { ...next[idx], name: n, phone: ph || next[idx].phone || "" }
+        return next
+      }
+      return [...prev, { name: n, phone: ph }]
+    })
+    if (!accountId) return
+    knownPlayersApi.upsertRosterEntry(accountId, n, ph).catch(err => {
+      reportError(err, "Couldn't save to your roster")
+    })
   }
 
   const navigate = (s, data, asHost) => {

@@ -437,14 +437,16 @@ those tabs already are, the same way stats and recent games are.
   on Create Game, and the same list should be offered first when adding a player
   mid-game too (see Live Game below) — one roster, used everywhere a player gets
   added, not a Create-Game-only convenience.
-- **[decision, interim] Persisted via `localStorage`, not the database, for now.**
-  Real game screens are still local React state (see Known Gaps), so there's
-  nowhere server-side to durably store this yet. `localStorage` at least survives
-  a page refresh/reopen on the same device/browser, which is a real improvement
-  over losing the roster every session. This is explicitly a stopgap — the
-  `known_players` table already exists in `supabase/schema.sql` and is unused;
-  moving roster storage there is part of the eventual Supabase-wiring phase, at
-  which point it becomes cross-device instead of per-browser.
+- **[decision, superseded 2026-09-08] `localStorage` used to be where this
+  lived; it's `known_players` in Supabase now.** The original reasoning no
+  longer applies — it was a stopgap because game screens were still local
+  React state with nowhere server-side to durably store a roster either.
+  Now that both are wired to Supabase (see Persistence below and
+  `MOBILE_MIGRATION_PLAN.md` Phase 1), the roster is cross-device and
+  per-account instead of per-browser, the same as games. Existing
+  `localStorage` roster data from before this change was not migrated — it's
+  simply abandoned; hosts see an empty "Your players" list once and it
+  repopulates from there via `known_players`.
 - Adding a player (anywhere — Create Game or mid-game) should default to picking
   from this roster; free-text entry (with mandatory phone number) stays available
   for someone genuinely new, and doing so adds them to the roster for next time.
@@ -579,18 +581,17 @@ deliberately rather than by accident.)*
   correction, not a client-side rewind), and Create Game's date/time fields are
   now preview-only display — the persisted game always uses the server's
   `now()` as `started_at`. The RLS access-control proof
-  (`scripts/test-rls-isolation.mjs`) still needs to actually be *run* against
-  the live project (two real signed-in accounts) before this is fully closed
-  end-to-end — see `MOBILE_MIGRATION_PLAN.md` Phase 1.
-- **Roster is not account-scoped [schema built, wiring still pending — the
-  one remaining piece of Phase 1]**: games are now stored in and read from
-  Supabase (see above), but the roster (`poker-night:roster`) is still a
-  single per-browser localStorage list. `known_players` gained a `phone`
-  column and `src/lib/knownPlayersApi.js` has the async read/write functions;
-  `roster.js`'s call sites (CreateGameScreen, "Add late player") haven't been
-  switched over yet. This is the only remaining local-state gap from Phase 1 —
-  small in isolation, but worth closing before Phase 2 (native) starts,
-  per `MOBILE_MIGRATION_PLAN.md`.
+  (`scripts/test-rls-isolation.mjs`) has been run against the live project
+  (two real signed-in accounts, 2026-09-08) and passed — see
+  `MOBILE_MIGRATION_PLAN.md` Phase 1.
+- **[closed 2026-09-08] Roster is now account-scoped**: games and the roster
+  are both stored in and read from Supabase now. `known_players` gained a
+  `phone` column, `src/lib/knownPlayersApi.js` has the async read/write
+  functions, and `roster.js`'s call sites (`CreateGameScreen`, "Add late
+  player") now call those instead of `localStorage` — see
+  `MOBILE_MIGRATION_PLAN.md` Phase 1. This closes out Phase 1 entirely; no
+  game or roster data is read from or written to `localStorage` anywhere in
+  the app any more.
 - **No PII deletion or export path**: the app stores real names and phone numbers
   with no retention policy and no way for a player to be removed or to get their
   data out. Tolerable in a private test; a legal requirement the moment money
@@ -615,11 +616,13 @@ visually distinct from the green background. Tokens live in `src/index.css` unde
 - React + Vite + Tailwind v4 (CSS-first config, no `tailwind.config.js`)
 - Supabase: Postgres + Auth + RLS (schema in `supabase/schema.sql`, migration for the
   existing project in `supabase/migrations/20260907_phase1_game_data_and_rls.sql`,
-  applied to the live project 2026-09-07) — game screens (buy-ins, cash-out,
-  settlement, everything in `LiveGameScreen`/`CashoutEntryScreen`/`SettlementScreen`)
-  are wired to live Supabase data via `src/lib/gamesApi.js`, refetching after every
-  write rather than using realtime subscriptions (a deliberate v1 choice, see
-  `MOBILE_MIGRATION_PLAN.md`). The one remaining piece on local state is the roster
-  (`roster.js`, not yet switched to `knownPlayersApi.js`) — see Known gaps.
+  applied to the live project 2026-09-07, RLS isolation proof passing as of
+  2026-09-08) — game screens (buy-ins, cash-out, settlement, everything in
+  `LiveGameScreen`/`CashoutEntryScreen`/`SettlementScreen`) are wired to live
+  Supabase data via `src/lib/gamesApi.js`, and the roster via
+  `src/lib/knownPlayersApi.js`, both refetching after every write rather than
+  using realtime subscriptions (a deliberate v1 choice, see
+  `MOBILE_MIGRATION_PLAN.md`). No game or roster data is read from or written
+  to `localStorage` anywhere in the app any more.
 - PWA via `vite-plugin-pwa`
 - Deployed on Vercel, repo at `github.com/LaksUX/Stradde-Pro`
