@@ -68,6 +68,14 @@ export default function CreateGameRoute() {
     if (source !== "Contacts" || contactsStatus !== "idle") return
     let cancelled = false
     setContactsStatus("loading")
+    // Deliberately NOT depending on contactsStatus below (only `source`) —
+    // this effect itself sets contactsStatus to "loading" a few lines up,
+    // and if that were a dependency, the resulting re-render would re-run
+    // this very effect, whose cleanup marks THIS in-flight request
+    // `cancelled` before requestPermissionsAsync()/getContactsAsync() ever
+    // resolve. The status check above still reads the current value fine
+    // without needing to react to its own changes — this was the actual
+    // bug behind "stuck on Loading your contacts…" (2026-09-08).
     ;(async () => {
       try {
         const { status } = await Contacts.requestPermissionsAsync()
@@ -98,7 +106,8 @@ export default function CreateGameRoute() {
     return () => {
       cancelled = true
     }
-  }, [source, contactsStatus])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see comment above
+  }, [source])
 
   const filteredContacts = contactsSearch.trim()
     ? deviceContacts.filter((c) => c.name.toLowerCase().includes(contactsSearch.trim().toLowerCase()))
