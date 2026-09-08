@@ -60,7 +60,11 @@ export function Dot({ color = "zinc", className = "" }: { color?: "indigo" | "em
 }
 
 // ─── Avatar — solid color (hashed from name) + initials, not web's gradient
-const AV_COLORS = ["#7c3aed", "#0891b2", "#059669", "#dc2626", "#db2777", "#d97706", "#2563eb", "#4f46e5"]
+// [decision, M3 Expressive restyle, 2026-09-08] Bumped from Tailwind's 600-
+// shades to their brighter/more saturated 500-shades — a small, low-risk
+// way for avatars specifically to read as bolder without touching the
+// hashing logic or the felt/gold/mint/bloom brand palette itself.
+const AV_COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#ef4444", "#ec4899", "#f59e0b", "#3b82f6", "#6366f1"]
 function avColor(name: string) {
   let h = 0
   for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
@@ -115,7 +119,7 @@ export function AppSheet({
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
-        <View className="bg-felt-surface border-t border-felt-border rounded-t-3xl px-5 pt-3 pb-8 max-h-[85%]">
+        <View className="bg-felt-surface-3 border-t border-felt-outline rounded-t-3xl px-5 pt-3 pb-8 max-h-[85%]">
           <View className="w-10 h-1 rounded-full bg-felt-border self-center mb-4" />
           <View className="flex-row items-center gap-3 mb-4">
             {avatar}
@@ -125,6 +129,7 @@ export function AppSheet({
             </View>
             <Pressable
               onPress={onClose}
+              style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}
               className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center"
             >
               <Text className="text-zinc-400 text-xs">✕</Text>
@@ -158,7 +163,7 @@ export function AppDialog({
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 items-center justify-center px-6">
         <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
-        <View className="w-full max-w-[340px] bg-felt-surface border border-felt-border rounded-2xl p-4">
+        <View className="w-full max-w-[340px] bg-felt-surface-3 border border-felt-outline rounded-2xl p-4">
           {title ? <Text className="text-white font-bold text-base mb-1">{title}</Text> : null}
           {description ? <Text className="text-zinc-400 text-xs mb-3">{description}</Text> : null}
           {children}
@@ -170,6 +175,12 @@ export function AppDialog({
 
 // ─── Segmented tabs — stand-in for web's shadcn Tabs (used on Home's
 // Overview/Settlements and Create Game's player-source selector) ──────────
+// [decision, M3 Expressive restyle, 2026-09-08] Active pill switched from
+// gold (primary) to bloom (tertiary) — gold is already the dominant CTA
+// color everywhere else on screen, so a tab selector in the same hue reads
+// as "another button," not a distinct control. Tertiary is M3's own
+// prescription for exactly this kind of secondary-emphasis selection UI,
+// and gives the app a genuine second/third hue instead of an all-gold look.
 export function SegTabs({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) {
   return (
     <View className="flex-row bg-felt-surface-2/70 border border-felt-border rounded-full p-1">
@@ -177,7 +188,8 @@ export function SegTabs({ tabs, active, onChange }: { tabs: string[]; active: st
         <Pressable
           key={t}
           onPress={() => onChange(t)}
-          className={cn("flex-1 h-8 rounded-full items-center justify-center", active === t && "bg-gold")}
+          style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}
+          className={cn("flex-1 h-8 rounded-full items-center justify-center", active === t && "bg-bloom")}
         >
           <Text className={cn("text-xs font-bold", active === t ? "text-white" : "text-zinc-400")}>{t}</Text>
         </Pressable>
@@ -191,7 +203,7 @@ export function ProgressBar({ value, className = "" }: { value: number; classNam
   const pct = Math.max(0, Math.min(100, value))
   return (
     <View className={cn("h-2 rounded-full bg-felt-surface-2 overflow-hidden", className)}>
-      <View className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+      <View className="h-full rounded-full bg-mint" style={{ width: `${pct}%` }} />
     </View>
   )
 }
@@ -213,6 +225,7 @@ export function Keypad({
         <Pressable
           key={k}
           onPress={() => (k === "⌫" ? onBackspace() : k === "C" ? onClear() : onDigit(k))}
+          style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.93 : 1 }] })}
           className={cn(
             "w-[31%] h-12 mb-2 rounded-xl items-center justify-center",
             k === "⌫" || k === "C" ? "bg-felt-surface-2" : "bg-felt-surface-2/70 border border-felt-border"
@@ -232,6 +245,11 @@ export function Keypad({
 // best-effort visual echo of web's locked-region overlay; @react-native-
 // community/slider doesn't expose track segments directly, so this just
 // layers a positioned View behind it.
+// [decision, M3 Expressive restyle, 2026-09-08] Slider tint colors are
+// hardcoded hex (this native component takes color props, not classNames)
+// so they can't ride the Tailwind token swap automatically — bumped by
+// hand to the same new gold.vivid/gold.light/felt.outline values so the
+// slider matches the rest of the bolder gold accent everywhere else.
 export function BuyinSlider({
   value,
   onChange,
@@ -260,9 +278,9 @@ export function BuyinSlider({
           maximumValue={max}
           step={1}
           disabled={allLocked}
-          minimumTrackTintColor="#caa043"
-          maximumTrackTintColor="#24352c"
-          thumbTintColor="#e0bb5c"
+          minimumTrackTintColor="#e3a71c"
+          maximumTrackTintColor="#4d6658"
+          thumbTintColor="#f4dca4"
           onValueChange={(v) => onChange(Math.max(min, Math.round(v)))}
         />
       </View>

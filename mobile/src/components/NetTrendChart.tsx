@@ -4,6 +4,14 @@
 // + CSS stroke-dashoffset/opacity transitions) — renders the finished chart
 // immediately. That's a deliberate "ship the data visualization, skip the
 // polish for now" trim, not a missing feature; can revisit later.
+//
+// [decision, M3 Expressive restyle, 2026-09-08] "Up" swapped from generic
+// Tailwind emerald to the app's own mint (M3 secondary) so a positive trend
+// reads as brand-colored, not a stock green; "down" stays on red/error —
+// that's a semantic (danger) color, not a brand hue, so it's deliberately
+// left alone. The zero-line dash color moved from generic zinc to
+// felt-outline so it reads as part of the felt system rather than a
+// leftover default gray.
 import { View, Text } from "react-native"
 import Svg, { Defs, LinearGradient, Stop, Line, Path, Circle } from "react-native-svg"
 import { totalBuyinsFor } from "@core/settlement"
@@ -44,14 +52,14 @@ export function NetTrendChart({ pastGames, hostName }: { pastGames: any[]; hostN
 
   const last = vals[vals.length - 1]
   const up = last >= 0
-  const lineColor = up ? "#34d399" : "#f87171"
-  const fillColor = up ? "#10b981" : "#ef4444"
+  const lineColor = up ? "#b7e1cd" : "#f87171"
+  const fillColor = up ? "#3b9169" : "#ef4444"
 
   return (
     <View className="bg-felt-surface border border-felt-border rounded-2xl px-4 pt-4 pb-3">
       <View className="flex-row items-center justify-between mb-2">
         <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500">Net Trend</Text>
-        <NumB value={last} sign size="text-sm" className={up ? "text-emerald-400" : "text-red-400"} />
+        <NumB value={last} sign size="text-sm" className={up ? "text-mint-light" : "text-red-400"} />
       </View>
       <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
         <Defs>
@@ -60,7 +68,7 @@ export function NetTrendChart({ pastGames, hostName }: { pastGames: any[]; hostN
             <Stop offset="100%" stopColor={fillColor} stopOpacity={0} />
           </LinearGradient>
         </Defs>
-        <Line x1={PAD} y1={zeroY} x2={W - PAD} y2={zeroY} stroke="#3f3f46" strokeWidth={1} strokeDasharray="3 3" />
+        <Line x1={PAD} y1={zeroY} x2={W - PAD} y2={zeroY} stroke="#4d6658" strokeWidth={1} strokeDasharray="3 3" />
         <Path d={areaPath} fill="url(#netFillG)" />
         <Path d={linePath} fill="none" stroke={lineColor} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p, i) => (
