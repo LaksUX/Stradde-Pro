@@ -44,7 +44,7 @@ export default function SettlementRoute() {
     return (
       <View className="flex-1 items-center justify-center bg-felt-bg px-6">
         <Text className="text-zinc-400 text-sm text-center leading-relaxed">No game is ready to settle right now.</Text>
-        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-5 rounded-xl bg-felt-surface-2 border border-felt-border items-center justify-center">
+        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-6 rounded-full bg-felt-surface-2 border border-felt-outline items-center justify-center">
           <Text className="text-zinc-300 text-sm font-semibold">Back</Text>
         </Pressable>
       </View>
@@ -208,7 +208,7 @@ function SettlementBody({
             {[`${fmtB(totalIn)} pot`, rake > 0 ? `${fmtB(rake)} rake` : null, `${players.length} players`, `${visibleTxns.length} payments`]
               .filter(Boolean)
               .map((s) => (
-                <Text key={s as string} className="text-[10px] font-bold text-zinc-500 bg-felt-surface border border-felt-border rounded-full px-3 py-1">
+                <Text key={s as string} className="text-[10px] font-bold text-zinc-500 bg-felt-surface-2 border border-felt-outline rounded-full px-3.5 py-1.5">
                   {s}
                 </Text>
               ))}
@@ -232,7 +232,7 @@ function SettlementBody({
               <View
                 key={pos.name}
                 className={cn(
-                  "bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex-row items-center gap-3 border-l-2",
+                  "bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5 flex-row items-center gap-3 border-l-2",
                   pos.net > 0 ? "border-l-emerald-500" : pos.net < 0 ? "border-l-red-500" : ""
                 )}
               >
@@ -258,7 +258,7 @@ function SettlementBody({
         ) : (
           <View className="px-5 gap-2.5 mb-3">
             {visibleTxns.map((t) => (
-              <Pressable key={t.key} onPress={() => openEdit(t)} className="flex-row items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3">
+              <Pressable key={t.key} onPress={() => openEdit(t)} className="flex-row items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5">
                 <View className="flex-1">
                   <Text className="text-[13px] font-semibold text-zinc-100">
                     {t.from} <Text className="text-zinc-400">→</Text> {t.to}
@@ -266,7 +266,7 @@ function SettlementBody({
                   <Text className="text-[10px] text-zinc-400 font-mono mt-0.5">{!t.isAuto ? "custom" : "not yet paid"}</Text>
                 </View>
                 <NumB value={t.amount} size="text-[14.5px]" className="text-white" />
-                <Text className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-md tracking-wide bg-amber-500/15 text-amber-400">DUE</Text>
+                <Text className="text-[9.5px] font-extrabold px-2.5 py-1 rounded-full tracking-wide bg-amber-500/15 text-amber-400">DUE</Text>
               </Pressable>
             ))}
           </View>
@@ -274,7 +274,7 @@ function SettlementBody({
 
         {visibleTxns.length > 0 && (
           <View className="px-5 mb-4">
-            <View className="flex-row items-center gap-3 bg-felt-surface border border-felt-border rounded-xl px-4 py-3">
+            <View className="flex-row items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-2xl px-4 py-3.5">
               <Text className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">Settled</Text>
               <ProgressBar value={0} className="flex-1" />
               <Text className="font-mono text-sm font-bold text-emerald-400">0/{visibleTxns.length}</Text>
@@ -283,20 +283,20 @@ function SettlementBody({
         )}
 
         <View className="px-5 mb-4">
-          <Pressable onPress={openAdd} className="w-full border border-dashed border-felt-border rounded-xl py-3 items-center flex-row justify-center gap-2">
+          <Pressable onPress={openAdd} className="w-full border border-dashed border-felt-outline rounded-full py-3.5 items-center flex-row justify-center gap-2">
             <Text className="text-zinc-400 text-sm font-medium">+ Add Custom Payment</Text>
           </Pressable>
         </View>
 
         {/* Actions */}
         <View className="px-5 gap-3 pb-10">
-          <Pressable onPress={copySettlement} className="w-full h-12 bg-gold rounded-xl items-center justify-center flex-row gap-2">
-            <Text className="text-white font-bold text-sm">Copy settlement summary</Text>
+          <Pressable onPress={copySettlement} className="w-full h-12 bg-gold rounded-full items-center justify-center flex-row gap-2">
+            <Text className="text-[#241a05] font-bold text-sm">Copy settlement summary</Text>
           </Pressable>
           <Pressable
             disabled={ending}
             onPress={endGame}
-            className={cn("w-full h-12 rounded-xl items-center justify-center border border-felt-border", ending ? "bg-felt-surface-2/60" : "bg-felt-surface-2")}
+            className={cn("w-full h-12 rounded-full items-center justify-center border border-felt-outline", ending ? "bg-felt-surface-2/60" : "bg-felt-surface-2")}
           >
             <Text className="text-zinc-200 font-bold text-sm">{ending ? "Ending…" : "End Game & Send Results"}</Text>
           </Pressable>
@@ -319,7 +319,7 @@ function SettlementBody({
                   key={p.name}
                   onPress={() => setSheetFrom(p.name)}
                   className={cn(
-                    "px-2.5 py-1.5 rounded-full border",
+                    "px-3 py-2 rounded-full border",
                     sheetFrom === p.name ? "bg-gold/15 border-gold/40" : "bg-felt-surface-2/70 border-felt-border"
                   )}
                 >
@@ -335,7 +335,7 @@ function SettlementBody({
                   key={p.name}
                   onPress={() => setSheetTo(p.name)}
                   className={cn(
-                    "px-2.5 py-1.5 rounded-full border",
+                    "px-3 py-2 rounded-full border",
                     sheetTo === p.name ? "bg-gold/15 border-gold/40" : "bg-felt-surface-2/70 border-felt-border"
                   )}
                 >
@@ -345,7 +345,7 @@ function SettlementBody({
             </View>
 
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-1.5">Amount</Text>
-            <View className="bg-felt-surface-2/60 border border-felt-border rounded-2xl px-4 py-3 items-end mb-3">
+            <View className="bg-felt-surface-2/60 border border-felt-outline rounded-2xl px-4 py-3 items-end mb-3">
               <NumB value={parseInt(sheetDigits || "0", 10) * 10000} size="text-[26px]" className="text-white" />
             </View>
 
@@ -356,11 +356,11 @@ function SettlementBody({
             />
 
             <View className="flex-row gap-2.5 mt-3">
-              <Pressable onPress={removeSheet} className="flex-1 h-11 rounded-xl bg-red-500/10 border border-red-500/30 items-center justify-center">
+              <Pressable onPress={removeSheet} className="flex-1 h-12 rounded-full bg-red-500/10 border border-red-500/30 items-center justify-center">
                 <Text className="text-red-300 font-bold text-sm">Remove</Text>
               </Pressable>
-              <Pressable onPress={saveSheet} className="flex-1 h-11 rounded-xl bg-gold items-center justify-center">
-                <Text className="text-white font-bold text-sm">Save</Text>
+              <Pressable onPress={saveSheet} className="flex-1 h-12 rounded-full bg-gold items-center justify-center">
+                <Text className="text-[#241a05] font-bold text-sm">Save</Text>
               </Pressable>
             </View>
           </View>
