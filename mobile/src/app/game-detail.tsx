@@ -62,15 +62,15 @@ function PlayerView({ game, viewerName, onBack }: { game: any; viewerName: strin
           </Text>
         </View>
         <View className="px-5 pt-5 gap-2.5 pb-10">
-          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex-row items-center justify-between">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-[18px] flex-row items-center justify-between">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your buy-ins</Text>
             <NumB value={myIn} size="text-lg" className="text-white" />
           </View>
-          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex-row items-center justify-between">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-[18px] flex-row items-center justify-between">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your cash-out</Text>
             <NumB value={myOut} size="text-lg" className="text-white" />
           </View>
-          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex-row items-center justify-between">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-[18px] flex-row items-center justify-between">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your net</Text>
             <NumB value={myNet} sign size="text-xl" className={myNet >= 0 ? "text-emerald-400" : "text-red-400"} />
           </View>

@@ -88,7 +88,7 @@ export default function HomeScreen() {
         <Text className="text-zinc-400 text-sm mt-3 font-medium text-center leading-relaxed">
           Your account is set up. Ask the app admin to approve you as a host to create games.
         </Text>
-        <Pressable onPress={logout} className="mt-8 w-full max-w-xs h-13 bg-felt-surface-2 border border-felt-border rounded-full items-center justify-center">
+        <Pressable onPress={logout} className="mt-8 w-full max-w-xs h-[52px] bg-felt-surface-2 border border-felt-border rounded-full items-center justify-center">
           <Text className="text-zinc-200 font-bold text-sm">Sign out</Text>
         </Pressable>
       </View>
@@ -139,7 +139,7 @@ export default function HomeScreen() {
           {activeGame && (
             <Pressable
               onPress={() => router.push((activeGame.status === "cashout" ? "/cashout-entry" : "/live-game") as never)}
-              className="rounded-3xl bg-emerald-950 border border-emerald-700/60 p-4.5"
+              className="rounded-3xl bg-emerald-950 border border-emerald-700/60 p-[18px]"
             >
               <View className="flex-row items-center gap-2 mb-2">
                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -178,7 +178,7 @@ export default function HomeScreen() {
         {tab === "overview" && filter === "host" && (
           <>
             <View className="px-5 mt-4">
-              <Pressable onPress={() => router.push("/create-game" as never)} className="rounded-3xl bg-felt-surface-2 border border-felt-outline p-4.5 flex-row items-center gap-4">
+              <Pressable onPress={() => router.push("/create-game" as never)} className="rounded-3xl bg-felt-surface-2 border border-felt-outline p-[18px] flex-row items-center gap-4">
                 <View className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 items-center justify-center">
                   <Text className="text-gold-light text-xl font-bold">+</Text>
                 </View>
@@ -199,7 +199,7 @@ export default function HomeScreen() {
                     const h = g.players.find((p: any) => p.name === hostName)
                     const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
                     return (
-                      <Pressable key={g.id} onPress={() => viewGameDetail(g, true)} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-4 flex-row items-center gap-3">
+                      <Pressable key={g.id} onPress={() => viewGameDetail(g, true)} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-[18px] py-4 flex-row items-center gap-3">
                         <View className={cn("w-1 h-9 rounded-full", net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600")} />
                         <View className="flex-1">
                           <Text className="font-semibold text-zinc-100 text-sm">{g.name}</Text>
@@ -254,7 +254,7 @@ export default function HomeScreen() {
                       const h = g.players.find((p: any) => p.name === hostName)
                       const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
                       return (
-                        <Pressable key={g.id} onPress={() => viewGameDetail(g, false)} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-4 flex-row items-center gap-3">
+                        <Pressable key={g.id} onPress={() => viewGameDetail(g, false)} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-[18px] py-4 flex-row items-center gap-3">
                           <View className={cn("w-1 h-9 rounded-full", net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600")} />
                           <View className="flex-1">
                             <Text className="font-semibold text-zinc-100 text-sm">{g.name}</Text>
@@ -363,7 +363,7 @@ function MySettlementsSection({
         <>
           <Text className="text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-500 mt-1">You owe</Text>
           {iOwe.map((t: any, i: number) => (
-            <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex-row items-center gap-3">
+            <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-[18px] py-3.5 flex-row items-center gap-3">
               <Pressable onPress={() => onSelectGame(t.game)} className="flex-1 flex-row items-center gap-3">
                 <Av name={t.to} size={28} />
                 <View className="flex-1">
@@ -383,7 +383,7 @@ function MySettlementsSection({
         <>
           <Text className="text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-500 mt-2">Owed to you</Text>
           {owedToMe.map((t: any, i: number) => (
-            <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex-row items-center gap-3">
+            <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-[18px] py-3.5 flex-row items-center gap-3">
               <Pressable onPress={() => onSelectGame(t.game)} className="flex-1 flex-row items-center gap-3">
                 <Av name={t.from} size={28} />
                 <View className="flex-1">
@@ -438,7 +438,7 @@ function SettlementLedgerSection({
         <Text className="text-zinc-400 text-xs text-center py-6">{hostedClosed.length === 0 ? "No games you've hosted have closed yet." : "No settlement lines to show."}</Text>
       )}
       {drillLines.map((t: any, i: number) => (
-        <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex-row items-center gap-3">
+        <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-[18px] py-3.5 flex-row items-center gap-3">
           <Pressable onPress={() => onSelectGame(t.game)} className="flex-1">
             <Text className={cn("text-sm font-semibold", t.paid ? "text-zinc-400 line-through" : "text-zinc-100")}>
               {t.from} → {t.to}

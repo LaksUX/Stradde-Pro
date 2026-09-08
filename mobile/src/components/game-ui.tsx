@@ -166,7 +166,7 @@ export function AppDialog({
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 items-center justify-center px-6">
         <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
-        <View className="w-full max-w-[340px] bg-felt-surface-3 border border-felt-outline rounded-[28px] p-4.5">
+        <View className="w-full max-w-[340px] bg-felt-surface-3 border border-felt-outline rounded-[28px] p-[18px]">
           {title ? <Text className="text-white font-bold text-base mb-1">{title}</Text> : null}
           {description ? <Text className="text-zinc-400 text-xs mb-3">{description}</Text> : null}
           {children}

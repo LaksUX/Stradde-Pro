@@ -207,7 +207,7 @@ export default function CreateGameRoute() {
           </View>
 
           <View className="px-5 pt-5 gap-4 pb-10">
-            <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
+            <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-[18px]">
               <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-2">Invite Preview</Text>
               <View className="bg-felt-bg/60 border border-felt-border rounded-2xl p-3.5">
                 <Text className="text-[13px] leading-relaxed text-zinc-300">{inviteText()}</Text>
@@ -250,7 +250,7 @@ export default function CreateGameRoute() {
 
         <View className="px-5 pt-5 gap-5 pb-10">
           {/* Game info */}
-          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 gap-4">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-[18px] gap-4">
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500">Game Details</Text>
             <View className="gap-3">
               <DInput label="Game Name" placeholder="e.g. Friday Night Felts" value={name} onChangeText={setName} />
@@ -267,7 +267,7 @@ export default function CreateGameRoute() {
           </View>
 
           {/* Players */}
-          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-[18px]">
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-3">
               Add players{players.length > 0 ? ` · ${players.length} in` : ""}
             </Text>
@@ -298,7 +298,7 @@ export default function CreateGameRoute() {
                         <Text className={cn("text-xs font-bold", (p.startBuyins || 1) >= 12 ? "text-zinc-600" : "text-zinc-400")}>+</Text>
                       </Pressable>
                     </View>
-                    <Pressable onPress={() => removePlayer(p.name)} className="w-4.5 h-4.5 rounded-full bg-zinc-700 items-center justify-center ml-0.5">
+                    <Pressable onPress={() => removePlayer(p.name)} className="w-[18px] h-[18px] rounded-full bg-zinc-700 items-center justify-center ml-0.5">
                       <Text className="text-[10px] font-bold text-zinc-400">✕</Text>
                     </Pressable>
                   </View>
@@ -436,7 +436,7 @@ export default function CreateGameRoute() {
             </View>
           </View>
 
-          <Pressable disabled={!canStart} onPress={handleStart} className={cn("w-full h-13 rounded-full items-center justify-center py-3.5", !canStart ? "bg-gold/40" : "bg-gold")}>
+          <Pressable disabled={!canStart} onPress={handleStart} className={cn("w-full h-[52px] rounded-full items-center justify-center py-3.5", !canStart ? "bg-gold/40" : "bg-gold")}>
             <Text className="text-[#241a05] font-bold text-sm">
               Start Game
               {!name.trim() ? " · add a game name" : players.length === 0 ? " · add at least 1 player" : ` · ${players.length} players`}

@@ -10,7 +10,7 @@ export function AppToast({ toast }: { toast: { icon: string; title: string; msg?
   if (!toast) return null
   return (
     <View pointerEvents="none" className="absolute bottom-8 left-0 right-0 items-center px-4">
-      <View className="flex-row items-center gap-3 bg-felt-surface-3 border border-felt-outline rounded-2xl px-4.5 py-3.5 max-w-[320px]">
+      <View className="flex-row items-center gap-3 bg-felt-surface-3 border border-felt-outline rounded-2xl px-[18px] py-3.5 max-w-[320px]">
         <Text className="text-xl">{toast.icon}</Text>
         <View className="shrink">
           <Text className="text-sm font-bold text-zinc-100">{toast.title}</Text>
