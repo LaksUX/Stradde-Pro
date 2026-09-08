@@ -19,7 +19,15 @@ import { useState, useEffect } from "react"
 import { View, Text, ScrollView, Pressable, TextInput, Linking } from "react-native"
 import { useRouter } from "expo-router"
 import * as Clipboard from "expo-clipboard"
-import * as Contacts from "expo-contacts"
+// expo-contacts split into a new class-based API and a legacy function-
+// based one (this file uses the legacy shape: requestPermissionsAsync,
+// getContactsAsync, Fields.Name/PhoneNumbers). Importing the default entry
+// point still works but logs a deprecation warning on every call; the
+// explicit /legacy import is Expo's own documented way to keep using this
+// shape without the warning, since a rewrite to the new Contact class API
+// is a bigger, riskier change than this feature needs right now.
+// https://docs.expo.dev/guides/sdk-libraries-migration/contacts/
+import * as Contacts from "expo-contacts/legacy"
 import { useAppState } from "@/lib/AppContext"
 import { BANK } from "@core/money"
 import { Av, SegTabs, cn } from "@/components/game-ui"
