@@ -8,35 +8,48 @@
 // pass didn't make (what counts as a reminder, how often, opt-out). This
 // file only makes sure a token exists to send to, once that exists.
 //
+// [bug fix, 2026-09-08] `expo-notifications` is NOT statically imported at
+// module scope here anymore. On Android, SDK 53+ removed remote push
+// support from Expo Go — but critically, the package throws just from
+// being IMPORTED under Expo Go on Android, not only when its push APIs are
+// called. A top-level `import * as Notifications from "expo-notifications"`
+// crashed this module at load time, which crashed AppContext.tsx (which
+// imports it), which crashed _layout.tsx (which imports AppContext) — the
+// whole app's module graph failed to evaluate, and every route showed up
+// as "missing default export" as a downstream symptom, not a real routing
+// problem. Fix: check the environment first using only safe-to-import
+// modules (expo-constants, react-native's Platform), and `require()`
+// expo-notifications lazily — only once we've confirmed we're not in the
+// one environment where merely loading it throws.
+//
 // Two real limitations, not bugs in this code:
 // 1. Since Expo SDK 53, Expo Go on Android no longer supports *remote* push
-//    notifications at all (local/foreground notifications still work) —
-//    getExpoPushTokenAsync() will throw or the resulting token won't
-//    receive anything when running via Expo Go. A real end-to-end test
-//    needs a development build (EAS Build), not Expo Go. See
-//    https://expo.dev/changelog/sdk-53 (Notifications section).
+//    notifications at all — this function returns null immediately rather
+//    than attempting registration there. A real end-to-end test needs a
+//    development build (EAS Build), not Expo Go.
+//    https://docs.expo.dev/develop/development-builds/introduction/
 // 2. getExpoPushTokenAsync() needs an EAS `projectId` (app.json's
 //    `extra.eas.projectId`), which isn't configured yet — this project has
 //    never run `eas init`/`eas build`. Without it this registers nothing
-//    and resolves to null rather than throwing, so it's safe to call
-//    speculatively (see registerForPushNotificationsAsync's early return).
+//    and resolves to null rather than throwing.
 import { Platform } from "react-native"
-import * as Device from "expo-device"
-import * as Notifications from "expo-notifications"
-import Constants from "expo-constants"
+import Constants, { ExecutionEnvironment } from "expo-constants"
 
-// Foreground behavior — same shape regardless of what eventually sends a
-// notification: show it, don't badge/sound-spam a money app by default.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-})
+const isExpoGoAndroid = Platform.OS === "android" && Constants.executionEnvironment === ExecutionEnvironment.StoreClient
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (isExpoGoAndroid) {
+    // See this file's header note #1 and the [bug fix] note above — do not
+    // import expo-notifications at all in this environment.
+    console.log("Push notifications: unavailable in Expo Go on Android (SDK 53+) — skipping")
+    return null
+  }
+
+  // Lazy require, only reached once we've ruled out the one environment
+  // where loading this module throws — see header note.
+  const Device = require("expo-device")
+  const Notifications = require("expo-notifications")
+
   if (!Device.isDevice) {
     // Simulators/emulators can't receive push at all.
     return null
@@ -49,6 +62,19 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     console.log("Push notifications: no EAS projectId configured, skipping registration")
     return null
   }
+
+  // Foreground behavior — show it, don't badge/sound-spam a money app by
+  // default. Configured here (lazily, on first real registration attempt)
+  // rather than at module scope, for the same import-safety reason as
+  // everything else in this function.
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  })
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
@@ -71,8 +97,8 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId })
     return token
   } catch (err) {
-    // See header note #1 — expected to fail under Expo Go on Android
-    // (SDK 53+) even with permission granted and a projectId configured.
+    // Expected to still be able to fail here even past all the guards
+    // above (e.g. a development build with a misconfigured projectId).
     console.log("Push notifications: couldn't get an Expo push token", err)
     return null
   }
