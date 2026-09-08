@@ -364,14 +364,14 @@ function LoginScreen({ onSendMagicLink }) {
       <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(202,160,67,0.18),transparent)]" />
         <div className="relative z-10 w-full max-w-[320px] text-center">
-          <div className="text-[48px] leading-none mb-5">✉️</div>
+          <div className="text-[56px] leading-none mb-5">✉️</div>
           <h1 className="text-white text-2xl font-black tracking-tight">Check your email</h1>
           <p className="text-zinc-400 text-sm mt-2 font-medium">
             We sent a magic link to <span className="text-zinc-300">{email}</span>. Open it on this device to sign in.
           </p>
           <button
             onClick={() => setStatus("idle")}
-            className="mt-6 text-gold-light text-sm font-bold hover:text-gold-light transition-colors"
+            className="mt-7 h-11 px-5 rounded-full bg-felt-surface-2 border border-felt-border text-gold-light text-sm font-bold hover:bg-felt-surface-3 transition-colors"
           >
             Use a different email
           </button>
@@ -385,13 +385,13 @@ function LoginScreen({ onSendMagicLink }) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(202,160,67,0.18),transparent)]" />
       <div className="relative z-10 w-full max-w-[320px]">
         <div className="text-center mb-10">
-          <div className="text-[48px] leading-none mb-5">♠</div>
-          <h1 className="text-white text-3xl font-black tracking-tight">Poker Night</h1>
-          <p className="text-zinc-400 text-sm mt-2 font-medium">Sign in with your email</p>
+          <div className="text-[64px] leading-none mb-5">♠</div>
+          <h1 className="text-white text-4xl font-black tracking-tight">Poker Night</h1>
+          <p className="text-zinc-400 text-base mt-2 font-medium">Sign in with your email</p>
         </div>
         <div className="flex flex-col gap-3">
           <input
-            className="w-full h-12 bg-felt-surface border border-felt-border rounded-xl px-4 text-white text-sm font-medium placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+            className="w-full h-13 bg-felt-surface-2 border border-felt-border rounded-2xl px-4.5 text-white text-sm font-medium placeholder:text-zinc-400 outline-none focus:border-gold-vivid focus:ring-2 focus:ring-gold-vivid/25 transition-all"
             placeholder="you@example.com"
             type="email"
             value={email}
@@ -402,7 +402,7 @@ function LoginScreen({ onSendMagicLink }) {
           <button
             disabled={!email.trim() || status === "sending"}
             onClick={submit}
-            className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm"
+            className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-full transition-all active:scale-[0.98] text-base"
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
           </button>
@@ -421,14 +421,14 @@ function PendingApprovalScreen({ onLogout }) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(202,160,67,0.18),transparent)]" />
       <div className="relative z-10 w-full max-w-[320px] text-center">
-        <div className="text-[48px] leading-none mb-5">⏳</div>
+        <div className="text-[56px] leading-none mb-5">⏳</div>
         <h1 className="text-white text-2xl font-black tracking-tight">Pending approval</h1>
         <p className="text-zinc-400 text-sm mt-3 font-medium leading-relaxed">
           Your account is set up. Ask the app admin to approve you as a host to create games.
         </p>
         <button
           onClick={onLogout}
-          className="mt-8 w-full h-12 bg-felt-surface border border-felt-border hover:border-felt-border text-zinc-300 font-bold rounded-xl transition-colors text-sm"
+          className="mt-8 w-full h-13 bg-felt-surface-2 border border-felt-border hover:bg-felt-surface-3 text-zinc-200 font-bold rounded-full transition-colors text-sm"
         >
           Sign out
         </button>
@@ -483,8 +483,8 @@ function AdminScreen({ onBack }) {
             <div className="text-zinc-400 text-xs font-medium mb-1">Admin</div>
             <div className="text-white text-2xl font-black tracking-tight">Approvals</div>
           </div>
-          <button onClick={onBack} className="mt-1 p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-zinc-300 transition-colors">
-            <X className="w-4 h-4" />
+          <button onClick={onBack} className="mt-1 w-10 h-10 flex items-center justify-center rounded-full bg-felt-surface-2 border border-felt-border text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface-3 transition-colors">
+            <X className="w-4.5 h-4.5" />
           </button>
         </div>
       </div>
@@ -498,7 +498,7 @@ function AdminScreen({ onBack }) {
         {profiles.map(row => {
           const isApprovedHost = row.role === "host" && row.approved
           return (
-            <div key={row.id} className="bg-felt-surface border border-felt-border rounded-2xl p-4">
+            <div key={row.id} className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-white font-bold text-sm truncate">{row.display_name || row.email}</div>
@@ -521,7 +521,7 @@ function AdminScreen({ onBack }) {
                   <button
                     disabled={busyId === row.id}
                     onClick={() => setApproval(row, "host", true)}
-                    className="flex-1 h-9 bg-gold hover:bg-gold disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-colors"
+                    className="flex-1 h-10.5 bg-gold hover:bg-gold-dark disabled:opacity-40 text-white text-xs font-bold rounded-full transition-all active:scale-[0.98]"
                   >
                     Approve as host
                   </button>
@@ -529,7 +529,7 @@ function AdminScreen({ onBack }) {
                   <button
                     disabled={busyId === row.id}
                     onClick={() => setRevokeTarget(row)}
-                    className="flex-1 h-9 bg-felt-surface-2 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 text-xs font-bold rounded-lg transition-colors"
+                    className="flex-1 h-10.5 bg-felt-surface-3 hover:bg-felt-surface-4 disabled:opacity-40 text-zinc-300 text-xs font-bold rounded-full transition-colors"
                   >
                     Revoke approval
                   </button>
@@ -554,10 +554,10 @@ function AdminScreen({ onBack }) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3">
-            <button onClick={() => setRevokeTarget(null)} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
+            <button onClick={() => setRevokeTarget(null)} className="flex-1 h-12 bg-felt-surface-2 hover:bg-felt-surface-3 border border-felt-border text-zinc-300 font-bold rounded-full text-sm transition-colors">Cancel</button>
             <button
               onClick={() => { setApproval(revokeTarget, revokeTarget.role, false); setRevokeTarget(null) }}
-              className="flex-1 h-11 bg-red-600/80 hover:bg-red-600 text-white font-bold rounded-xl text-sm transition-colors"
+              className="flex-1 h-12 bg-red-600/80 hover:bg-red-600 text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
             >
               Revoke
             </button>
@@ -591,7 +591,7 @@ function NetTrendChart({ pastGames, hostName }) {
 
   if (points.length < 2) {
     return (
-      <div className="bg-felt-surface border border-felt-border rounded-2xl px-4 py-6 text-center text-zinc-400 text-xs font-medium">
+      <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-6 text-center text-zinc-400 text-xs font-medium">
         Play a couple more games to see your trend
       </div>
     )
@@ -611,26 +611,26 @@ function NetTrendChart({ pastGames, hostName }) {
   const up = last >= 0
 
   return (
-    <div className="bg-felt-surface border border-felt-border rounded-2xl px-4 pt-4 pb-3">
+    <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 pt-4.5 pb-3.5">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">Net Trend</div>
-        <NumB value={last} sign size="text-sm" className={up ? "text-emerald-400" : "text-red-400"} />
+        <NumB value={last} sign size="text-sm" className={up ? "text-mint-light" : "text-red-400"} />
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto overflow-visible">
         <defs>
           <linearGradient id="netFillG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={up ? "#10b981" : "#ef4444"} stopOpacity="0.28" />
-            <stop offset="100%" stopColor={up ? "#10b981" : "#ef4444"} stopOpacity="0" />
+            <stop offset="0%" stopColor={up ? "#3b9169" : "#ef4444"} stopOpacity="0.28" />
+            <stop offset="100%" stopColor={up ? "#3b9169" : "#ef4444"} stopOpacity="0" />
           </linearGradient>
         </defs>
-        <line x1={PAD} y1={zeroY} x2={W - PAD} y2={zeroY} stroke="#3f3f46" strokeWidth="1" strokeDasharray="3 3" />
+        <line x1={PAD} y1={zeroY} x2={W - PAD} y2={zeroY} stroke="#4d6658" strokeWidth="1" strokeDasharray="3 3" />
         <path d={areaPath} fill="url(#netFillG)" opacity={drawn ? 1 : 0} style={{ transition: "opacity 0.6s ease 0.4s" }} />
         <path
           ref={pathRef}
           d={linePath}
           fill="none"
-          stroke={up ? "#34d399" : "#f87171"}
-          strokeWidth="2.5"
+          stroke={up ? "#b7e1cd" : "#f87171"}
+          strokeWidth="2.75"
           strokeLinecap="round"
           strokeLinejoin="round"
           pathLength={1000}
@@ -641,8 +641,8 @@ function NetTrendChart({ pastGames, hostName }) {
         {points.map((p, i) => (
           <circle
             key={i}
-            cx={x(i)} cy={y(p.cum)} r={i === points.length - 1 ? 3.5 : 2.5}
-            fill={up ? "#34d399" : "#f87171"}
+            cx={x(i)} cy={y(p.cum)} r={i === points.length - 1 ? 4 : 2.75}
+            fill={up ? "#b7e1cd" : "#f87171"}
             opacity={drawn ? 1 : 0}
             style={{ transition: `opacity 0.3s ease ${0.6 + i * 0.05}s` }}
           />
@@ -667,19 +667,19 @@ function HostStatsView({ pastGames, hostName }) {
   return (
     <div className="px-5 flex flex-col gap-2.5">
       <div className="grid grid-cols-2 gap-2.5">
-        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Games Hosted</div>
           <div className="text-white font-mono text-2xl font-extrabold mt-1 tracking-tight">{gamesHosted}</div>
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Players Hosted</div>
           <div className="text-white font-mono text-2xl font-extrabold mt-1 tracking-tight">{uniquePlayers}</div>
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Rake Collected</div>
-          <NumB value={totalRake} size="text-2xl" className="mt-1 text-amber-400" />
+          <NumB value={totalRake} size="text-2xl" className="mt-1 text-gold-vivid" />
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <div className="text-[9px] font-bold tracking-[0.13em] uppercase text-zinc-500">Avg Pot / Game</div>
           <NumB value={avgPot} size="text-2xl" className="mt-1 text-zinc-100" />
         </div>
@@ -722,12 +722,12 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           </div>
           <div className="flex items-center gap-2 mt-1">
             {isAdmin && (
-              <button onClick={() => onNavigate("admin")} className="p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-gold-light transition-colors" title="Admin approvals">
-                <Users className="w-4 h-4" />
+              <button onClick={() => onNavigate("admin")} className="w-10 h-10 flex items-center justify-center rounded-full bg-felt-surface-2 border border-felt-border text-zinc-400 hover:text-gold-light hover:bg-felt-surface-3 transition-colors" title="Admin approvals">
+                <Users className="w-4.5 h-4.5" />
               </button>
             )}
-            <button onClick={onLogout} className="p-2 rounded-xl bg-felt-surface border border-felt-border text-zinc-500 hover:text-zinc-300 transition-colors">
-              <LogOut className="w-4 h-4" />
+            <button onClick={onLogout} className="w-10 h-10 flex items-center justify-center rounded-full bg-felt-surface-2 border border-felt-border text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface-3 transition-colors">
+              <LogOut className="w-4.5 h-4.5" />
             </button>
           </div>
         </div>
@@ -740,7 +740,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         {activeGame && (
           <button
             onClick={() => onNavigate(activeGame.status === "cashout" ? "cashout-entry" : "live-game")}
-            className="w-full text-left rounded-2xl bg-gradient-to-br from-emerald-900/80 to-zinc-900 border border-emerald-800/50 p-4 relative overflow-hidden group"
+            className="w-full text-left rounded-3xl bg-gradient-to-br from-emerald-900/80 to-zinc-900 border border-emerald-700/60 p-4.5 relative overflow-hidden group active:scale-[0.99] transition-transform"
           >
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,0.1),transparent_60%)]" />
             <div className="relative z-10">
@@ -759,18 +759,18 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
 
       {/* Host/Player filter — which persona's lens the tabs below use. */}
       <div className="px-5 mt-4">
-        <div className="inline-flex items-center gap-1 bg-felt-surface-2/70 border border-felt-border rounded-full p-1">
+        <div className="inline-flex items-center gap-1 bg-felt-surface-2 border border-felt-outline rounded-full p-1.5">
           <button
             onClick={() => setFilter("host")}
-            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-colors", filter === "host" ? "bg-gold text-white" : "text-zinc-400 hover:text-zinc-200")}
+            className={cn("flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all", filter === "host" ? "bg-gold text-white shadow-md" : "text-zinc-400 hover:text-zinc-200")}
           >
-            <LayoutDashboard className="w-3.5 h-3.5" /> Host
+            <LayoutDashboard className="w-4 h-4" /> Host
           </button>
           <button
             onClick={() => setFilter("player")}
-            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-colors", filter === "player" ? "bg-gold text-white" : "text-zinc-400 hover:text-zinc-200")}
+            className={cn("flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all", filter === "player" ? "bg-gold text-white shadow-md" : "text-zinc-400 hover:text-zinc-200")}
           >
-            <User className="w-3.5 h-3.5" /> Player
+            <User className="w-4 h-4" /> Player
           </button>
         </div>
       </div>
@@ -794,16 +794,16 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
           <div className="px-5 mt-4">
             <button
               onClick={() => onNavigate("create-game")}
-              className="w-full text-left rounded-2xl bg-felt-surface border border-felt-border hover:border-gold/50 p-4 flex items-center gap-4 transition-all group"
+              className="w-full text-left rounded-3xl bg-felt-surface-2 border border-felt-outline hover:border-gold/60 p-4.5 flex items-center gap-4 transition-all group active:scale-[0.99]"
             >
-              <div className="w-11 h-11 rounded-xl bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:bg-gold/30 transition-colors">
-                <Plus className="w-5 h-5 text-gold-light" />
+              <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:bg-gold/30 transition-colors shrink-0">
+                <Plus className="w-5.5 h-5.5 text-gold-light" />
               </div>
               <div>
-                <div className="text-white font-bold text-sm">New Game</div>
+                <div className="text-white font-bold text-[15px]">New Game</div>
                 <div className="text-zinc-400 text-xs mt-0.5">Set up players & buy-ins</div>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-400 ml-auto group-hover:text-zinc-500 transition-colors" />
+              <ChevronRight className="w-4.5 h-4.5 text-zinc-400 ml-auto group-hover:text-zinc-300 transition-colors" />
             </button>
           </div>
           <SL>Hosting Overview</SL>
@@ -822,7 +822,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
                     <button
                       key={g.id}
                       onClick={() => onNavigate("game-detail", g, true)}
-                      className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
+                      className="w-full bg-felt-surface-2 border border-felt-outline hover:bg-felt-surface-3 rounded-2xl px-4.5 py-4 flex items-center gap-3 transition-colors text-left active:scale-[0.99]"
                     >
                       <div className={cn(
                         "w-1 h-9 rounded-full shrink-0",
@@ -892,7 +892,7 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
                       <button
                         key={g.id}
                         onClick={() => onNavigate("game-detail", g, false)}
-                        className="w-full bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors text-left"
+                        className="w-full bg-felt-surface-2 border border-felt-outline hover:bg-felt-surface-3 rounded-2xl px-4.5 py-4 flex items-center gap-3 transition-colors text-left active:scale-[0.99]"
                       >
                         <div className={cn(
                           "w-1 h-9 rounded-full shrink-0",
