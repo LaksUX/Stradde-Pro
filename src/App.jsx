@@ -402,7 +402,7 @@ function LoginScreen({ onSendMagicLink }) {
           <button
             disabled={!email.trim() || status === "sending"}
             onClick={submit}
-            className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-full transition-all active:scale-[0.98] text-base"
+            className="w-full h-13 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] font-black rounded-full transition-all active:scale-[0.98] text-base"
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
           </button>
@@ -521,7 +521,7 @@ function AdminScreen({ onBack }) {
                   <button
                     disabled={busyId === row.id}
                     onClick={() => setApproval(row, "host", true)}
-                    className="flex-1 h-10.5 bg-gold hover:bg-gold-dark disabled:opacity-40 text-white text-xs font-bold rounded-full transition-all active:scale-[0.98]"
+                    className="flex-1 h-10.5 bg-gold hover:bg-gold-vivid disabled:opacity-40 text-[#241a05] text-xs font-bold rounded-full transition-all active:scale-[0.98]"
                   >
                     Approve as host
                   </button>
@@ -762,13 +762,13 @@ function HomeScreen({ hostName, activeGame, pastGames, onNavigate, onLogout, isA
         <div className="inline-flex items-center gap-1 bg-felt-surface-2 border border-felt-outline rounded-full p-1.5">
           <button
             onClick={() => setFilter("host")}
-            className={cn("flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all", filter === "host" ? "bg-gold text-white shadow-md" : "text-zinc-400 hover:text-zinc-200")}
+            className={cn("flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all", filter === "host" ? "bg-gold text-[#241a05] shadow-md" : "text-zinc-400 hover:text-zinc-200")}
           >
             <LayoutDashboard className="w-4 h-4" /> Host
           </button>
           <button
             onClick={() => setFilter("player")}
-            className={cn("flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all", filter === "player" ? "bg-gold text-white shadow-md" : "text-zinc-400 hover:text-zinc-200")}
+            className={cn("flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all", filter === "player" ? "bg-gold text-[#241a05] shadow-md" : "text-zinc-400 hover:text-zinc-200")}
           >
             <User className="w-4 h-4" /> Player
           </button>
@@ -1061,7 +1061,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
               setCreating(true)
               try { await onCreate(createdGame) } catch { /* handleCreateGame already reported it */ } finally { setCreating(false) }
             }}
-            className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full h-13 bg-gold hover:bg-gold-vivid disabled:opacity-50 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <Gamepad2 className="w-4 h-4" /> {creating ? "Starting…" : "Continue to Live Game"}
           </button>
@@ -1188,7 +1188,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
                 {nameInput.trim() && phoneInput.trim() && (
                   <button
                     onClick={() => addPlayer(nameInput, phoneInput)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3.5 h-8 bg-gold hover:bg-gold-dark text-white text-xs font-bold rounded-full transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3.5 h-8 bg-gold hover:bg-gold-vivid text-[#241a05] text-xs font-bold rounded-full transition-colors"
                   >
                     Add
                   </button>
@@ -1204,7 +1204,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
         <button
           disabled={!canStart}
           onClick={handleCreate}
-          className="w-full h-14 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-full transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          className="w-full h-14 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] font-black rounded-full transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
           <Gamepad2 className="w-4 h-4" />
           Start Game{
@@ -1314,7 +1314,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
           <button
             disabled={!canProceed}
             onClick={() => onConfirm(rakeAmt)}
-            className="flex-1 h-12 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
+            className="flex-1 h-12 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]"
           >
             Continue →
           </button>
@@ -1708,7 +1708,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                 <button
                   disabled={!newName.trim() || !newPhone.trim()}
                   onClick={addNewPlayer}
-                  className="w-full h-11 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-full transition-all active:scale-[0.98]"
+                  className="w-full h-11 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] text-sm font-bold rounded-full transition-all active:scale-[0.98]"
                 >
                   Add to game
                 </button>
@@ -1842,7 +1842,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
             <button
               disabled={sinceLastCheck === 0 || busy}
               onClick={confirmBankCheck}
-              className="flex-1 h-12 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
+              className="flex-1 h-12 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]"
             >
               Confirm & Lock {sinceLastCheck > 0 ? sinceLastCheck : ""}
             </button>
@@ -1862,7 +1862,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
           </div>
           <div className="flex gap-3">
             <button onClick={closeEditPlayer} className="flex-1 h-12 bg-felt-surface-2 hover:bg-felt-surface-3 border border-felt-border text-zinc-300 font-bold rounded-full text-sm transition-colors">Cancel</button>
-            <button onClick={saveEditPlayer} disabled={!editName.trim() || busy} className="flex-1 h-12 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">Save</button>
+            <button onClick={saveEditPlayer} disabled={!editName.trim() || busy} className="flex-1 h-12 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]">Save</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1901,7 +1901,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                     <div className="text-center text-[11px] text-zinc-400">
                       Locks at your <b className="text-zinc-400 font-semibold">next bank check</b> — once locked it's permanent, no override
                     </div>
-                    <button disabled={busy} onClick={confirmBuyins} className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">
+                    <button disabled={busy} onClick={confirmBuyins} className="w-full h-13 bg-gold hover:bg-gold-vivid disabled:opacity-50 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]">
                       Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
                     </button>
                   </>
@@ -1939,7 +1939,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                       onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
                       onClear={() => setCashoutDigits("")}
                     />
-                    <button disabled={busy} onClick={confirmCashout} className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">
+                    <button disabled={busy} onClick={confirmCashout} className="w-full h-13 bg-gold hover:bg-gold-vivid disabled:opacity-50 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]">
                       {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
                     </button>
                   </>
@@ -2198,7 +2198,7 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
               onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
               onClear={() => setCashoutDigits("")}
             />
-            <button disabled={busy} onClick={confirmCashout} className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">
+            <button disabled={busy} onClick={confirmCashout} className="w-full h-13 bg-gold hover:bg-gold-vivid disabled:opacity-50 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]">
               {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
             </button>
           </div>
@@ -2422,7 +2422,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       {/* Actions */}
       <div className="px-5 flex flex-col gap-3">
         <button onClick={copySettlement}
-          className="w-full h-13 bg-gold hover:bg-gold-dark text-white font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+          className="w-full h-13 bg-gold hover:bg-gold-vivid text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2">
           <Share2 className="w-4 h-4" /> Copy settlement summary
         </button>
         <button
@@ -2489,7 +2489,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
               <button onClick={removeSheet} className="h-12 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm transition-colors hover:bg-red-500/15">
                 Remove
               </button>
-              <button onClick={saveSheet} className="h-12 rounded-full bg-gold hover:bg-gold-dark text-white font-bold text-sm transition-all active:scale-[0.98]">
+              <button onClick={saveSheet} className="h-12 rounded-full bg-gold hover:bg-gold-vivid text-[#241a05] font-bold text-sm transition-all active:scale-[0.98]">
                 Save
               </button>
             </div>
@@ -2592,12 +2592,12 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame, onToggle
       {hostedPlayers.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-1">
           <button onClick={() => setDrillPlayer(null)}
-            className={cn("text-xs font-bold px-3.5 py-2 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+            className={cn("text-xs font-bold px-3.5 py-2 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-[#241a05] border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
             All players
           </button>
           {hostedPlayers.map(p => (
             <button key={p} onClick={() => setDrillPlayer(p)}
-              className={cn("text-xs font-bold px-3.5 py-2 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+              className={cn("text-xs font-bold px-3.5 py-2 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-[#241a05] border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
               {p}
             </button>
           ))}
@@ -2789,7 +2789,7 @@ function LiveGameFab({ onClick }) {
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40">
       <button
         onClick={onClick}
-        className="flex items-center gap-2 bg-gold hover:bg-gold-dark text-white pl-3.5 pr-5 py-3 rounded-full shadow-2xl shadow-black/50 font-bold text-sm transition-all active:scale-95"
+        className="flex items-center gap-2 bg-gold hover:bg-gold-vivid text-[#241a05] pl-3.5 pr-5 py-3 rounded-full shadow-2xl shadow-black/50 font-bold text-sm transition-all active:scale-95"
       >
         <span className="relative w-2 h-2 shrink-0">
           <span className="absolute inset-0 rounded-full bg-white animate-blink" />
