@@ -1040,9 +1040,9 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
         </div>
 
         <div className="px-5 pt-5 flex flex-col gap-4">
-          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4">
+          <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">Invite Preview</div>
-            <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-zinc-300 bg-felt-bg/60 border border-felt-border rounded-xl p-3">{inviteText()}</pre>
+            <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-zinc-300 bg-felt-bg/60 border border-felt-border rounded-2xl p-3.5">{inviteText()}</pre>
             <div className="text-[10.5px] text-zinc-400 mt-2 leading-relaxed">
               Stub: this link doesn't route anywhere real yet and phones aren't verified — anyone with the link could open it once a real join page exists.
             </div>
@@ -1050,7 +1050,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
 
           <button
             onClick={copyInvite}
-            className="w-full h-12 bg-[#25d366] hover:bg-[#20bc58] text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full h-13 bg-[#25d366] hover:bg-[#20bc58] text-white font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <Share2 className="w-4 h-4" /> {copied ? "Copied!" : "Copy WhatsApp invite link"}
           </button>
@@ -1061,7 +1061,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
               setCreating(true)
               try { await onCreate(createdGame) } catch { /* handleCreateGame already reported it */ } finally { setCreating(false) }
             }}
-            className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <Gamepad2 className="w-4 h-4" /> {creating ? "Starting…" : "Continue to Live Game"}
           </button>
@@ -1083,7 +1083,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
 
       <div className="px-5 pt-5 flex flex-col gap-5">
         {/* Game info */}
-        <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex flex-col gap-4">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex flex-col gap-4">
           <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">Game Details</div>
           <div className="flex flex-col gap-3">
             <DInput label="Game Name" placeholder="e.g. Friday Night Felts" value={name} onChange={e => setName(e.target.value)} />
@@ -1096,7 +1096,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
         </div>
 
         {/* Players */}
-        <div className="bg-felt-surface border border-felt-border rounded-2xl p-4">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">
               Add players{players.length > 0 ? ` · ${players.length} in` : ""}
@@ -1171,14 +1171,14 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
           {source === "Type in" && (
             <div className="flex flex-col gap-2">
               <input
-                className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                className="w-full h-12 bg-felt-surface-3 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold-vivid focus:ring-2 focus:ring-gold-vivid/25 transition-all"
                 placeholder="Player's name…"
                 value={nameInput}
                 onChange={e => setNameInput(e.target.value)}
               />
               <div className="relative">
                 <input
-                  className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 pr-20 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                  className="w-full h-12 bg-felt-surface-3 border border-felt-border rounded-2xl px-4 pr-20 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold-vivid focus:ring-2 focus:ring-gold-vivid/25 transition-all"
                   placeholder="Phone number (required)…"
                   type="tel"
                   value={phoneInput}
@@ -1188,7 +1188,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
                 {nameInput.trim() && phoneInput.trim() && (
                   <button
                     onClick={() => addPlayer(nameInput, phoneInput)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 h-7 bg-gold hover:bg-gold text-white text-xs font-bold rounded-lg transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3.5 h-8 bg-gold hover:bg-gold-dark text-white text-xs font-bold rounded-full transition-colors"
                   >
                     Add
                   </button>
@@ -1204,7 +1204,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
         <button
           disabled={!canStart}
           onClick={handleCreate}
-          className="w-full h-13 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 py-3.5"
+          className="w-full h-14 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-full transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
           <Gamepad2 className="w-4 h-4" />
           Start Game{
@@ -1537,8 +1537,8 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
               {/* The bottom nav no longer carries a "Home" destination (see
                   App root) — this is now the only way back to the dashboard
                   while a game stays running live in the background. */}
-              <button onClick={() => onNavigate("home")} className="w-7 h-7 -ml-1 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface transition-colors" title="Back to Home — game keeps running">
-                <ChevronDown className="w-4 h-4" />
+              <button onClick={() => onNavigate("home")} className="w-9 h-9 -ml-1.5 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface-2 transition-colors" title="Back to Home — game keeps running">
+                <ChevronDown className="w-4.5 h-4.5" />
               </button>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
@@ -1563,10 +1563,10 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
               <button
                 onClick={() => setShowBankCheck(true)}
                 className={cn(
-                  "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors",
+                  "flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full border transition-colors",
                   checkOverdue
                     ? "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/15"
-                    : "bg-felt-surface border-felt-border text-zinc-400 hover:text-zinc-300"
+                    : "bg-felt-surface-2 border-felt-outline text-zinc-300 hover:text-white"
                 )}
               >
                 <Coins className="w-3.5 h-3.5" /> Bank Check
@@ -1580,24 +1580,24 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
 
       {/* Stats row */}
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">On table</div>
           <NumB value={totalIn - totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Cashed out</div>
           <NumB value={totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5 flex flex-col justify-between">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</div>
-            <button onClick={() => setRakeVisible(v => !v)} className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+            <button onClick={() => setRakeVisible(v => !v)} className="w-6.5 h-6.5 rounded-full bg-felt-surface-3 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors shrink-0">
               {rakeVisible ? <ChevronUp className="w-3 h-3" /> : <span className="text-[10px]">◐</span>}
             </button>
           </div>
           {rakeVisible ? (
             isClosed ? (
-              <NumB value={game.rake || 0} size="text-[18px]" className="mt-1 text-amber-400" />
+              <NumB value={game.rake || 0} size="text-[18px]" className="mt-1 text-gold-vivid" />
             ) : (
               <div className="flex items-center gap-1 mt-1">
                 <input
@@ -1606,7 +1606,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                   onChange={e => setRakeInput(e.target.value)}
                   onBlur={e => commitRake(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && e.currentTarget.blur()}
-                  className="w-full bg-transparent text-[18px] font-extrabold font-mono text-amber-400 outline-none border-b border-transparent focus:border-amber-400/40"
+                  className="w-full bg-transparent text-[18px] font-extrabold font-mono text-gold-vivid outline-none border-b border-transparent focus:border-gold-vivid/40"
                 />
               </div>
             )
@@ -1647,21 +1647,21 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
           phone (which also saves them to the roster for next time). */}
       <div className="px-5 mt-4">
         {addingPlayer ? (
-          <div className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+          <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
             <div className="flex items-center justify-between mb-2.5">
               <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">Add late player</div>
               <button onClick={() => { setAddingPlayer(false); setAddMode("roster"); setNewName(""); setNewPhone("") }}
-                className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors">
+                className="w-7 h-7 rounded-full bg-felt-surface-3 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="flex gap-1.5 mb-3">
+            <div className="flex gap-1.5 mb-3 bg-felt-surface-3 rounded-full p-1">
               {["roster", "new"].map(m => (
                 <button key={m} onClick={() => setAddMode(m)}
                   className={cn(
-                    "flex-1 h-8 rounded-lg text-xs font-bold transition-colors",
-                    addMode === m ? "bg-gold text-white" : "bg-felt-surface-2 text-zinc-400 hover:text-zinc-200"
+                    "flex-1 h-9 rounded-full text-xs font-bold transition-all",
+                    addMode === m ? "bg-bloom text-white shadow-md" : "text-zinc-400 hover:text-zinc-200"
                   )}>
                   {m === "roster" ? "Your players" : "Someone new"}
                 </button>
@@ -1689,13 +1689,13 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
               <div className="flex flex-col gap-2">
                 <input
                   autoFocus
-                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold transition-all"
+                  className="w-full h-11 bg-felt-surface-3 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold-vivid transition-all"
                   placeholder="Player's name…"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                 />
                 <input
-                  className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold transition-all"
+                  className="w-full h-11 bg-felt-surface-3 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold-vivid transition-all"
                   placeholder="Phone number (required)…"
                   type="tel"
                   value={newPhone}
@@ -1708,7 +1708,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                 <button
                   disabled={!newName.trim() || !newPhone.trim()}
                   onClick={addNewPlayer}
-                  className="w-full h-10 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
+                  className="w-full h-11 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-full transition-all active:scale-[0.98]"
                 >
                   Add to game
                 </button>
@@ -1717,7 +1717,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
           </div>
         ) : (
           <button onClick={() => setAddingPlayer(true)}
-            className="w-full h-11 bg-felt-surface border border-felt-border hover:border-felt-border rounded-xl text-zinc-400 hover:text-zinc-200 text-sm font-semibold transition-colors">
+            className="w-full h-12 bg-felt-surface-2 border border-felt-border hover:border-felt-outline hover:bg-felt-surface-3 rounded-full text-zinc-300 hover:text-white text-sm font-bold transition-colors">
             + Add late player
           </button>
         )}
@@ -1745,7 +1745,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
             <div
               key={p.name}
               className={cn(
-                "flex items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3 transition-opacity",
+                "flex items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5 transition-opacity",
                 p.cashedOut && "opacity-55"
               )}
             >
@@ -1771,9 +1771,9 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                 <button
                   onClick={(e) => { e.stopPropagation(); openEditPlayer(p) }}
                   title="Edit player"
-                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:border-zinc-600 transition-colors shrink-0"
+                  className="w-9 h-9 rounded-full bg-felt-surface-3 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:border-felt-outline transition-colors shrink-0"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
+                  <Edit3 className="w-4 h-4" />
                 </button>
               )}
               {/* Remove player — only ever valid while none of their buy-ins
@@ -1784,9 +1784,9 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                 <button
                   onClick={(e) => { e.stopPropagation(); removePlayer(p) }}
                   title="Remove player (no locked buy-ins yet)"
-                  className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-red-300 hover:border-red-500/40 transition-colors shrink-0"
+                  className="w-9 h-9 rounded-full bg-felt-surface-3 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-red-300 hover:border-red-500/40 transition-colors shrink-0"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -1799,7 +1799,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
           <button
             disabled={busy}
             onClick={handleEndBuyins}
-            className="w-full h-12 bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
+            className="w-full h-13 bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
           >
             End Buy-ins →
           </button>
@@ -1825,7 +1825,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
             {players.map(p => {
               const unlockedCount = p.buyins.length - lockedCountFor(p, game)
               return (
-                <div key={p.name} className="flex items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5">
+                <div key={p.name} className="flex items-center justify-between bg-felt-surface-2 border border-felt-border rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Av name={p.name} size={28} />
                     <span className="text-sm font-semibold text-zinc-200 truncate">{p.name}</span>
@@ -1838,11 +1838,11 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
             })}
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowBankCheck(false)} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
+            <button onClick={() => setShowBankCheck(false)} className="flex-1 h-12 bg-felt-surface-2 hover:bg-felt-surface-3 border border-felt-border text-zinc-300 font-bold rounded-full text-sm transition-colors">Cancel</button>
             <button
               disabled={sinceLastCheck === 0 || busy}
               onClick={confirmBankCheck}
-              className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
+              className="flex-1 h-12 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
             >
               Confirm & Lock {sinceLastCheck > 0 ? sinceLastCheck : ""}
             </button>
@@ -1861,8 +1861,8 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
             <DInput label="Phone" value={editPhone} onChange={e => setEditPhone(e.target.value)} />
           </div>
           <div className="flex gap-3">
-            <button onClick={closeEditPlayer} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
-            <button onClick={saveEditPlayer} disabled={!editName.trim() || busy} className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">Save</button>
+            <button onClick={closeEditPlayer} className="flex-1 h-12 bg-felt-surface-2 hover:bg-felt-surface-3 border border-felt-border text-zinc-300 font-bold rounded-full text-sm transition-colors">Cancel</button>
+            <button onClick={saveEditPlayer} disabled={!editName.trim() || busy} className="flex-1 h-12 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">Save</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1901,7 +1901,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                     <div className="text-center text-[11px] text-zinc-400">
                       Locks at your <b className="text-zinc-400 font-semibold">next bank check</b> — once locked it's permanent, no override
                     </div>
-                    <button disabled={busy} onClick={confirmBuyins} className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">
+                    <button disabled={busy} onClick={confirmBuyins} className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">
                       Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
                     </button>
                   </>
@@ -1915,7 +1915,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                 A small toggle, not a peer tab of buy-in. Once switched on,
                 buy-ins for this player are locked — no more can be added
                 while cashing out. */}
-            <div className="flex items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5 mt-1">
+            <div className="flex items-center justify-between bg-felt-surface-2 border border-felt-outline rounded-2xl px-4 py-3 mt-1">
               <span className="text-xs font-bold text-zinc-300">Leaving early? Cash out now</span>
               <Switch checked={cashoutOn} onCheckedChange={setCashoutOn} disabled={isClosed} />
             </div>
@@ -1939,7 +1939,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
                       onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
                       onClear={() => setCashoutDigits("")}
                     />
-                    <button disabled={busy} onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">
+                    <button disabled={busy} onClick={confirmCashout} className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">
                       {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
                     </button>
                   </>
@@ -2047,8 +2047,8 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <button onClick={() => onNavigate("home")} className="w-7 h-7 -ml-1 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface transition-colors" title="Back to Home — game keeps running">
-                <ChevronDown className="w-4 h-4" />
+              <button onClick={() => onNavigate("home")} className="w-9 h-9 -ml-1.5 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-felt-surface-2 transition-colors" title="Back to Home — game keeps running">
+                <ChevronDown className="w-4.5 h-4.5" />
               </button>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-blink" />
@@ -2069,18 +2069,18 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
 
       {/* Stats row — same three tiles as step 2 (3a: same calculations) */}
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">On table</div>
           <NumB value={totalIn - totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Cashed out</div>
           <NumB value={totalOut} size="text-[18px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5 flex flex-col justify-between">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</div>
-            <button onClick={() => setRakeVisible(v => !v)} className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+            <button onClick={() => setRakeVisible(v => !v)} className="w-6.5 h-6.5 rounded-full bg-felt-surface-3 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors shrink-0">
               {rakeVisible ? <ChevronUp className="w-3 h-3" /> : <span className="text-[10px]">◐</span>}
             </button>
           </div>
