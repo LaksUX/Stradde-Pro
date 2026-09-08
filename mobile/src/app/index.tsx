@@ -7,6 +7,14 @@
 // Phase 3 decision) — but the *gate* that sends a non-approved account to a
 // "pending approval" screen instead of Home is still ported, since it's
 // core access control, not the Admin screen itself.
+//
+// [decision] Web's LiveGameFab (a floating reminder pill, shown so a live
+// game stays reachable without scrolling back up to the Active Game card)
+// isn't ported as a separate floating element here — mobile's screens are
+// full routes rather than an overlaid single-page app, and this Active
+// Game card already sits at the very top of Home, the screen every
+// navigation action returns to. A floating FAB would duplicate that
+// without adding reachability. Revisit if real usage says otherwise.
 import { useState } from "react"
 import { View, Text, ScrollView, Pressable } from "react-native"
 import { useRouter } from "expo-router"
