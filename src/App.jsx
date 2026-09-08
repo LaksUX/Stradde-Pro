@@ -2544,7 +2544,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame, onTogglePai
         <>
           <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-1">You owe</div>
           {iOwe.map((t, i) => (
-            <div key={i} className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
+            <div key={i} className="w-full bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex items-center gap-3 hover:bg-felt-surface-3 transition-colors">
               <button onClick={() => onSelectGame(t.game)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                 <Av name={t.to} size={28} />
                 <div className="flex-1 min-w-0">
@@ -2562,7 +2562,7 @@ function MySettlementsSection({ hostName, closedGames, onSelectGame, onTogglePai
         <>
           <div className="text-[10px] font-bold tracking-[0.13em] uppercase text-zinc-500 mt-2">Owed to you</div>
           {owedToMe.map((t, i) => (
-            <div key={i} className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
+            <div key={i} className="w-full bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex items-center gap-3 hover:bg-felt-surface-3 transition-colors">
               <button onClick={() => onSelectGame(t.game)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                 <Av name={t.from} size={28} />
                 <div className="flex-1 min-w-0">
@@ -2592,12 +2592,12 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame, onToggle
       {hostedPlayers.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-1">
           <button onClick={() => setDrillPlayer(null)}
-            className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+            className={cn("text-xs font-bold px-3.5 py-2 rounded-full border transition-colors", !drillPlayer ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
             All players
           </button>
           {hostedPlayers.map(p => (
             <button key={p} onClick={() => setDrillPlayer(p)}
-              className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
+              className={cn("text-xs font-bold px-3.5 py-2 rounded-full border transition-colors", drillPlayer === p ? "bg-gold text-white border-gold" : "bg-felt-surface-2 text-zinc-400 border-felt-border")}>
               {p}
             </button>
           ))}
@@ -2611,7 +2611,7 @@ function SettlementLedgerSection({ hostName, closedGames, onSelectGame, onToggle
         </div>
       )}
       {drillLines.map((t, i) => (
-        <div key={i} className="w-full bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
+        <div key={i} className="w-full bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex items-center gap-3 hover:bg-felt-surface-3 transition-colors">
           <button onClick={() => onSelectGame(t.game)} className="flex-1 min-w-0 text-left">
             <div className={cn("text-sm font-semibold", t.paid ? "text-zinc-400 line-through" : "text-zinc-100")}>{t.from} → {t.to}</div>
             <div className="text-zinc-400 text-[10.5px] mt-0.5">{t.game.name} · {t.game.date}</div>
@@ -2652,22 +2652,22 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
     return (
       <div className="min-h-screen bg-felt-bg pb-8">
         <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-sm font-semibold mb-5 transition-colors bg-felt-surface-2 border border-felt-border rounded-full px-3.5 py-2">
             <X className="w-4 h-4" /> Back
           </button>
           <div className="text-white text-xl font-bold">{game.name}</div>
           <div className="text-zinc-400 text-sm mt-1">{game.date} · hosted by {game.hostName}</div>
         </div>
         <div className="px-5 pt-5 flex flex-col gap-2.5">
-          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex items-center justify-between">
             <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your buy-ins</div>
             <NumB value={myIn} size="text-lg" className="text-white" />
           </div>
-          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex items-center justify-between">
             <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your cash-out</div>
             <NumB value={myOut} size="text-lg" className="text-white" />
           </div>
-          <div className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex items-center justify-between">
             <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your net</div>
             <NumB value={myNet} sign size="text-xl" className={myNet >= 0 ? "text-emerald-400" : "text-red-400"} />
           </div>
@@ -2688,15 +2688,15 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
     <div className="min-h-screen bg-felt-bg pb-8">
       <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
         <div className="relative z-10">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-sm font-semibold mb-5 transition-colors bg-felt-surface-2 border border-felt-border rounded-full px-3.5 py-2">
             <X className="w-4 h-4" /> Back
           </button>
           <div className="flex items-center gap-2">
             <div className="text-white text-xl font-bold">{game.name}</div>
             {isClosed ? (
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-md bg-felt-surface-2 text-zinc-400 border border-felt-border">Closed</span>
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full bg-felt-surface-2 text-zinc-400 border border-felt-border">Closed</span>
             ) : (
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" /> Game in progress
               </span>
             )}
@@ -2711,25 +2711,25 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
       </div>
 
       <div className="px-5 pt-4 grid grid-cols-3 gap-2.5">
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Pot</div>
           <NumB value={totalIn} size="text-[17px]" className="mt-1 text-white" />
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Players</div>
           <div className="mt-1 text-[17px] font-extrabold text-white">{game.players.length}</div>
         </div>
-        <div className="bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
           <div className="flex items-center justify-between">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</div>
-            <button onClick={() => setRakeVisible(v => !v)} className="w-5 h-5 rounded-md bg-felt-surface-2 border border-felt-border flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+            <button onClick={() => setRakeVisible(v => !v)} className="w-6 h-6 rounded-full bg-felt-surface-3 border border-felt-border flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors shrink-0">
               <span className="text-[9px]">◐</span>
             </button>
           </div>
           {rakeVisible ? (
-            <NumB value={rake} size="text-[17px]" className="mt-1 text-amber-400" />
+            <NumB value={rake} size="text-[17px]" className="mt-1 text-gold-vivid" />
           ) : (
-            <div className="mt-1 text-[17px] font-extrabold tracking-[0.15em] text-amber-500/70">•••</div>
+            <div className="mt-1 text-[17px] font-extrabold tracking-[0.15em] text-gold-vivid/70">•••</div>
           )}
         </div>
       </div>
@@ -2739,7 +2739,7 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
         {positions.slice().sort((a, b) => b.net - a.net).map((pos, rank) => {
           const p = game.players.find(x => x.name === pos.name)
           return (
-            <div key={pos.name} className={cn("bg-felt-surface border rounded-xl px-4 py-3 flex items-center gap-3 border-l-2", pos.net > 0 ? "border-l-emerald-500 border-felt-border" : pos.net < 0 ? "border-l-red-500 border-felt-border" : "border-felt-border")}>
+            <div key={pos.name} className={cn("bg-felt-surface-2 border rounded-3xl px-4.5 py-3.5 flex items-center gap-3 border-l-[3px]", pos.net > 0 ? "border-l-emerald-500 border-felt-outline" : pos.net < 0 ? "border-l-red-500 border-felt-outline" : "border-felt-outline")}>
               <div className="text-lg w-6 text-center shrink-0">{rank < 3 ? medals[rank] : `#${rank + 1}`}</div>
               <Av name={pos.name} size={30} />
               <div className="flex-1 min-w-0">
@@ -2756,7 +2756,7 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
       {txns.length === 0 ? <div className="text-center py-6 text-zinc-400 text-sm">Everyone was even</div> : (
         <div className="px-5 flex flex-col gap-2">
           {txns.map((t, i) => (
-            <div key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex items-center gap-3">
+            <div key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex items-center gap-3">
               <Av name={t.from} size={28} />
               <span className={cn("text-sm font-semibold", t.paid ? "text-zinc-500 line-through" : "text-red-400")}>{t.from}</span>
               <ChevronsRight className="w-4 h-4 text-zinc-400 shrink-0" />
@@ -2789,7 +2789,7 @@ function LiveGameFab({ onClick }) {
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40">
       <button
         onClick={onClick}
-        className="flex items-center gap-2 bg-gold hover:bg-gold-dark text-white pl-3 pr-4 py-2.5 rounded-full shadow-2xl shadow-black/50 font-bold text-sm transition-colors"
+        className="flex items-center gap-2 bg-gold hover:bg-gold-dark text-white pl-3.5 pr-5 py-3 rounded-full shadow-2xl shadow-black/50 font-bold text-sm transition-all active:scale-95"
       >
         <span className="relative w-2 h-2 shrink-0">
           <span className="absolute inset-0 rounded-full bg-white animate-blink" />
