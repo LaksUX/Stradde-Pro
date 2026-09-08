@@ -207,9 +207,9 @@ export default function CreateGameRoute() {
           </View>
 
           <View className="px-5 pt-5 gap-4 pb-10">
-            <View className="bg-felt-surface border border-felt-border rounded-2xl p-4">
+            <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
               <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-2">Invite Preview</Text>
-              <View className="bg-felt-bg/60 border border-felt-border rounded-xl p-3">
+              <View className="bg-felt-bg/60 border border-felt-border rounded-2xl p-3.5">
                 <Text className="text-[13px] leading-relaxed text-zinc-300">{inviteText()}</Text>
               </View>
               <Text className="text-[10.5px] text-zinc-400 mt-2 leading-relaxed">
@@ -218,16 +218,16 @@ export default function CreateGameRoute() {
               </Text>
             </View>
 
-            <Pressable onPress={copyInvite} className="w-full h-12 bg-[#25d366] rounded-xl items-center justify-center">
+            <Pressable onPress={copyInvite} className="w-full h-12 bg-[#25d366] rounded-full items-center justify-center">
               <Text className="text-white font-bold text-sm">{copied ? "Copied!" : "Copy WhatsApp invite link"}</Text>
             </Pressable>
 
             <Pressable
               disabled={creating}
               onPress={startLiveGame}
-              className={cn("w-full h-12 rounded-xl items-center justify-center", creating ? "bg-gold/50" : "bg-gold")}
+              className={cn("w-full h-12 rounded-full items-center justify-center", creating ? "bg-gold/50" : "bg-gold")}
             >
-              <Text className="text-white font-bold text-sm">{creating ? "Starting…" : "Continue to Live Game"}</Text>
+              <Text className="text-[#241a05] font-bold text-sm">{creating ? "Starting…" : "Continue to Live Game"}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -250,7 +250,7 @@ export default function CreateGameRoute() {
 
         <View className="px-5 pt-5 gap-5 pb-10">
           {/* Game info */}
-          <View className="bg-felt-surface border border-felt-border rounded-2xl p-4 gap-4">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 gap-4">
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500">Game Details</Text>
             <View className="gap-3">
               <DInput label="Game Name" placeholder="e.g. Friday Night Felts" value={name} onChangeText={setName} />
@@ -267,7 +267,7 @@ export default function CreateGameRoute() {
           </View>
 
           {/* Players */}
-          <View className="bg-felt-surface border border-felt-border rounded-2xl p-4">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5">
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-3">
               Add players{players.length > 0 ? ` · ${players.length} in` : ""}
             </Text>
@@ -275,7 +275,7 @@ export default function CreateGameRoute() {
             {players.length > 0 && (
               <View className="flex-row flex-wrap gap-1.5 mb-3.5">
                 {players.map((p) => (
-                  <View key={p.name} className="flex-row items-center gap-2 bg-felt-surface-2 border border-felt-border rounded-2xl pl-1 pr-1.5 py-1">
+                  <View key={p.name} className="flex-row items-center gap-2 bg-felt-surface-3 border border-felt-outline rounded-full pl-1 pr-1.5 py-1">
                     <Av name={p.name} size={26} />
                     <View>
                       <Text className="text-[12.5px] font-semibold text-zinc-200">{p.name}</Text>
@@ -324,7 +324,7 @@ export default function CreateGameRoute() {
                               setNameInput(r.name)
                             }
                           }}
-                          className="flex-row items-center gap-1.5 px-2.5 py-1.5 border border-dashed border-felt-border rounded-full"
+                          className="flex-row items-center gap-1.5 px-3 py-2 border border-dashed border-felt-outline rounded-full"
                         >
                           <Text className="text-gold-light font-bold text-xs">+</Text>
                           <Text className="text-zinc-400 text-xs font-medium">{r.name}</Text>
@@ -349,7 +349,7 @@ export default function CreateGameRoute() {
                       </Text>
                       <Pressable
                         onPress={() => Linking.openSettings()}
-                        className="px-3 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center"
+                        className="px-4 h-9 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center"
                       >
                         <Text className="text-zinc-300 text-xs font-bold">Open Settings</Text>
                       </Pressable>
@@ -361,7 +361,7 @@ export default function CreateGameRoute() {
                   {contactsStatus === "granted" && (
                     <View>
                       <TextInput
-                        className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm mb-2.5"
+                        className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm mb-2.5"
                         placeholder="Search contacts…"
                         placeholderTextColor="#a1a1aa"
                         value={contactsSearch}
@@ -380,7 +380,7 @@ export default function CreateGameRoute() {
                               <Pressable
                                 key={c.id}
                                 onPress={() => addPlayer(c.name, c.phone)}
-                                className="flex-row items-center gap-2.5 bg-felt-surface-2/70 border border-felt-border rounded-xl px-2.5 py-2"
+                                className="flex-row items-center gap-2.5 bg-felt-surface-3/70 border border-felt-outline rounded-2xl px-3 py-2.5"
                               >
                                 <Av name={c.name} size={28} />
                                 <View className="flex-1">
@@ -406,7 +406,7 @@ export default function CreateGameRoute() {
               {source === "Type in" && (
                 <View className="gap-2">
                   <TextInput
-                    className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm"
+                    className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm"
                     placeholder="Player's name…"
                     placeholderTextColor="#a1a1aa"
                     value={nameInput}
@@ -414,7 +414,7 @@ export default function CreateGameRoute() {
                   />
                   <View className="flex-row gap-2 items-center">
                     <TextInput
-                      className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm"
+                      className="flex-1 h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm"
                       placeholder="Phone number (required)…"
                       placeholderTextColor="#a1a1aa"
                       keyboardType="phone-pad"
@@ -423,8 +423,8 @@ export default function CreateGameRoute() {
                       onSubmitEditing={() => addPlayer(nameInput, phoneInput)}
                     />
                     {nameInput.trim() && phoneInput.trim() && (
-                      <Pressable onPress={() => addPlayer(nameInput, phoneInput)} className="px-3 h-9 bg-gold rounded-lg items-center justify-center">
-                        <Text className="text-white text-xs font-bold">Add</Text>
+                      <Pressable onPress={() => addPlayer(nameInput, phoneInput)} className="px-4 h-10 bg-gold rounded-full items-center justify-center">
+                        <Text className="text-[#241a05] text-xs font-bold">Add</Text>
                       </Pressable>
                     )}
                   </View>
@@ -436,8 +436,8 @@ export default function CreateGameRoute() {
             </View>
           </View>
 
-          <Pressable disabled={!canStart} onPress={handleStart} className={cn("w-full h-13 rounded-xl items-center justify-center py-3.5", !canStart ? "bg-gold/40" : "bg-gold")}>
-            <Text className="text-white font-bold text-sm">
+          <Pressable disabled={!canStart} onPress={handleStart} className={cn("w-full h-13 rounded-full items-center justify-center py-3.5", !canStart ? "bg-gold/40" : "bg-gold")}>
+            <Text className="text-[#241a05] font-bold text-sm">
               Start Game
               {!name.trim() ? " · add a game name" : players.length === 0 ? " · add at least 1 player" : ` · ${players.length} players`}
             </Text>
@@ -463,7 +463,7 @@ function DInput({
     <View>
       {label && <Text className="text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-500 mb-1.5">{label}</Text>}
       <TextInput
-        className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm"
+        className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm"
         placeholder={placeholder}
         placeholderTextColor="#a1a1aa"
         value={value}
