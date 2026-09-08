@@ -150,7 +150,7 @@ function SettlementBody({
     [
       `🃏 ${game.name} — ${game.date}`,
       ``,
-      `Settle Up (${visibleTxns.length} payments):`,
+      `Settle Up (${visibleTxns.length} payment${visibleTxns.length === 1 ? "" : "s"}):`,
       ...visibleTxns.map((t) => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
       ...(visibleTxns.length === 0 ? ["• Everyone's even!"] : []),
       ``,
