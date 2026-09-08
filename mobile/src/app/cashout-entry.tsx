@@ -38,7 +38,7 @@ export default function CashoutEntryRoute() {
     return (
       <View className="flex-1 items-center justify-center bg-felt-bg px-6">
         <Text className="text-zinc-400 text-sm text-center leading-relaxed">No game is in cash-outs right now.</Text>
-        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-5 rounded-xl bg-felt-surface-2 border border-felt-border items-center justify-center">
+        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-6 rounded-full bg-felt-surface-2 border border-felt-outline items-center justify-center">
           <Text className="text-zinc-300 text-sm font-semibold">Back</Text>
         </Pressable>
       </View>
@@ -175,7 +175,7 @@ function CashoutEntryBody({
             </View>
             {/* Reversible — nothing here has finally locked yet, so going
                 back to buy-ins is always available. */}
-            <Pressable disabled={busy} onPress={backToBuyins} className="flex-row items-center gap-1.5 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg">
+            <Pressable disabled={busy} onPress={backToBuyins} className="flex-row items-center gap-1.5 bg-felt-surface-2 border border-felt-outline px-3.5 py-2 rounded-full">
               <Text className="text-zinc-400 text-xs">⌃</Text>
               <Text className="text-zinc-400 text-xs">Back to buy-ins</Text>
             </Pressable>
@@ -189,22 +189,22 @@ function CashoutEntryBody({
 
         {/* Stats row */}
         <View className="px-5 pt-4 flex-row gap-2.5">
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">On table</Text>
             <View className="mt-1">
               <NumB value={totalIn - totalOut} size="text-[18px]" className="text-white" />
             </View>
           </View>
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Cashed out</Text>
             <View className="mt-1">
               <NumB value={totalOut} size="text-[18px]" className="text-white" />
             </View>
           </View>
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5 justify-between">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3 justify-between">
             <View className="flex-row items-center justify-between">
               <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</Text>
-              <Pressable onPress={() => setRakeVisible((v) => !v)} className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center">
+              <Pressable onPress={() => setRakeVisible((v) => !v)} className="w-7 h-7 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center">
                 {rakeVisible ? <Text className="text-zinc-500 text-xs">⌃</Text> : <Text className="text-[10px] text-zinc-500">◐</Text>}
               </Pressable>
             </View>
@@ -225,7 +225,7 @@ function CashoutEntryBody({
         <View className="px-5 pt-2.5">
           <View
             className={cn(
-              "rounded-xl px-3.5 py-2 flex-row items-center gap-2",
+              "rounded-2xl px-4 py-2.5 flex-row items-center gap-2",
               overpayError ? "bg-red-500/10 border border-red-500/30" : "bg-felt-surface-2/50"
             )}
           >
@@ -255,7 +255,7 @@ function CashoutEntryBody({
               <Pressable
                 key={p.id}
                 onPress={() => openSheet(p)}
-                className={cn("flex-row items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3", p.cashedOut && "opacity-55")}
+                className={cn("flex-row items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5", p.cashedOut && "opacity-55")}
               >
                 <Av name={p.name} size={36} />
                 <View className="flex-1">
@@ -280,7 +280,7 @@ function CashoutEntryBody({
             <Pressable
               disabled={overpayError || busy}
               onPress={() => setShowEnd(true)}
-              className={cn("w-full h-12 rounded-xl items-center justify-center border", overpayError || busy ? "bg-red-600/40 border-red-500/20" : "bg-red-600/80 border-red-500/30")}
+              className={cn("w-full h-12 rounded-full items-center justify-center border", overpayError || busy ? "bg-red-600/40 border-red-500/20" : "bg-red-600/80 border-red-500/30")}
             >
               <Text className="text-white font-bold text-sm">Review & Continue →</Text>
             </Pressable>
@@ -322,8 +322,8 @@ function CashoutEntryBody({
               onBackspace={() => setCashoutDigits((prev) => prev.slice(0, -1))}
               onClear={() => setCashoutDigits("")}
             />
-            <Pressable disabled={busy} onPress={confirmCashout} className={cn("w-full h-12 rounded-xl items-center justify-center", busy ? "bg-gold/50" : "bg-gold")}>
-              <Text className="text-white font-bold text-sm">{sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}</Text>
+            <Pressable disabled={busy} onPress={confirmCashout} className={cn("w-full h-12 rounded-full items-center justify-center", busy ? "bg-gold/50" : "bg-gold")}>
+              <Text className="text-[#241a05] font-bold text-sm">{sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}</Text>
             </Pressable>
           </View>
         )}
@@ -369,7 +369,7 @@ function EndGameReviewDialog({
         {uncashed.length > 0 && (
           <Pressable
             onPress={() => setAckUncashed((v) => !v)}
-            className="flex-row items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3"
+            className="flex-row items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5"
           >
             <View className={cn("w-4 h-4 rounded mt-0.5 border items-center justify-center", ackUncashed ? "bg-amber-500 border-amber-500" : "border-amber-500/50")}>
               {ackUncashed && <Text className="text-[10px] text-white font-bold">✓</Text>}
@@ -389,13 +389,13 @@ function EndGameReviewDialog({
               keyboardType="decimal-pad"
               placeholder="0"
               placeholderTextColor="#a1a1aa"
-              className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm font-mono"
+              className="flex-1 h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm font-mono"
             />
             <Text className="text-zinc-400 text-sm font-bold w-6">B</Text>
           </View>
         </View>
 
-        <View className={cn("rounded-xl p-3.5 gap-2.5 border", balanced ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20")}>
+        <View className={cn("rounded-2xl p-4 gap-2.5 border", balanced ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20")}>
           <Text className={cn("text-xs font-bold uppercase tracking-wider", balanced ? "text-emerald-400" : "text-red-400")}>
             {balanced ? "✓ Balanced" : "⚠ Discrepancy"}
           </Text>
@@ -414,15 +414,15 @@ function EndGameReviewDialog({
       </View>
 
       <View className="flex-row gap-3">
-        <Pressable onPress={onClose} className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl items-center justify-center">
+        <Pressable onPress={onClose} className="flex-1 h-12 bg-felt-surface-2 border border-felt-outline rounded-full items-center justify-center">
           <Text className="text-zinc-300 font-semibold text-sm">Cancel</Text>
         </Pressable>
         <Pressable
           disabled={!canProceed}
           onPress={() => onConfirm(rakeAmt)}
-          className={cn("flex-1 h-11 rounded-xl items-center justify-center", !canProceed ? "bg-gold/40" : "bg-gold")}
+          className={cn("flex-1 h-12 rounded-full items-center justify-center", !canProceed ? "bg-gold/40" : "bg-gold")}
         >
-          <Text className="text-white font-bold text-sm">Continue →</Text>
+          <Text className="text-[#241a05] font-bold text-sm">Continue →</Text>
         </Pressable>
       </View>
     </AppDialog>
