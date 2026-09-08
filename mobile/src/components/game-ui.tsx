@@ -1,0 +1,255 @@
+// ─── Shared game-screen UI primitives — ported from web App.jsx ───────────
+// RN/NativeWind equivalents of App.jsx's NumB, Dot, Av, AppSheet, Keypad,
+// BuyinSlider, SL. Kept in one file since none of these are large enough to
+// warrant their own, and it mirrors how App.jsx itself keeps them together
+// as small top-of-file helpers. A few web-only decorative touches are
+// dropped rather than ported 1:1 (see inline notes) — CSS radial-gradient
+// avatars, box-shadow glow on status dots, and `hover:` states don't have a
+// meaningful RN equivalent and aren't worth a new dependency for polish
+// alone; can revisit if it's worth it once this is actually seen running.
+import { View, Text, Pressable, Modal, ScrollView } from "react-native"
+import Slider from "@react-native-community/slider"
+import { BANK, fmtBankNum } from "@core/money"
+
+export function cn(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ")
+}
+
+// ─── Bank-unit number display: bold number + small muted "bank(s)" unit ───
+// A single RN <Text> tree, not <View>+<Text> — color set via `className` on
+// the root is meant to be INHERITED by the value span below (RN inherits
+// text style across nested <Text>, unlike <View>), while the unit label
+// explicitly overrides back to a fixed muted color either way. Matches
+// web's NumB, where the outer element's color cascades to the plain <b>
+// but the muted unit span sets its own color regardless of caller.
+export function NumB({
+  value,
+  sign = false,
+  size = "text-sm",
+  className = "",
+}: {
+  value: number
+  sign?: boolean
+  size?: string
+  className?: string
+}) {
+  const bankCount = Math.abs(value) / BANK
+  const label = bankCount === 1 ? "bank" : "banks"
+  const prefix = sign ? (value > 0 ? "+" : value < 0 ? "−" : "") : ""
+  return (
+    <Text className={cn("font-mono", className)}>
+      <Text className={cn("font-extrabold", size)}>
+        {prefix}
+        {fmtBankNum(value)}
+      </Text>
+      <Text> </Text>
+      <Text className="text-[10px] font-semibold text-zinc-500">{label}</Text>
+    </Text>
+  )
+}
+
+// ─── Small status dot (in-play/locked/settled state) ──────────────────────
+export function Dot({ color = "zinc", className = "" }: { color?: "indigo" | "emerald" | "red" | "zinc"; className?: string }) {
+  const map: Record<string, string> = {
+    indigo: "bg-gold-light",
+    emerald: "bg-emerald-400",
+    red: "bg-red-400",
+    zinc: "bg-felt-surface-2",
+  }
+  return <View className={cn("w-2 h-2 rounded-full", map[color] || map.zinc, className)} />
+}
+
+// ─── Avatar — solid color (hashed from name) + initials, not web's gradient
+const AV_COLORS = ["#7c3aed", "#0891b2", "#059669", "#dc2626", "#db2777", "#d97706", "#2563eb", "#4f46e5"]
+function avColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
+  return AV_COLORS[Math.abs(h) % AV_COLORS.length]
+}
+const initials = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+
+export function Av({ name, size = 36 }: { name: string; size?: number }) {
+  return (
+    <View
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: avColor(name) }}
+      className="items-center justify-center"
+    >
+      <Text style={{ fontSize: size * 0.38 }} className="text-white font-bold">
+        {initials(name)}
+      </Text>
+    </View>
+  )
+}
+
+// ─── Section label ──────────────────────────────────────────────────────────
+export function SL({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <View className="px-5 mt-4 mb-1.5 flex-row items-center justify-between">
+      <Text className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">{children}</Text>
+      {action}
+    </View>
+  )
+}
+
+// ─── Bottom sheet — RN Modal standing in for web's shadcn Sheet/Radix Dialog
+// No drag-to-dismiss (web's Radix Sheet doesn't rely on it functionally
+// either — the X tap target and backdrop tap both close it there too), so
+// this is a reasonable straight swap: same open/onClose contract, same
+// title/subtitle/avatar header shape as web's AppSheet.
+export function AppSheet({
+  open,
+  onClose,
+  title,
+  subtitle,
+  avatar,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title?: string | null
+  subtitle?: string
+  avatar?: React.ReactNode
+  children?: React.ReactNode
+}) {
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end">
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
+        <View className="bg-felt-surface border-t border-felt-border rounded-t-3xl px-5 pt-3 pb-8 max-h-[85%]">
+          <View className="w-10 h-1 rounded-full bg-felt-border self-center mb-4" />
+          <View className="flex-row items-center gap-3 mb-4">
+            {avatar}
+            <View className="flex-1">
+              {title ? <Text className="text-white font-bold text-base">{title}</Text> : null}
+              {subtitle ? <Text className="text-zinc-400 text-xs mt-0.5">{subtitle}</Text> : null}
+            </View>
+            <Pressable
+              onPress={onClose}
+              className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center"
+            >
+              <Text className="text-zinc-400 text-xs">✕</Text>
+            </Pressable>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>{children}</ScrollView>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+// ─── Centered dialog — RN Modal standing in for web's shadcn Dialog/Radix ──
+// Used for the smaller confirm/review popups (Bank Check, Edit Player, End
+// Cash-outs review) as opposed to AppSheet's bottom-sheet treatment, same
+// split web keeps between its Dialog and Sheet primitives.
+export function AppDialog({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title?: string
+  description?: string
+  children?: React.ReactNode
+}) {
+  return (
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <View className="flex-1 items-center justify-center px-6">
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
+        <View className="w-full max-w-[340px] bg-felt-surface border border-felt-border rounded-2xl p-4">
+          {title ? <Text className="text-white font-bold text-base mb-1">{title}</Text> : null}
+          {description ? <Text className="text-zinc-400 text-xs mb-3">{description}</Text> : null}
+          {children}
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+// ─── Calculator-style numeric keypad ───────────────────────────────────────
+export function Keypad({
+  onDigit,
+  onBackspace,
+  onClear,
+}: {
+  onDigit: (d: string) => void
+  onBackspace: () => void
+  onClear: () => void
+}) {
+  const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "⌫", "0", "C"]
+  return (
+    <View className="flex-row flex-wrap justify-between">
+      {keys.map((k) => (
+        <Pressable
+          key={k}
+          onPress={() => (k === "⌫" ? onBackspace() : k === "C" ? onClear() : onDigit(k))}
+          className={cn(
+            "w-[31%] h-12 mb-2 rounded-xl items-center justify-center",
+            k === "⌫" || k === "C" ? "bg-felt-surface-2" : "bg-felt-surface-2/70 border border-felt-border"
+          )}
+        >
+          <Text className="text-zinc-100 text-base font-bold font-mono">{k}</Text>
+        </Pressable>
+      ))}
+    </View>
+  )
+}
+
+// ─── Buy-in slider (0–30, ticks every 5) ───────────────────────────────────
+// `min` floors the range at the player's already-locked buy-in count, same
+// contract as web's BuyinSlider — see that component's own comment in
+// App.jsx for the full reasoning. The gold-dark bar under the track is a
+// best-effort visual echo of web's locked-region overlay; @react-native-
+// community/slider doesn't expose track segments directly, so this just
+// layers a positioned View behind it.
+export function BuyinSlider({
+  value,
+  onChange,
+  max = 30,
+  min = 0,
+}: {
+  value: number
+  onChange: (v: number) => void
+  max?: number
+  min?: number
+}) {
+  const allLocked = min > 0 && value === min
+  return (
+    <View>
+      <View className="relative justify-center h-9">
+        {min > 0 && (
+          <View
+            pointerEvents="none"
+            className="absolute h-2 rounded-l-full bg-gold-dark/70 z-10"
+            style={{ left: 0, width: `${(min / max) * 100}%` }}
+          />
+        )}
+        <Slider
+          value={value}
+          minimumValue={min}
+          maximumValue={max}
+          step={1}
+          disabled={allLocked}
+          minimumTrackTintColor="#caa043"
+          maximumTrackTintColor="#24352c"
+          thumbTintColor="#e0bb5c"
+          onValueChange={(v) => onChange(Math.max(min, Math.round(v)))}
+        />
+      </View>
+      <View className="flex-row justify-between px-0.5 mt-1">
+        {[0, 5, 10, 15, 20, 25, 30].map((t) => (
+          <Text key={t} className="text-[10px] font-mono text-zinc-400">
+            {t}
+          </Text>
+        ))}
+      </View>
+      {min > 0 && (
+        <Text className="text-center text-[10.5px] text-zinc-400 mt-1.5">
+          {allLocked ? "All buy-ins so far are locked — drag right to add more" : `First ${min} locked — can't go below that`}
+        </Text>
+      )}
+    </View>
+  )
+}

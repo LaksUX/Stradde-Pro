@@ -21,7 +21,14 @@ reversals), and a minimal signed-in home screen wired to the same Supabase
 project via `mobile/src/lib/supabase.ts`. **Phase 2 is fully done**: run for
 real on a physical device via Expo Go, 2026-09-08 — email → 6-digit code →
 signed in, confirmed working end to end. Magic-link tap-to-sign-in did not
-work (see below); OTP code entry does, and is what shipped.
+work (see below); OTP code entry does, and is what shipped. **Phase 3 has
+started**: Live Game is built (same day) — `src/core/{money,settlement}.js`
+now genuinely cross-imported from mobile via a monorepo Metro config, not
+duplicated; `gamesApi.js`/`knownPlayersApi.js`/`auth.js` duplicated into
+mobile (platform-specific `./supabase` import means they can't cross-import
+the way core can). Verified as far as this environment allows (`tsc` clean,
+Metro resolves all 1860 modules); not yet run on a device — see Phase 3
+below for the full rundown and what's trimmed for this pass.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -438,7 +445,7 @@ Recommended order, by how much of the app's actual value each screen carries:
 1. **Live Game** (buy-in/cash-out entry, the bottom sheet, the slider, the
    locking behavior) — the most-used, most interaction-heavy screen, and the one
    most worth getting right early since every other screen depends on its data
-   shape.
+   shape. **Built, 2026-09-08** — see below.
 2. **Create Game** (including the per-player starting buy-in stepper) — needed
    to get any game onto a device at all.
 3. **Settlement / Close Game** — the balance-to-close check, the overpay warning,
@@ -451,6 +458,74 @@ Recommended order, by how much of the app's actual value each screen carries:
 6. **Admin / pending-approval** — lowest traffic. Worth asking explicitly whether
    this needs to exist on mobile at all, or can stay a web-only back-office
    screen indefinitely — that's real scope you can just not build.
+
+### Live Game — built, 2026-09-08
+
+Ported `LiveGameScreen` from web `App.jsx` (buy-in slider, early-leaver
+cash-out toggle + keypad, bank check dialog, edit/remove player, add-late-
+player with roster chips, rake edit) to `mobile/src/app/live-game.tsx`, same
+gamesApi/knownPlayersApi calls and business logic as web, same visual
+language via NativeWind (felt/gold theme carries over almost unchanged —
+most Tailwind className strings ported with no translation needed).
+
+**Repo-sharing decision, now actually exercised:** `src/core/{money,
+settlement}.js` — explicitly written dependency-free "meant to be reused
+unchanged by the native rebuild" (see their own header comments) — are now
+genuinely cross-imported from `mobile/`, not duplicated. `metro.config.js`
+gained `watchFolders`/`nodeModulesPaths` pointed at the repo root, and
+`tsconfig.json` a `@core/*` path alias to `../src/core/*`, so
+`mobile/src/app/live-game.tsx` does `import { fmtB } from "@core/money"` and
+gets the actual web file, unchanged. Verified for real: `npx expo export`
+resolves it through Metro with zero errors.
+
+`gamesApi.js`, `knownPlayersApi.js`, and `auth.js` are **duplicated** into
+`mobile/src/lib/`, not cross-imported like core — each imports `./supabase`,
+which has to resolve to *this platform's* client (mobile's expo-sqlite-
+backed one vs. web's browser one), so a single shared file can't serve both
+without a dependency-injection refactor of the web version, which felt like
+scope creep for this pass. Kept in sync by hand; mobile's `gamesApi.js` also
+picked up a JSDoc annotation on `addPlayer` that the web copy doesn't need
+(TS's inference for plain-.js modules needs it to type-check `.tsx` call
+sites correctly — see that function's comment).
+
+**Trimmed scope, on purpose:**
+- **"End Buy-ins" is a stub** here, not wired to
+  `gamesApi.setGameStatus(id, "cashout")` — that's a real transition on a
+  real, shared-with-web game row. Firing it before the Cash-outs screen
+  exists on mobile (item 3 above, not built yet) would flip status on a game
+  someone might still be tracking from the web app with no way to act on it
+  from here. Shows a "not available on mobile yet" message instead; revisit
+  once Cash-outs is ported.
+- **No mobile toast system yet** — `showToast` is a console.log stub for
+  now. Small, separable follow-up.
+- **Icons are text glyphs, not `lucide-react-native`** (web's `App.jsx` uses
+  `lucide-react`) — that package ships one file per icon, and bundling it
+  hit `EMFILE: too many open files` specific to this device's sandboxed
+  shell (confirmed not a `ulimit` issue — already effectively unlimited;
+  more likely a lower cap from whatever contains that shell). Not investigated
+  further; text glyphs are a fine stand-in, worth revisiting if the icon
+  library is worth the fight later.
+- **Avatars are solid colors (hashed from name), not web's gradient** — RN
+  has no native `linear-gradient`; not worth a new dependency for this alone.
+- **No entry point of its own yet** — reached via a temporary "View live
+  game" button added to Phase 2's placeholder home screen
+  (`mobile/src/app/index.tsx`), which fetches the account's one active
+  hosted game the same way web's App-root does. Since Create Game isn't
+  ported yet, this only works against a game that already exists (e.g.
+  created via the web app) — and since `known_players`/`games` RLS gates
+  everything on `profiles.role = 'host'` and `approved = true`, **the mobile
+  account signed in has to be an already-approved host account**, same one
+  used on web, or it'll see nothing (silently — this screen doesn't
+  distinguish "no active game" from "not an approved host" yet, both render
+  the same empty state).
+
+**Verified, same ceiling as Phase 2:** `tsc --noEmit` clean, `npx expo
+export --platform android` resolves and transforms all 1860 modules with
+zero bundler/resolution errors (including the new `@core/*` cross-repo
+import). Hermes bytecode generation fails the same pre-existing way as
+Phase 2 (this sandbox's `hermesc` binary, not a real device/EAS build).
+**Not yet run on an actual device** — that's the next step, same shape as
+Phase 2's own "code-complete, run-verified is still open."
 
 ---
 
