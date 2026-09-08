@@ -15,11 +15,12 @@ retired in favor of `knownPlayersApi.js`, the last piece still on local state.
 Nothing in the web app reads or writes `localStorage` for game or roster data
 any more. **Phase 2's skeleton is built** (`mobile/`, same repo): expo-router
 + TypeScript template, NativeWind (felt/gold theme matching the web app),
-React Native Paper, phone-OTP login screen, and a minimal signed-in home
-screen wired to the same Supabase project via `mobile/src/lib/supabase.ts`.
-Verified as far as this environment allows (`tsc` clean, Metro resolves all
-1744 modules with no errors) — real device/simulator testing and the Twilio
-Verify compliance-profile check are still outstanding, see Phase 2 below.
+React Native Paper, an email-magic-link login screen (reversed from an
+initial phone-OTP choice — see Phase 2 below for why), and a minimal
+signed-in home screen wired to the same Supabase project via
+`mobile/src/lib/supabase.ts`. Verified as far as this environment allows
+(`tsc` clean, Metro resolves all 1770 modules with no errors) — real
+device/simulator testing is still outstanding, see Phase 2 below.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -268,14 +269,36 @@ and passed (see above). **Phase 1 is fully closed — nothing left in it.**
 first" — see the old "Decisions still open" entries below, now resolved):
 repo structure is `mobile/` inside this same repo, not a separate one, so
 `supabase/schema.sql` and (eventually) `src/core`'s money-math logic don't
-need a publishing step to be shared; auth is **phone OTP via Twilio Verify**,
-not email magic-link (avoids mobile deep-link handling, but **the Twilio
-Verify compliance-profile status still needs an actual check** — this was
-blocked before on trial-account number-verification limits, and nothing in
-this skeleton proves that's resolved, only that the code path is wired);
-navigation is `expo-router`; component kit is **React Native Paper**
-(styling stays NativeWind, decided pre-Phase-2, both coexist fine — Paper
-handles themed components, NativeWind handles layout via `className`).
+need a publishing step to be shared; navigation is `expo-router`; component
+kit is **React Native Paper** (styling stays NativeWind, decided
+pre-Phase-2, both coexist fine — Paper handles themed components, NativeWind
+handles layout via `className`).
+
+**Auth was phone OTP via Twilio Verify, then reversed to email magic-link
+the same day**, after actually checking what "the Twilio Verify compliance
+profile" blocking this meant, instead of assuming a quick account upgrade
+would clear it:
+
+- Twilio Verify itself is exempt from A2P 10DLC (the big US carrier
+  registration requirement) — that was never the actual blocker.
+- The real blocker is India-specific: Indian phone numbers — this app's
+  actual player base — need **DLT (telecom) registration** before Twilio
+  (or anyone) can deliver OTP SMS to them at all. Twilio doesn't do this for
+  you; it means registering as a "Principal Entity" with an Indian telecom's
+  DLT platform, getting a sender header and message template approved, then
+  submitting that to Twilio — typically 3-7 business days, and it expects a
+  registered Indian business (GST/PAN), not an individual. Twilio's own
+  *account-level* compliance profile (Trust Hub) is a much lighter,
+  individual-friendly ID check (~48hrs, no business needed) — but that alone
+  doesn't unblock Indian numbers; DLT is the separate, harder requirement
+  that actually does.
+- Given that's a real multi-day business-registration process, not a
+  configuration toggle, **the decision was to skip phone OTP for now and
+  reuse email magic-link on mobile too** — the same tradeoff already live on
+  the web app — rather than take on DLT registration for a home-game app
+  among friends. This can be revisited later if phone OTP ever becomes worth
+  that cost. The real price of this choice: it reintroduces the mobile
+  deep-link round trip phone OTP was originally chosen to avoid — see below.
 
 **Built:** `npx create-expo-app` scaffolded `mobile/` (Expo SDK 57, RN 0.86,
 React 19.2, TypeScript, `expo-router`, `src/` as the routes root — this
@@ -293,16 +316,24 @@ removed (moved to `_to_delete/`, not committed) and replaced with:
   pattern (`@react-native-async-storage/async-storage` + a manual storage
   adapter) is what most existing tutorials/training data would suggest and
   is no longer the recommended approach.
-- `src/app/login.tsx` — phone number entry → `signInWithOtp` → 6-digit code
-  entry → `verifyOtp`. No manual navigation on success; the root layout's
-  `onAuthStateChange` listener reacts to the new session and redirects away
-  from `/login` itself, mirroring how `App.jsx` reacts to the same event.
+- `src/app/login.tsx` — email entry → `signInWithOtp` with
+  `emailRedirectTo: makeRedirectUri()` (from `expo-auth-session`) → a "check
+  your email" state, matching the web `LoginScreen`'s copy and flow exactly.
+  No manual navigation on success; `RootLayout` picks up the resulting deep
+  link itself (see below) and its `onAuthStateChange` listener reacts to the
+  new session and redirects away from `/login`.
 - `src/app/_layout.tsx` — session bootstrap (pick up an existing session,
   listen for changes) plus a redirect effect between `/login` and the
   signed-in screens based on session state — expo-router's equivalent of
   `App.jsx` conditionally rendering `<LoginScreen />` vs. the rest of the
   app. Wraps everything in `PaperProvider` with a theme using the same
   felt/gold color tokens as the web app's `src/index.css` `@theme` block.
+  Also completes the magic-link sign-in: `expo-linking`'s `useLinkingURL()`
+  watches for the deep link the tapped email opens the app with, and
+  `createSessionFromUrl()` parses Supabase's tokens out of it and calls
+  `setSession()` — the mobile equivalent of what web's `detectSessionInUrl`
+  does automatically by reading the browser's own URL bar, which doesn't
+  exist here.
 - `src/app/index.tsx` — the phase's actual deliverable: a minimal signed-in
   home screen (shows the signed-in phone number, a sign-out button). Phase 3
   replaces this with the real ported dashboard.
@@ -336,14 +367,22 @@ run-verified is still open** — see "Still needs a human" below.
 1. `cd mobile && npm install` if you haven't already run one fresh (this
    was installed and verified in this sandbox, but a real run should confirm
    your own machine's install is clean too).
-2. Check whether the Twilio Verify compliance profile has actually been
-   approved. If not, `signInWithOtp({ phone })` will fail for any number
-   that isn't pre-verified in the Twilio trial account — that's a Twilio/
-   Supabase-project-level fact, not something fixable from this codebase.
+2. **Add the app's redirect URL(s) to Supabase** — Dashboard → Authentication
+   → URL Configuration → Redirect URLs → add `pokernight://**`. While testing
+   in Expo Go specifically (not a real device build), also add an `exp://*`
+   pattern — Expo Go proxies deep links through its own `exp://` scheme
+   rather than the app's real `pokernight://` one, so the magic link won't
+   find its way back to the app without it. Without this step, tapping the
+   emailed link will fail or land somewhere that isn't the app.
 3. Run it for real: `npx expo start`, open in Expo Go or a dev build on an
-   actual device/simulator, and confirm the phone-OTP round trip and the
-   session-based redirect actually work end-to-end. Nothing above has been
-   exercised at runtime.
+   actual device/simulator, request a magic link, and confirm the full round
+   trip — email arrives, tapping it opens the app, the app lands signed in
+   on the home screen. Nothing above has been exercised at runtime; this is
+   the actual remaining risk in this phase, not a formality.
+4. Phone OTP itself is still viable later if DLT registration ever makes
+   sense to take on — nothing about this reversal makes it harder to add
+   back; it just isn't worth pursuing on this pass. See the "auth was phone
+   OTP, then reversed" note above for the full reasoning if revisiting.
 
 ---
 
@@ -426,8 +465,11 @@ engineering:
 - ~~Finish wiring `roster.js` to `knownPlayersApi.js`.~~ Resolved: done
   2026-09-08 — see Phase 1 above. **Phase 1 is fully closed; nothing here is
   blocking Phase 2 anymore.**
-- ~~Phone OTP vs. email magic-link on mobile.~~ Resolved 2026-09-08: phone
-  OTP — see Phase 2 above. Compliance-profile status still needs checking.
+- ~~Phone OTP vs. email magic-link on mobile.~~ Resolved 2026-09-08: chosen
+  as phone OTP, then reversed the same day to email magic-link after
+  checking Twilio's actual requirements (India's DLT registration, not the
+  lighter account-level compliance profile, is the real blocker for this
+  app's Indian player base) — see Phase 2 above for the full reasoning.
 - ~~`expo-router` vs. React Navigation.~~ Resolved 2026-09-08: `expo-router`.
 - ~~Tamagui vs. React Native Paper vs. gluestack-ui.~~ Resolved 2026-09-08:
   React Native Paper.
