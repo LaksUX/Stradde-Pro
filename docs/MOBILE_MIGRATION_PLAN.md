@@ -677,6 +677,52 @@ engineering:
 
 ---
 
+## Full usecase test pass — run, 2026-09-08
+
+Before the Material 3 restyle (below), ran a full pass through the whole
+game lifecycle to catch bugs while the felt/gold UI was still the
+baseline, not after a big visual rewrite made a regression harder to spot.
+
+**`scripts/test-full-lifecycle.mjs`** — new, real, runnable
+(`node scripts/test-full-lifecycle.mjs`). Exercises `src/core/money.js`
+and `src/core/settlement.js` directly (no network, no auth — these are
+the dependency-free files meant to be reused unchanged, see their own
+header comments) by replaying the exact sequence of state transitions
+every mobile screen performs on a realistic 4-player session end to end:
+create -> buy-ins before/after two bank checks (locking) -> add + remove
+a late player (removal gating) -> an early-leaver cash-out mid-game ->
+end buy-ins -> cash out the table -> add rake and catch the resulting
+overpay -> fix it -> Review & Continue's balance gate -> auto-computed
+settlement (verified against hand-checked net positions, including the
+non-obvious case where rake causes the debtors' total to exceed the
+creditors' total by design) -> Settlement screen's override/remove/custom-
+payment state machine -> close -> post-close paid-toggle read. **63/63
+checks passed** after fixing arithmetic bugs in the test's own hand-
+computed expected values (not the app) — full output and the fixes are in
+the script's git history if useful.
+
+**Also code-traced, not just eyeballed:** every `gamesApi.*`/
+`knownPlayersApi.*` call across every screen and `AppContext.tsx` against
+the actual exported function list (no mismatches), every
+`router.push`/`replace` target against the actual route files (all
+match), every `useAppState()` destructure across all six screens against
+`AppContext`'s exposed `value` object (no missing/misnamed fields), and
+every `"live"/"cashout"/"closed"` status literal across the app against
+`supabase/schema.sql`'s check constraint (all consistent, no typos).
+
+**What this pass could NOT cover, and why:** live Supabase calls under a
+real RLS-authenticated session. `scripts/test-rls-isolation.mjs` (Phase 1)
+needs two real signed-in JWTs a human has to obtain from a browser
+session — none were available this pass, and there's no service-role key
+in this environment to script around that. OTP sign-in itself can't be
+scripted either (needs a real inbox to receive the code). So this pass
+proves the shared logic and the client-side wiring are correct; it does
+NOT re-prove RLS isolation or exercise the real network/Postgres path —
+that still needs either a human running the app, or someone supplying
+fresh test JWTs the way the Phase 1 script's setup steps describe.
+
+---
+
 ## Decisions still open (don't guess on these — ask before Phase 2 starts)
 
 - ~~Realtime multi-device sync vs. simple refetch (Phase 1).~~ Resolved:
