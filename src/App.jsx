@@ -2291,12 +2291,24 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   // sign-in + a claimed player row, see REQUIREMENTS.md) need the Supabase
   // migration first — this isn't a bug in this text, it's a placeholder for
   // what that migration unlocks.
+  // [fix, 2026-09-08] Was reading `allTxns` here (every auto + custom
+  // transaction, including ones the host has since removed via the edit
+  // sheet's Remove button) instead of `visibleTxns` (the same filtered list
+  // the on-screen payment list, the header stat pill, and the actual
+  // onClose()/persisted settlement all use). A removed payment would still
+  // show up in the shared/copied text even though it's gone everywhere
+  // else — a host clearing a mistaken line, then sharing results, would
+  // tell someone to pay a debt that no longer exists. `visibleTxns` is
+  // declared further down in this same function body, but that's fine: by
+  // the time a click actually invokes resultsText() (via copySettlement or
+  // End Game), the whole component body — including visibleTxns — has
+  // already run.
   const resultsText = () => [
     `🃏 ${game.name} — ${game.date}`,
     ``,
-    `Settle Up (${allTxns.length} payments):`,
-    ...allTxns.map(t => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
-    ...(allTxns.length === 0 ? ["• Everyone's even!"] : []),
+    `Settle Up (${visibleTxns.length} payments):`,
+    ...visibleTxns.map(t => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
+    ...(visibleTxns.length === 0 ? ["• Everyone's even!"] : []),
     ``,
     `See your own results: https://straddle-pro.vercel.app/g/${game.id}/results`,
     `(sign in with the phone number you played under)`,
