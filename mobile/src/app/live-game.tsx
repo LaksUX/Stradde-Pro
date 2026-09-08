@@ -1,35 +1,25 @@
 // ─── Live Game — ported from web App.jsx's LiveGameScreen (Phase 3) ───────
-// [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 3] First real screen
-// port. Same business logic and gamesApi/knownPlayersApi calls as the web
-// version — this file owns its own data fetch (profile -> active hosted
-// game + roster) rather than receiving them as route props, since expo-
-// router screens don't get prop-drilled from a shared app root the way
-// App.jsx's screens do; the nearest equivalent of App.jsx's App-root
-// bootstrap lives right here instead.
+// [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 3] Now reads its game/
+// roster/mutation handlers from AppStateContext (mobile/src/lib/AppContext.tsx)
+// instead of doing its own auth+data fetch — consistent with every other
+// screen once the shared Context landed. "End Buy-ins" is wired for real
+// now that Cash-out Entry exists (mobile/src/app/cashout-entry.tsx): it
+// calls gamesApi.setGameStatus(id, "cashout") then navigates there, same
+// transition as web's LiveGameScreen -> CashoutEntryScreen. A safety
+// redirect below sends this screen to /cashout-entry if it's ever opened
+// (e.g. via back-navigation) while the active game is already past buy-ins.
 //
 // Scope trimmed for this pass, on purpose:
-// - "End Buy-ins" is disabled here rather than wired to
-//   gamesApi.setGameStatus(id, "cashout") — that transition is genuinely
-//   real and shared with the web app (same Supabase project, same game
-//   row). Firing it before the Cash-outs screen exists on mobile (Phase 3
-//   item 3, not built yet) would flip status on a real, possibly-currently-
-//   tracked-on-web game with no way to act on it from here — a footgun on
-//   real data, not just an incomplete feature. Revisit once Cash-outs is
-//   ported.
-// - No toast system yet (web's Toast/showToast) — failures and confirmations
-//   log to the console for now via a stub showToast. A real mobile toast is
-//   a small, separable follow-up, not core to this screen's function.
 // - Icons are plain text glyphs, not lucide-react-native (which web's
 //   App.jsx uses via lucide-react) — that package ships one file per icon,
 //   and bundling it here hit an EMFILE (too many open files) error specific
 //   to this device's sandboxed shell. Not a code problem; revisit if it's
 //   worth chasing down later, but text glyphs are a fine stand-in for now.
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { View, Text, ScrollView, Pressable, TextInput, RefreshControl } from "react-native"
 import { useRouter } from "expo-router"
-import { supabase } from "@/lib/supabase"
+import { useAppState } from "@/lib/AppContext"
 import * as gamesApi from "@/lib/gamesApi"
-import * as knownPlayersApi from "@/lib/knownPlayersApi"
 import { fmtB, fmtNet, computeBankroll } from "@core/money"
 import { totalBuyinsFor, lockedCountFor } from "@core/settlement"
 import { NumB, Dot, Av, AppSheet, AppDialog, Keypad, BuyinSlider, SL, cn } from "@/components/game-ui"
@@ -39,90 +29,32 @@ type Player = any
 
 export default function LiveGameRoute() {
   const router = useRouter()
-  const [accountId, setAccountId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { authLoading, gamesLoading, activeGame, roster, addToRoster, showToast, refreshAllGames } = useAppState()
   const [refreshing, setRefreshing] = useState(false)
-  const [game, setGame] = useState<Game | null>(null)
-  const [roster, setRoster] = useState<{ name: string; phone: string }[]>([])
-  const [error, setError] = useState("")
 
-  const loadAll = useCallback(async (uid: string) => {
-    const [games, rosterList] = await Promise.all([
-      gamesApi.fetchHostedGames(uid),
-      knownPlayersApi.fetchRoster(uid),
-    ])
-    const active = games.find((g: Game) => g.status !== "closed") || null
-    setGame(active)
-    setRoster(rosterList)
-  }, [])
-
+  // Safety redirect — see header note.
   useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      try {
-        const { data } = await supabase.auth.getUser()
-        const uid = data.user?.id
-        if (!uid) {
-          if (mounted) setLoading(false)
-          return
-        }
-        if (!mounted) return
-        setAccountId(uid)
-        await loadAll(uid)
-      } catch (err: any) {
-        if (mounted) setError(err?.message || "Couldn't load your game")
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    })()
-    return () => {
-      mounted = false
+    if (activeGame && activeGame.status === "cashout") {
+      router.replace("/cashout-entry" as never)
     }
-  }, [loadAll])
+  }, [activeGame, router])
 
-  const onMutated = useCallback(async () => {
-    if (accountId) await loadAll(accountId)
-  }, [accountId, loadAll])
-
-  const onRefresh = useCallback(async () => {
-    if (!accountId) return
+  const onRefresh = async () => {
     setRefreshing(true)
     try {
-      await loadAll(accountId)
+      await refreshAllGames()
     } finally {
       setRefreshing(false)
     }
-  }, [accountId, loadAll])
+  }
 
-  // Optimistic-local-then-background-write, same pattern as the web app's
-  // App-root addToRoster (see docs/MOBILE_MIGRATION_PLAN.md -> Phase 1).
-  const addToRoster = useCallback(
-    (name: string, phone: string) => {
-      const n = name.trim(),
-        ph = phone.trim()
-      if (!n) return
-      setRoster((prev) => {
-        const idx = prev.findIndex((r) => r.name.toLowerCase() === n.toLowerCase())
-        if (idx >= 0) {
-          const next = prev.slice()
-          next[idx] = { ...next[idx], name: n, phone: ph || next[idx].phone || "" }
-          return next
-        }
-        return [...prev, { name: n, phone: ph }]
-      })
-      if (!accountId) return
-      knownPlayersApi.upsertRosterEntry(accountId, n, ph).catch((err) => {
-        console.warn("Couldn't save to roster (non-fatal):", err)
-      })
-    },
-    [accountId]
-  )
+  const onEndBuyins = async () => {
+    await gamesApi.setGameStatus(activeGame.id, "cashout")
+    await refreshAllGames()
+    router.replace("/cashout-entry" as never)
+  }
 
-  const showToast = useCallback((icon: string, title: string, msg?: string) => {
-    console.log(`${icon} ${title}${msg ? " — " + msg : ""}`)
-  }, [])
-
-  if (loading) {
+  if (authLoading || gamesLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-felt-bg">
         <Text className="text-zinc-400 text-sm font-medium">Loading…</Text>
@@ -130,19 +62,11 @@ export default function LiveGameRoute() {
     )
   }
 
-  if (error) {
-    return (
-      <View className="flex-1 items-center justify-center bg-felt-bg px-6">
-        <Text className="text-red-400 text-sm text-center">{error}</Text>
-      </View>
-    )
-  }
-
-  if (!game) {
+  if (!activeGame || activeGame.status === "cashout") {
     return (
       <View className="flex-1 items-center justify-center bg-felt-bg px-6">
         <Text className="text-zinc-400 text-sm text-center leading-relaxed">
-          No active game right now. Start one from the web app for now — Create Game isn't ported to mobile yet.
+          No active game right now. Start one from Home to begin tracking buy-ins.
         </Text>
         <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-5 rounded-xl bg-felt-surface-2 border border-felt-border items-center justify-center">
           <Text className="text-zinc-300 text-sm font-semibold">Back</Text>
@@ -153,12 +77,13 @@ export default function LiveGameRoute() {
 
   return (
     <LiveGameBody
-      game={game}
+      game={activeGame}
       roster={roster}
       addToRoster={addToRoster}
       showToast={showToast}
-      onMutated={onMutated}
+      onMutated={refreshAllGames}
       onBack={() => router.replace("/")}
+      onEndBuyins={onEndBuyins}
       refreshing={refreshing}
       onRefresh={onRefresh}
     />
@@ -172,6 +97,7 @@ function LiveGameBody({
   showToast,
   onMutated,
   onBack,
+  onEndBuyins,
   refreshing,
   onRefresh,
 }: {
@@ -181,6 +107,7 @@ function LiveGameBody({
   showToast: (icon: string, title: string, msg?: string) => void
   onMutated: () => Promise<void>
   onBack: () => void
+  onEndBuyins: () => Promise<void>
   refreshing: boolean
   onRefresh: () => void
 }) {
@@ -268,10 +195,17 @@ function LiveGameBody({
     })
   }
 
-  // See this file's header note — deliberately not wired to
-  // gamesApi.setGameStatus until the Cash-outs screen exists on mobile.
+  // Wired to the real live -> cashout transition now that Cash-out Entry
+  // exists — see this file's header note.
   const handleEndBuyins = () => {
-    showToast("🚧", "Not available on mobile yet", "Cash-outs screen isn't ported — use the web app to end buy-ins")
+    if (busy) return
+    setBusy(true)
+    onEndBuyins()
+      .catch((err: any) => {
+        console.error(err)
+        showToast("⚠️", "Couldn't end buy-ins", err?.message || "Please try again")
+      })
+      .finally(() => setBusy(false))
   }
 
   const openSheet = (p: Player) => {
@@ -599,13 +533,10 @@ function LiveGameBody({
             <Pressable
               disabled={busy}
               onPress={handleEndBuyins}
-              className="w-full h-12 bg-red-600/50 border border-red-500/30 rounded-xl items-center justify-center"
+              className={cn("w-full h-12 rounded-xl items-center justify-center border", busy ? "bg-red-600/40 border-red-500/20" : "bg-red-600/80 border-red-500/30")}
             >
               <Text className="text-white font-bold text-sm">End Buy-ins →</Text>
             </Pressable>
-            <Text className="text-[11px] text-zinc-500 text-center mt-2 leading-relaxed">
-              Not available on mobile yet — end buy-ins from the web app for now.
-            </Text>
           </View>
         )}
       </ScrollView>
