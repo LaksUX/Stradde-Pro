@@ -13,7 +13,13 @@ the live project, the RLS isolation script actually executed and passing
 (2026-09-08, `PASS — 0 check(s) failed`), and — as of this pass — `roster.js`
 retired in favor of `knownPlayersApi.js`, the last piece still on local state.
 Nothing in the web app reads or writes `localStorage` for game or roster data
-any more. Phase 2 (Expo) is next.
+any more. **Phase 2's skeleton is built** (`mobile/`, same repo): expo-router
++ TypeScript template, NativeWind (felt/gold theme matching the web app),
+React Native Paper, phone-OTP login screen, and a minimal signed-in home
+screen wired to the same Supabase project via `mobile/src/lib/supabase.ts`.
+Verified as far as this environment allows (`tsc` clean, Metro resolves all
+1744 modules with no errors) — real device/simulator testing and the Twilio
+Verify compliance-profile check are still outstanding, see Phase 2 below.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -258,27 +264,86 @@ and passed (see above). **Phase 1 is fully closed — nothing left in it.**
 
 ## Phase 2 — Expo project skeleton
 
-- `npx create-expo-app`, set up an EAS project (this is what lets Android and
-  iOS both build from CI without needing a Mac for most of the work).
-- Auth: wire `@supabase/supabase-js` the same way the web app does. Decide
-  email-magic-link vs. phone-OTP for mobile specifically — magic links mean deep
-  link handling on mobile (more friction than a web redirect), so this is a
-  reasonable point to revisit phone OTP now that a Twilio Verify compliance
-  profile may have moved since it was last blocked. Worth a five-minute check
-  before assuming email carries over unchanged.
-- Navigation: React Navigation or `expo-router`. Recommend `expo-router` — it
-  matches the file-based-routes mental model and has first-class Expo/EAS
-  support, and this app's screen count is small enough that the choice mostly
-  comes down to preference, not capability.
-- Styling: NativeWind, so Tailwind utility-class habits from `App.jsx` transfer
-  directly instead of learning a new styling API.
-- Component kit: pick one of Tamagui / React Native Paper / gluestack-ui *before*
-  writing the first real screen — this replaces what Radix (`Dialog`, `Tabs`,
-  `Switch`, `Slider`, `Sheet`) provided on web, and swapping kits mid-project
-  means redoing every screen's primitives twice.
+**Decisions locked in 2026-09-08** (previously flagged "don't guess, ask
+first" — see the old "Decisions still open" entries below, now resolved):
+repo structure is `mobile/` inside this same repo, not a separate one, so
+`supabase/schema.sql` and (eventually) `src/core`'s money-math logic don't
+need a publishing step to be shared; auth is **phone OTP via Twilio Verify**,
+not email magic-link (avoids mobile deep-link handling, but **the Twilio
+Verify compliance-profile status still needs an actual check** — this was
+blocked before on trial-account number-verification limits, and nothing in
+this skeleton proves that's resolved, only that the code path is wired);
+navigation is `expo-router`; component kit is **React Native Paper**
+(styling stays NativeWind, decided pre-Phase-2, both coexist fine — Paper
+handles themed components, NativeWind handles layout via `className`).
+
+**Built:** `npx create-expo-app` scaffolded `mobile/` (Expo SDK 57, RN 0.86,
+React 19.2, TypeScript, `expo-router`, `src/` as the routes root — this
+template puts routes under `src/app`, not root `app/`, matching the `@/*` →
+`./src/*` alias the web app already uses). The default template's demo tab
+screens (`explore.tsx`, `app-tabs`, `themed-text`/`themed-view`, etc.) were
+removed (moved to `_to_delete/`, not committed) and replaced with:
+
+- `src/lib/supabase.ts` — same project, same anon key, same RLS as the web
+  client. The one real mobile-specific difference is session storage: no
+  browser `localStorage` exists on native, so this uses `expo-sqlite`'s
+  `localStorage` polyfill (`expo-sqlite/localStorage/install`) — this is
+  current official Expo+Supabase guidance as of SDK 57, checked against
+  docs.expo.dev rather than assumed, since the *older*, more commonly-seen
+  pattern (`@react-native-async-storage/async-storage` + a manual storage
+  adapter) is what most existing tutorials/training data would suggest and
+  is no longer the recommended approach.
+- `src/app/login.tsx` — phone number entry → `signInWithOtp` → 6-digit code
+  entry → `verifyOtp`. No manual navigation on success; the root layout's
+  `onAuthStateChange` listener reacts to the new session and redirects away
+  from `/login` itself, mirroring how `App.jsx` reacts to the same event.
+- `src/app/_layout.tsx` — session bootstrap (pick up an existing session,
+  listen for changes) plus a redirect effect between `/login` and the
+  signed-in screens based on session state — expo-router's equivalent of
+  `App.jsx` conditionally rendering `<LoginScreen />` vs. the rest of the
+  app. Wraps everything in `PaperProvider` with a theme using the same
+  felt/gold color tokens as the web app's `src/index.css` `@theme` block.
+- `src/app/index.tsx` — the phase's actual deliverable: a minimal signed-in
+  home screen (shows the signed-in phone number, a sign-out button). Phase 3
+  replaces this with the real ported dashboard.
+
+**Verified, with a real limit on how far "verified" goes here:** `tsc
+--noEmit` is clean, and `npx expo export` resolves and transforms all 1744
+modules with no bundler/resolution errors for both the web and iOS targets
+— meaning every file above is syntactically and type-correct and Metro can
+build a dependency graph from it. `expo export --platform web`'s
+*server-side static rendering* step does throw (`localStorage is not
+defined`, since `supabase.ts` runs eagerly at module-load time and the web
+static-render path executes that in Node, not a browser) — this is a
+pre-existing limitation of exporting Expo Router's web target with a client-
+only module, not a defect in the app, and not a path either mobile platform
+takes; fixing it (lazy client init, or just dropping `web` from
+`app.json`'s platforms) is deferred until/unless the web export target is
+actually wanted, since this app's whole purpose is Android/iOS. Separately,
+`expo export --platform ios`'s *Hermes bytecode* step fails because the
+bundled `linux64` `hermesc` binary won't run in this Linux sandbox — an
+environment limitation of where this was built, not the app; a real
+Xcode/EAS build on macOS uses a different `hermesc` binary and won't hit
+this. **What's not verified, and can't be from here: the app has never
+actually run** — no simulator, no physical device, no `expo start` session.
+That's the real next step, on your end.
 
 Deliverable at the end of this phase: a login screen and an empty home screen,
-signed in against the same Supabase project as the web app.
+signed in against the same Supabase project as the web app. **Code-complete;
+run-verified is still open** — see "Still needs a human" below.
+
+**Still needs a human, not more code:**
+1. `cd mobile && npm install` if you haven't already run one fresh (this
+   was installed and verified in this sandbox, but a real run should confirm
+   your own machine's install is clean too).
+2. Check whether the Twilio Verify compliance profile has actually been
+   approved. If not, `signInWithOtp({ phone })` will fail for any number
+   that isn't pre-verified in the Twilio trial account — that's a Twilio/
+   Supabase-project-level fact, not something fixable from this codebase.
+3. Run it for real: `npx expo start`, open in Expo Go or a dev build on an
+   actual device/simulator, and confirm the phone-OTP round trip and the
+   session-based redirect actually work end-to-end. Nothing above has been
+   exercised at runtime.
 
 ---
 
@@ -361,10 +426,14 @@ engineering:
 - ~~Finish wiring `roster.js` to `knownPlayersApi.js`.~~ Resolved: done
   2026-09-08 — see Phase 1 above. **Phase 1 is fully closed; nothing here is
   blocking Phase 2 anymore.**
-- Phone OTP vs. email magic-link on mobile (Phase 2).
-- `expo-router` vs. React Navigation (Phase 2) — low-stakes, pick one and move.
-- Tamagui vs. React Native Paper vs. gluestack-ui (Phase 2) — pick once, don't
-  revisit mid-project.
+- ~~Phone OTP vs. email magic-link on mobile.~~ Resolved 2026-09-08: phone
+  OTP — see Phase 2 above. Compliance-profile status still needs checking.
+- ~~`expo-router` vs. React Navigation.~~ Resolved 2026-09-08: `expo-router`.
+- ~~Tamagui vs. React Native Paper vs. gluestack-ui.~~ Resolved 2026-09-08:
+  React Native Paper.
+- ~~Where the mobile app's repo/code lives.~~ Resolved 2026-09-08: `mobile/`
+  in this same repo, not a separate one — not in the original open-decisions
+  list, but a real structural question this phase forced, so recorded here.
 - Whether Admin/pending-approval needs a mobile screen at all, or stays web-only
   (Phase 3).
 - Whether the web app stays alive long-term as a secondary surface (e.g., a
