@@ -168,6 +168,34 @@ export function AppDialog({
   )
 }
 
+// ─── Segmented tabs — stand-in for web's shadcn Tabs (used on Home's
+// Overview/Settlements and Create Game's player-source selector) ──────────
+export function SegTabs({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) {
+  return (
+    <View className="flex-row bg-felt-surface-2/70 border border-felt-border rounded-full p-1">
+      {tabs.map((t) => (
+        <Pressable
+          key={t}
+          onPress={() => onChange(t)}
+          className={cn("flex-1 h-8 rounded-full items-center justify-center", active === t && "bg-gold")}
+        >
+          <Text className={cn("text-xs font-bold", active === t ? "text-white" : "text-zinc-400")}>{t}</Text>
+        </Pressable>
+      ))}
+    </View>
+  )
+}
+
+// ─── Progress bar — plain View-based stand-in for web's shadcn Progress ───
+export function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
+  const pct = Math.max(0, Math.min(100, value))
+  return (
+    <View className={cn("h-2 rounded-full bg-felt-surface-2 overflow-hidden", className)}>
+      <View className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+    </View>
+  )
+}
+
 // ─── Calculator-style numeric keypad ───────────────────────────────────────
 export function Keypad({
   onDigit,
