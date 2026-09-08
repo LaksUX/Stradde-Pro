@@ -38,19 +38,36 @@ import Constants, { ExecutionEnvironment } from "expo-constants"
 const isExpoGoAndroid = Platform.OS === "android" && Constants.executionEnvironment === ExecutionEnvironment.StoreClient
 
 // ─── Local test notification ───────────────────────────────────────────────
-// [added 2026-09-08] Fires a local notification immediately. Unlike
-// registerForPushNotificationsAsync() above, this works fine in Expo Go on
-// BOTH platforms — the Expo Go/Android limitation is specific to *remote*
-// push (see this file's header note #1); local notifications never left
-// Expo Go. This exists so there's a way to actually see a notification
-// appear end-to-end (permission prompt -> display) without a dev build,
-// an EAS project, or a server — none of which registerForPushNotificationsAsync
-// can get past in Expo Go on Android right now.
+// [added 2026-09-08, corrected same day] Originally assumed local
+// notifications were unaffected by the Expo Go/Android limitation above
+// (Expo's own docs say "local notifications remain available in Expo Go"),
+// so this skipped the isExpoGoAndroid guard. Wrong in practice: confirmed
+// by reading the installed expo-notifications source directly
+// (node_modules/expo-notifications/build/DevicePushTokenAutoRegistration.fx.js)
+// that merely IMPORTING the package's main entry point runs an unconditional
+// module-scope side effect — an auto push-token-registration listener via
+// TokenEmitter's addPushTokenListener() — which calls warnOfExpoGoPushUsage(),
+// which unconditionally THROWS on Android + Expo Go. This fires from
+// importing ANY export off the barrel file, not from calling a specific
+// remote-push API, so there is no local-notification-only code path that
+// avoids it — the crash the user hit (an Uncaught Error from this exact
+// function) confirmed it live. Same fix as registerForPushNotificationsAsync:
+// never require("expo-notifications") at all when isExpoGoAndroid, full stop.
 export async function sendTestLocalNotificationAsync(): Promise<{ ok: boolean; reason?: string }> {
-  // Same lazy-require discipline as the rest of this file — see header note.
-  // Not strictly required for the Expo Go/Android crash (that's a remote-
-  // push-only issue), but there's no reason to import this any other way
-  // anywhere in this file.
+  if (isExpoGoAndroid) {
+    // Local notifications are not actually reachable here — see the note
+    // above. This needs a development build (EAS Build) on Android; Expo
+    // Go on iOS is unaffected (the throw above is Android-only) and can
+    // still be used to test this.
+    return {
+      ok: false,
+      reason: "expo-notifications can't be used at all in Expo Go on Android (a library limitation, not just remote push) — needs a development build",
+    }
+  }
+
+  // Lazy require, only reached once we've ruled out the one environment
+  // where loading this module throws — see the note above and this file's
+  // header note.
   const Notifications = require("expo-notifications")
 
   Notifications.setNotificationHandler({
