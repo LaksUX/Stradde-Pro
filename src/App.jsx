@@ -2306,7 +2306,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
   const resultsText = () => [
     `🃏 ${game.name} — ${game.date}`,
     ``,
-    `Settle Up (${visibleTxns.length} payments):`,
+    `Settle Up (${visibleTxns.length} payment${visibleTxns.length === 1 ? "" : "s"}):`,
     ...visibleTxns.map(t => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
     ...(visibleTxns.length === 0 ? ["• Everyone's even!"] : []),
     ``,
@@ -2789,6 +2789,219 @@ function GameDetailScreen({ game, viewerName, viewAsHost, onBack, onNavigateLive
   )
 }
 
+// ─── Shared game link — /g/:id and /g/:id/results ──────────────────────────
+// [feature, 2026-09-08] The invite/results links in CreateGameScreen's and
+// SettlementScreen's share text used to be pure stubs — this app has never
+// used a router (App() just branches on local `screen` state), so nothing
+// ever read the URL path at all. This is the first real handler for that
+// URL shape, inserted directly into App()'s render below, ahead of the
+// normal login/admin/host-approval gates (an invited player was never
+// meant to go through any of those). Deliberately one view for both paths:
+// what's actually available differs by game.status, not by which of the
+// two URLs was used, so there's no reason to build two screens for it.
+//
+// Auth: reuses the app's own LoginScreen as-is (same email-magic-link
+// flow), just with emailRedirectTo pointed back at this same path instead
+// of the site root, so a first-time signer lands back here — not on the
+// normal app home — once they click the link in their email.
+//
+// Claiming: fetchGame()'s RLS-backed shape already does the real access-
+// control work (a signed-in player gets back only their own game_players/
+// buyins rows and the settlements they're a party to — see
+// supabase/schema.sql). The one real gap: claim_my_player_rows() links by
+// phone, but this app's web sign-in is email-only, so a brand-new account
+// has no phone on its profile yet and claiming silently matches nothing.
+// Rather than leave that as a dead end, this view asks for the phone
+// number inline (once) and retries the claim, closing the loop without
+// touching the normal sign-in flow at all.
+function SharedGameView({ gameId, session, siteUrl }) {
+  const [game, setGame] = useState(null)
+  const [loadState, setLoadState] = useState("loading") // loading | ok | notfound | error
+  const [phoneInput, setPhoneInput] = useState("")
+  const [claiming, setClaiming] = useState(false)
+  const [claimError, setClaimError] = useState("")
+
+  const load = () => {
+    setLoadState("loading")
+    gamesApi.claimMyPlayerRows().catch(() => {}).finally(() => {
+      gamesApi.fetchGame(gameId)
+        .then(g => { setGame(g); setLoadState("ok") })
+        .catch(err => {
+          console.error("Couldn't load shared game", err)
+          setLoadState(err?.code === "PGRST116" ? "notfound" : "error")
+        })
+    })
+  }
+
+  useEffect(() => {
+    if (session) load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, gameId])
+
+  const sendMagicLinkHere = async (email) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: siteUrl + window.location.pathname },
+    })
+    if (error) throw error
+  }
+
+  const submitPhone = async (e) => {
+    e.preventDefault()
+    if (!phoneInput.trim() || claiming) return
+    setClaiming(true)
+    setClaimError("")
+    try {
+      const { error } = await supabase.from("profiles").update({ phone: phoneInput.trim() }).eq("id", session.user.id)
+      if (error) throw error
+      load()
+    } catch (err) {
+      setClaimError(
+        err?.code === "23505"
+          ? "That phone number is already linked to a different account."
+          : (err?.message || "Something went wrong. Try again.")
+      )
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  if (!session) return <LoginScreen onSendMagicLink={sendMagicLinkHere} />
+
+  if (loadState === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-felt-bg">
+        <div className="text-zinc-400 text-sm font-medium">Loading…</div>
+      </div>
+    )
+  }
+
+  if (loadState === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6 text-center">
+        <div className="text-[48px] mb-4">⚠️</div>
+        <div className="text-white text-lg font-bold">Couldn't load this game</div>
+        <div className="text-zinc-400 text-sm mt-2">Check your connection and try refreshing the page.</div>
+      </div>
+    )
+  }
+
+  const me = loadState === "ok" ? game.players.find(p => p.profileId === session.user.id) : null
+
+  if (loadState === "notfound" || !me) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-felt-bg px-6 text-center">
+        <div className="text-[48px] mb-4">🃏</div>
+        <div className="text-white text-lg font-bold">We couldn't find you in this game</div>
+        <div className="text-zinc-400 text-sm mt-2 max-w-[280px]">
+          {loadState === "notfound"
+            ? "This link doesn't lead to a game, or you're not part of it yet."
+            : "Enter the phone number the host used to add you — we'll match you to your invite."}
+        </div>
+        {loadState === "ok" && (
+          <form onSubmit={submitPhone} className="w-full max-w-[280px] flex flex-col gap-3 mt-6">
+            <input
+              className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-white text-sm text-center outline-none focus:border-gold-vivid focus:ring-2 focus:ring-gold-vivid/25 transition-all"
+              placeholder="+1 555 123 4567"
+              type="tel"
+              value={phoneInput}
+              onChange={e => setPhoneInput(e.target.value)}
+              autoFocus
+            />
+            <button
+              disabled={!phoneInput.trim() || claiming}
+              type="submit"
+              className="w-full h-12 bg-gold hover:bg-gold-vivid disabled:opacity-40 disabled:cursor-not-allowed text-[#241a05] font-bold rounded-full text-sm transition-all active:scale-[0.98]"
+            >
+              {claiming ? "Checking…" : "Find my invite"}
+            </button>
+            {claimError && <div className="text-red-400 text-xs font-medium">{claimError}</div>}
+          </form>
+        )}
+      </div>
+    )
+  }
+
+  const totalIn = totalBuyinsFor(me)
+  const totalOut = me.cashoutAmount || 0
+  const net = totalOut - totalIn
+  // Defensive filter, not just a display nicety: if the signed-in viewer is
+  // the host previewing their own invite link, RLS hands back every
+  // settlement row for the game, not just theirs — this keeps "your
+  // payments" honest regardless of which side of that RLS split fetchGame
+  // happened to return.
+  const myTxns = (game.settlement || []).filter(t => t.from === me.name || t.to === me.name)
+  const isClosed = game.status === "closed"
+
+  const togglePaid = (t) => {
+    gamesApi.setSettlementPaid(t.id, !t.paid, session.user.id).then(load).catch(err => console.error("Couldn't update payment status", err))
+  }
+
+  return (
+    <div className="w-full max-w-[430px] sm:max-w-xl min-h-screen bg-felt-bg mx-auto relative sm:px-2 pb-10">
+      <div className="px-5 pt-14 pb-6 border-b border-felt-border">
+        <div className="text-[40px] leading-none mb-3">♠</div>
+        <div className="text-white text-xl font-bold">{game.name}</div>
+        <div className="text-zinc-400 text-sm mt-1">
+          {game.date}{game.location ? ` · ${game.location}` : ""} · playing as {me.name}
+        </div>
+        {!isClosed && (
+          <span className="inline-flex items-center gap-1.5 mt-3 text-[9.5px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" /> Still in progress
+          </span>
+        )}
+      </div>
+
+      <div className="px-5 pt-5 flex flex-col gap-2.5">
+        <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex items-center justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your buy-ins</div>
+          <NumB value={totalIn} size="text-lg" className="text-white" />
+        </div>
+        {me.cashedOut ? (
+          <>
+            <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex items-center justify-between">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your cash-out</div>
+              <NumB value={totalOut} size="text-lg" className="text-white" />
+            </div>
+            <div className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex items-center justify-between">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your net</div>
+              <NumB value={net} sign size="text-xl" className={net >= 0 ? "text-emerald-400" : "text-red-400"} />
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-xs text-zinc-500 font-medium py-2">
+            {isClosed ? "No cash-out was recorded for you." : "You haven't cashed out yet."}
+          </div>
+        )}
+      </div>
+
+      <SL>Your payments</SL>
+      {myTxns.length === 0 ? (
+        <div className="text-center py-6 text-zinc-400 text-sm px-5">
+          {isClosed ? "Nothing for you to settle — even." : "Nothing to settle yet — check back once the host closes the game."}
+        </div>
+      ) : (
+        <div className="px-5 flex flex-col gap-2">
+          {myTxns.map((t, i) => {
+            const youOwe = t.from === me.name
+            return (
+              <div key={t.id || i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-zinc-100">
+                    {youOwe ? `You owe ${t.to}` : `${t.from} owes you`}
+                  </div>
+                  <NumB value={t.amount} size="text-sm" className={cn("mt-0.5", t.paid ? "text-zinc-500" : "text-amber-400")} />
+                </div>
+                {isClosed && t.id && <PaidToggle paid={t.paid} onToggle={() => togglePaid(t)} />}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
 // Host/Player moved into Home itself as a filter on its two tabs (see
 // HomeScreen), so the bottom nav no longer needs to carry navigation at
@@ -3078,6 +3291,16 @@ export default function App() {
         <div className="text-zinc-400 text-sm font-medium">Loading…</div>
       </div>
     )
+  }
+
+  // A shared invite/results link — checked before the login/admin/host-
+  // approval gates below on purpose: an invited player was never meant to
+  // go through any of those (they're not a host, and may never become
+  // one). Whether they're signed in or not is handled inside
+  // SharedGameView itself. See that component's own header comment.
+  const shareMatch = window.location.pathname.match(/^\/g\/([^/]+)(?:\/results)?\/?$/)
+  if (shareMatch) {
+    return <SharedGameView gameId={shareMatch[1]} session={session} siteUrl={SITE_URL} />
   }
 
   if (!session || !profile) return <LoginScreen onSendMagicLink={sendMagicLink} />
