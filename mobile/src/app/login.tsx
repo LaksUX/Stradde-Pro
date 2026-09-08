@@ -18,6 +18,12 @@
 // RootLayout's magic-link deep-link handling (createSessionFromUrl) is left
 // in place as a bonus path in case the link ever does complete successfully,
 // but code entry is now the primary, reliable flow.
+//
+// [decision, M3 Expressive restyle, 2026-09-08] Paper's Button/TextInput
+// pick up the app's new M3 theme (_layout.tsx) automatically — this screen
+// didn't need a rewrite, just a bolder headline treatment (displaySmall
+// instead of headlineMedium, a bigger hero glyph) to match the rest of the
+// app's push toward bigger, bolder type.
 import { useState } from "react"
 import { View, KeyboardAvoidingView, Platform } from "react-native"
 import { Text, TextInput, Button } from "react-native-paper"
@@ -70,11 +76,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View className="flex-1 justify-center px-6">
-        <Text className="text-5xl mb-4 text-center">{stage === "email" ? "♠" : "✉️"}</Text>
+        <Text className="text-6xl mb-5 text-center">{stage === "email" ? "♠" : "✉️"}</Text>
 
         {stage === "email" ? (
           <>
-            <Text variant="headlineMedium" className="text-gold mb-1 text-center font-bold">
+            <Text variant="displaySmall" className="text-gold-vivid mb-1 text-center font-black tracking-tight">
               Poker Night
             </Text>
             <Text className="text-white/60 mb-8 text-center">Sign in with your email</Text>
@@ -96,13 +102,15 @@ export default function LoginScreen() {
               loading={loading}
               disabled={!email.trim() || loading}
               onPress={sendCode}
+              contentStyle={{ height: 50 }}
+              labelStyle={{ fontSize: 15, fontWeight: "800" }}
             >
               Send code
             </Button>
           </>
         ) : (
           <>
-            <Text variant="headlineSmall" className="text-white font-bold text-center">
+            <Text variant="headlineSmall" className="text-white font-black text-center tracking-tight">
               Check your email
             </Text>
             <Text className="text-white/60 text-sm mt-2 mb-8 text-center">
@@ -125,6 +133,8 @@ export default function LoginScreen() {
               loading={loading}
               disabled={!code.trim() || loading}
               onPress={verifyCode}
+              contentStyle={{ height: 50 }}
+              labelStyle={{ fontSize: 15, fontWeight: "800" }}
             >
               Verify
             </Button>

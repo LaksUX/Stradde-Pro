@@ -18,18 +18,45 @@ import { supabase } from "@/lib/supabase"
 import { AppStateProvider, useAppState } from "@/lib/AppContext"
 import { AppToast } from "@/components/Toast"
 
-// Matches the web app's "casino felt" theme tokens (src/index.css @theme
-// block) so the two apps read as the same product, not a restyle.
+// ─── Material 3 Expressive theme, 2026-09-08 ───────────────────────────────
+// [decision, docs/MOBILE_MIGRATION_PLAN.md -> M3 Expressive restyle] Full
+// MD3 dark color-role set, not just the handful of keys the old felt/gold
+// theme touched — real primary/secondary/tertiary pairs with their
+// container + on-* counterparts, so Paper's own components (login.tsx's
+// TextInput/Button — the one screen that actually uses Paper widgets
+// directly) get authentic M3 ripple/elevation/state-layer behavior instead
+// of falling back to MD3DarkTheme's default purple. Same hex values as
+// mobile/tailwind.config.js's new token families (gold=primary,
+// mint=secondary, bloom=tertiary, felt.surface-3/4=the extra elevation
+// tiers) so Paper-driven and NativeWind-driven UI read as one system.
 const theme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: "#caa043",
-    secondary: "#e0bb5c",
+    primary: "#b68616",
+    onPrimary: "#2d2106",
+    primaryContainer: "#5b430b",
+    onPrimaryContainer: "#f9edd2",
+    secondary: "#3b9169",
+    onSecondary: "#ffffff",
+    secondaryContainer: "#1e4834",
+    onSecondaryContainer: "#dbf0e6",
+    tertiary: "#a52777",
+    onTertiary: "#ffffff",
+    tertiaryContainer: "#53133b",
+    onTertiaryContainer: "#f5d6ea",
     background: "#0a0f0c",
+    onBackground: "#e3e8e5",
     surface: "#121b16",
+    onSurface: "#e3e8e5",
     surfaceVariant: "#182620",
-    outline: "#24352c",
+    onSurfaceVariant: "#c5d3cc",
+    outline: "#4d6658",
+    outlineVariant: "#24352c",
+    error: "#db3624",
+    onError: "#ffffff",
+    errorContainer: "#58160e",
+    onErrorContainer: "#f8d7d3",
   },
 }
 
