@@ -128,7 +128,7 @@ export default function CreateGameRoute() {
           <View className="px-5 pt-14 pb-6 border-b border-felt-border">
             <View className="flex-row items-center gap-2">
               <Text className="text-emerald-400 text-lg">✓</Text>
-              <Text className="text-white text-xl font-bold">Game Created</Text>
+              <Text className="text-white text-xl font-black tracking-tight">Game Created</Text>
             </View>
             <Text className="text-zinc-400 text-sm mt-1">Invite your players, then jump into the game</Text>
           </View>
@@ -171,7 +171,7 @@ export default function CreateGameRoute() {
             <Text className="text-zinc-500 text-sm">✕</Text>
             <Text className="text-zinc-500 text-sm">Cancel</Text>
           </Pressable>
-          <Text className="text-white text-xl font-bold">New Game</Text>
+          <Text className="text-white text-xl font-black tracking-tight">New Game</Text>
           <Text className="text-zinc-400 text-sm mt-1">Configure the session</Text>
         </View>
 

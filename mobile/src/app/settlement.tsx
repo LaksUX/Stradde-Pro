@@ -197,7 +197,7 @@ function SettlementBody({
           </Pressable>
           <View className="flex-row items-center justify-between">
             <View>
-              <Text className="text-white text-xl font-bold">Settlement</Text>
+              <Text className="text-white text-xl font-black tracking-tight">Settlement</Text>
               <Text className="text-zinc-400 text-sm mt-1">
                 {game.name} · {game.date}
               </Text>

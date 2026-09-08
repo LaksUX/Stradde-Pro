@@ -289,7 +289,7 @@ function LiveGameBody({
 
   return (
     <View className="flex-1 bg-felt-bg">
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#caa043" />}>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e3a71c" />}>
         {/* Header */}
         <View className="px-5 pt-14 pb-5 border-b border-felt-border">
           <View className="flex-row items-center justify-between mb-4">
@@ -313,7 +313,7 @@ function LiveGameBody({
               <Text className={cn("text-xs font-semibold", checkOverdue ? "text-amber-300" : "text-zinc-400")}>Bank Check</Text>
             </Pressable>
           </View>
-          <Text className="text-white text-xl font-bold">{game.name}</Text>
+          <Text className="text-white text-xl font-black tracking-tight">{game.name}</Text>
           <Text className="text-zinc-400 text-xs mt-1">
             {players.length} players · {game.date}
             {game.time ? ` · ${game.time}` : ""}

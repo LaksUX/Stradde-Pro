@@ -180,7 +180,7 @@ function CashoutEntryBody({
               <Text className="text-zinc-400 text-xs">Back to buy-ins</Text>
             </Pressable>
           </View>
-          <Text className="text-white text-xl font-bold">{game.name}</Text>
+          <Text className="text-white text-xl font-black tracking-tight">{game.name}</Text>
           <Text className="text-zinc-400 text-xs mt-1">
             {players.length} players · {game.date}
             {game.time ? ` · ${game.time}` : ""}

@@ -56,7 +56,7 @@ function PlayerView({ game, viewerName, onBack }: { game: any; viewerName: strin
             <Text className="text-zinc-400 text-sm">✕</Text>
             <Text className="text-zinc-400 text-sm">Back</Text>
           </Pressable>
-          <Text className="text-white text-xl font-bold">{game.name}</Text>
+          <Text className="text-white text-xl font-black tracking-tight">{game.name}</Text>
           <Text className="text-zinc-400 text-sm mt-1">
             {game.date} · hosted by {game.hostName}
           </Text>
@@ -113,7 +113,7 @@ function HostView({
             <Text className="text-zinc-400 text-sm">Back</Text>
           </Pressable>
           <View className="flex-row items-center gap-2">
-            <Text className="text-white text-xl font-bold">{game.name}</Text>
+            <Text className="text-white text-xl font-black tracking-tight">{game.name}</Text>
             {isClosed ? (
               <Text className="text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-md bg-felt-surface-2 text-zinc-400 border border-felt-border">
                 Closed
