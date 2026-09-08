@@ -1,15 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ─── Material 3 Expressive token upgrade, 2026-09-08 ──────────────────────
+ * Mirrors mobile/tailwind.config.js's M3 pass exactly (same hex values) so
+ * web and native share one brand palette. Existing key names are kept and
+ * their VALUES redefined (bolder/richer) — every already-built screen that
+ * references bg-felt-surface, text-gold-light, etc. picks up the bolder
+ * look for free, same low-risk "swap values, not class names" approach
+ * used on native. New keys are additive:
+ *   - felt-surface-3 / felt-surface-4 — extra neutral elevation tiers
+ *     (surfaceContainerHigh / surfaceContainerHighest) for sheets, dialogs,
+ *     toasts, and anything that should read as floating above ordinary
+ *     felt-surface cards.
+ *   - felt-outline — bolder border for emphasis, separate from the quiet
+ *     default felt-border.
+ *   - gold-vivid — a more saturated primary tone for accents paired with
+ *     dark text (gold/gold-light/gold-dark also got bolder/richer values,
+ *     but stay safe for white-text-on-filled-button use).
+ *   - mint (secondary) and bloom (tertiary) — the two other M3 accent
+ *     hues this app never had; a felt/gold-only palette isn't actually
+ *     Material 3, which is built around three distinct accent hues plus a
+ *     multi-tier neutral surface family.
+ * Tones are hand-generated (HSL, gold 42°/mint 152°/bloom 322°) at roughly
+ * M3's tone-scale positions — an approximation, judged close enough for a
+ * bold dark-theme app, not lab-verified color science.
+ */
 @theme {
   --color-felt-bg: #0a0f0c;
   --color-felt-surface: #121b16;
   --color-felt-surface-2: #182620;
+  --color-felt-surface-3: #2e3833;
+  --color-felt-surface-4: #39463f;
   --color-felt-border: #24352c;
-  --color-gold: #caa043;
-  --color-gold-light: #e0bb5c;
-  --color-gold-dark: #a9822f;
-  --color-amber-badge: #d99a3d;
+  --color-felt-outline: #4d6658;
+  --color-gold: #b68616;
+  --color-gold-light: #f4dca4;
+  --color-gold-dark: #71540e;
+  --color-gold-vivid: #e3a71c;
+  --color-amber-badge: #e3a71c;
+  --color-mint: #3b9169;
+  --color-mint-light: #b7e1cd;
+  --color-mint-container: #1e4834;
+  --color-bloom: #a52777;
+  --color-bloom-light: #ecacd4;
+  --color-bloom-container: #53133b;
 }
 
 @layer base {
@@ -20,7 +54,7 @@
     --card-foreground: 40 10% 95%;
     --popover: 147 20% 8.8%;
     --popover-foreground: 40 10% 95%;
-    --primary: 41 56% 52.7%;
+    --primary: 42 78% 40%;
     --primary-foreground: 20 20% 12%;
     --secondary: 154 23% 12.2%;
     --secondary-foreground: 40 10% 95%;
@@ -32,53 +66,22 @@
     --destructive-foreground: 40 10% 95%;
     --border: 148 19% 17.5%;
     --input: 148 19% 17.5%;
-    --ring: 41 56% 52.7%;
+    --ring: 42 78% 40%;
     --radius: 0.5rem;
   }
-
-  * {
-    border-color: hsl(var(--border));
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  html, body {
-    overflow-x: hidden;
-    width: 100%;
-  }
-
-  body {
-    background-color: #0a0f0c;
-    font-family: 'Inter', sans-serif;
-    color: hsl(var(--foreground));
-    min-height: 100vh;
-  }
+  * { border-color: hsl(var(--border)); -webkit-tap-highlight-color: transparent; }
+  html, body { overflow-x: hidden; width: 100%; }
+  body { background-color: #0a0f0c; font-family: 'Inter', sans-serif; color: hsl(var(--foreground)); min-height: 100vh; }
 }
 
 @layer utilities {
   .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-  /* Blink animation for live dot */
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   .animate-blink { animation: blink 1.4s ease-in-out infinite; }
-
-  @keyframes slideUp {
-    from { transform: translateY(8px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
+  @keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .animate-slide-up { animation: slideUp 0.2s ease; }
-
-  @keyframes popIn {
-    from { transform: scale(0.85); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
+  @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .animate-pop { animation: popIn 0.15s ease; }
-
-  @keyframes sheetUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
   .animate-sheet-up { animation: sheetUp 0.24s cubic-bezier(0.32, 0.72, 0, 1); }
 }

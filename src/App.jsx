@@ -86,16 +86,16 @@ function SegTabs({ tabs, active, onChange }) {
 function Keypad({ onDigit, onBackspace, onClear }) {
   const keys = ["7","8","9","4","5","6","1","2","3","⌫","0","C"]
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-2.5">
       {keys.map(k => (
         <button
           key={k}
           onClick={() => k === "⌫" ? onBackspace() : k === "C" ? onClear() : onDigit(k)}
           className={cn(
-            "h-11.5 rounded-xl flex items-center justify-center text-base font-bold font-mono transition-colors",
+            "h-14 rounded-2xl flex items-center justify-center text-lg font-bold font-mono transition-all active:scale-95",
             (k === "⌫" || k === "C")
-              ? "bg-felt-surface-2 text-zinc-300 hover:bg-zinc-700"
-              : "bg-felt-surface-2/70 border border-felt-border text-zinc-100 hover:bg-zinc-700"
+              ? "bg-felt-surface-3 text-zinc-200 hover:bg-felt-surface-4"
+              : "bg-felt-surface-2 border border-felt-border text-zinc-100 hover:bg-felt-surface-3"
           )}
         >
           {k}
@@ -156,12 +156,12 @@ function BuyinSlider({ value, onChange, max = 30, min = 0 }) {
 // ─── Small status dot (replaces text pills/badges for in-play/settled state) ──
 function Dot({ color, className }) {
   const map = {
-    indigo: "bg-gold-light shadow-[0_0_6px_rgba(224,187,92,0.7)]",
-    emerald: "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]",
-    red: "bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.7)]",
-    zinc: "bg-zinc-600",
+    indigo: "bg-gold-vivid shadow-[0_0_7px_rgba(227,167,28,0.8)]",
+    emerald: "bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,0.8)]",
+    red: "bg-red-400 shadow-[0_0_7px_rgba(248,113,113,0.8)]",
+    zinc: "bg-felt-outline",
   }
-  return <span className={cn("w-2 h-2 rounded-full shrink-0", map[color] || map.zinc, className)} />
+  return <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", map[color] || map.zinc, className)} />
 }
 
 const avGrad = (name) => {
@@ -294,15 +294,19 @@ const SEED_PAST_GAMES = [
 const KNOWN_PLAYERS = [...new Set(SEED_PAST_GAMES.flatMap(g => g.players.map(p => p.name)))]
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
+// [M3 Expressive restyle, 2026-09-08] Switched from a rounded-square
+// "squircle" to a fully circular avatar — the direct Android Contacts/Phone
+// app cue for identity chips — and bumped default weight/tracking so
+// initials read bolder at every size.
 function Av({ name, size = 36 }) {
   return (
     <div
-      className="rounded-xl flex items-center justify-center font-bold text-white shrink-0 select-none"
+      className="rounded-full flex items-center justify-center font-extrabold text-white shrink-0 select-none"
       style={{
         width: size, height: size,
         background: avGrad(name),
-        fontSize: size <= 28 ? 10 : size <= 38 ? 12 : 14,
-        letterSpacing: "0.05em",
+        fontSize: size <= 28 ? 10.5 : size <= 38 ? 13 : 15,
+        letterSpacing: "0.03em",
       }}
     >
       {initials(name)}
@@ -315,10 +319,10 @@ function Toast({ toast }) {
   if (!toast) return null
   return (
     <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[100] px-4">
-      <div className="flex items-center gap-3 bg-felt-surface-2 border border-felt-border text-white px-4 py-3 rounded-2xl shadow-2xl shadow-black/50 max-w-[320px] sm:max-w-sm">
-        <span className="text-lg leading-none">{toast.icon}</span>
+      <div className="flex items-center gap-3 bg-felt-surface-3 border border-felt-outline text-white px-4.5 py-3.5 rounded-2xl shadow-2xl shadow-black/50 max-w-[320px] sm:max-w-sm">
+        <span className="text-xl leading-none">{toast.icon}</span>
         <div>
-          <div className="text-sm font-semibold text-zinc-100">{toast.title}</div>
+          <div className="text-sm font-bold text-zinc-100">{toast.title}</div>
           {toast.msg && <div className="text-xs text-zinc-400 mt-0.5">{toast.msg}</div>}
         </div>
       </div>
@@ -329,8 +333,8 @@ function Toast({ toast }) {
 // ─── Section label ────────────────────────────────────────────────────────────
 function SL({ children, action }) {
   return (
-    <div className="flex items-center justify-between px-5 mb-2.5 mt-6">
-      <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500">{children}</span>
+    <div className="flex items-center justify-between px-5 mb-2.5 mt-7">
+      <span className="text-[11px] font-extrabold tracking-[0.2em] uppercase text-zinc-400">{children}</span>
       {action}
     </div>
   )
@@ -542,7 +546,7 @@ function AdminScreen({ onBack }) {
           explicitly rather than silently omitting the check the spec asks
           for. */}
       <Dialog open={!!revokeTarget} onOpenChange={(o) => { if (!o) setRevokeTarget(null) }}>
-        <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
+        <DialogContent className="max-w-[340px] sm:max-w-md text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-white">Revoke host approval?</DialogTitle>
             <DialogDescription className="text-zinc-400">
@@ -1220,7 +1224,7 @@ function DInput({ label, ...props }) {
     <div>
       {label && <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">{label}</div>}
       <input
-        className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+        className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm placeholder:text-zinc-400 outline-none focus:border-gold-vivid focus:ring-2 focus:ring-gold-vivid/25 transition-all"
         {...props}
       />
     </div>
@@ -1246,7 +1250,7 @@ function EndGameModal({ game, onConfirm, onClose }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
+      <DialogContent className="max-w-[340px] sm:max-w-md text-zinc-100">
         <DialogHeader>
           <DialogTitle className="text-white">Review & Continue</DialogTitle>
           <DialogDescription className="text-zinc-400">Review accounts before moving to settlement.</DialogDescription>
@@ -1276,13 +1280,13 @@ function EndGameModal({ game, onConfirm, onClose }) {
             <input
               type="number" min="0" step="1" placeholder="0" value={rake}
               onChange={e => setRake(e.target.value)}
-              className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm font-mono outline-none focus:border-gold transition-all"
+              className="flex-1 h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm font-mono outline-none focus:border-gold-vivid transition-all"
             />
             <span className="text-zinc-400 text-sm font-bold w-6">B</span>
           </div>
         </div>
 
-        <div className={cn("rounded-xl p-3.5 space-y-2.5 border", balanced ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20")}>
+        <div className={cn("rounded-2xl p-4 space-y-2.5 border", balanced ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20")}>
           <div className={cn("text-xs font-bold uppercase tracking-wider flex items-center gap-1.5", balanced ? "text-emerald-400" : "text-red-400")}>
             {balanced ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
             {balanced ? "Balanced" : "Discrepancy"}
@@ -1306,11 +1310,11 @@ function EndGameModal({ game, onConfirm, onClose }) {
         </div>
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 h-11 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-300 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 bg-felt-surface-2 hover:bg-felt-surface-3 border border-felt-border text-zinc-300 font-bold rounded-full text-sm transition-colors">Cancel</button>
           <button
             disabled={!canProceed}
             onClick={() => onConfirm(rakeAmt)}
-            className="flex-1 h-11 bg-gold hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
+            className="flex-1 h-12 bg-gold hover:bg-gold-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
           >
             Continue →
           </button>
@@ -1810,7 +1814,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
           one; adjustments happen by tapping into a player's own sheet, which
           stays fully editable until this is confirmed. */}
       <Dialog open={showBankCheck} onOpenChange={(o) => { if (!o) setShowBankCheck(false) }}>
-        <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
+        <DialogContent className="max-w-[340px] sm:max-w-md text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-white">Bank Check</DialogTitle>
             <DialogDescription className="text-zinc-400">
@@ -1848,7 +1852,7 @@ function LiveGameScreen({ game, onMutated, onNavigate, showToast, roster, addToR
 
       {/* Edit player — name/phone correction, not a money action. */}
       <Dialog open={!!editingPlayer} onOpenChange={(o) => { if (!o) closeEditPlayer() }}>
-        <DialogContent className="max-w-[340px] sm:max-w-md bg-felt-surface border-felt-border text-zinc-100">
+        <DialogContent className="max-w-[340px] sm:max-w-md text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-white">Edit player</DialogTitle>
           </DialogHeader>
@@ -2509,11 +2513,11 @@ function PaidToggle({ paid, onToggle }) {
       onClick={(e) => { e.stopPropagation(); onToggle() }}
       title={paid ? "Mark as pending" : "Mark as paid"}
       className={cn(
-        "w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
-        paid ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-felt-surface-2 border-felt-border text-zinc-500 hover:text-zinc-300"
+        "w-9 h-9 rounded-full border flex items-center justify-center shrink-0 transition-all active:scale-90",
+        paid ? "bg-mint-container border-mint/50 text-mint-light" : "bg-felt-surface-2 border-felt-border text-zinc-500 hover:text-zinc-300"
       )}
     >
-      <CheckCircle2 className="w-4 h-4" />
+      <CheckCircle2 className="w-4.5 h-4.5" />
     </button>
   )
 }
