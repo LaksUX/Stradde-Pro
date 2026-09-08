@@ -105,6 +105,16 @@ create table settlements (
   paid_by uuid references profiles(id) -- REQUIREMENTS.md -> "record who marked a line paid and when"
 );
 
+create table push_tokens (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  expo_push_token text not null unique,
+  platform text not null check (platform in ('ios', 'android')),
+  created_at timestamptz not null default now()
+);
+
+create index on push_tokens (profile_id);
+
 create index on known_players (host_id);
 create index on games (host_id);
 create index on game_players (game_id);
@@ -122,6 +132,7 @@ alter table game_players enable row level security;
 alter table buyins enable row level security;
 alter table bank_checks enable row level security;
 alter table settlements enable row level security;
+alter table push_tokens enable row level security;
 
 -- profiles
 create policy "profiles readable" on profiles for select using (true);
@@ -174,6 +185,10 @@ $$ language sql security definer stable;
 create or replace function is_party_to_settlement(from_gp uuid, to_gp uuid) returns boolean as $$
   select exists (select 1 from game_players where id in (from_gp, to_gp) and profile_id = auth.uid());
 $$ language sql security definer stable;
+
+-- push_tokens: a profile can only see/manage its own device tokens
+create policy "push_tokens own only" on push_tokens for all
+  using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
 
 -- known_players: only the host who owns the roster can see/manage it
 create policy "known_players host only" on known_players for all

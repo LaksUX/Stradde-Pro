@@ -9,10 +9,13 @@
 // _layout.tsx, wrapping every route.
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { useRouter } from "expo-router"
+import { Platform } from "react-native"
 import { supabase } from "@/lib/supabase"
 import { ensureProfile } from "@/lib/auth"
 import * as gamesApi from "@/lib/gamesApi"
 import * as knownPlayersApi from "@/lib/knownPlayersApi"
+import { savePushToken } from "@/lib/pushTokensApi"
+import { registerForPushNotificationsAsync } from "@/lib/pushNotifications"
 
 type Toast = { icon: string; title: string; msg?: string } | null
 
@@ -168,6 +171,28 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
     }
   }, [accountId, showToast])
+
+  // Push notification registration — Phase 4 client half (see
+  // mobile/src/lib/pushNotifications.ts's header for the full picture,
+  // including the two real limitations: no EAS projectId configured yet,
+  // and Expo Go on Android (SDK 53+) can't receive remote push at all).
+  // Best-effort and silent: only approved hosts/admins actually use the
+  // app meaningfully, and a failure here should never block anything else.
+  useEffect(() => {
+    if (!accountId || !(isAdmin || isApprovedHost)) return
+    let cancelled = false
+    registerForPushNotificationsAsync()
+      .then((token) => {
+        if (cancelled || !token) return
+        return savePushToken(accountId, token, Platform.OS)
+      })
+      .catch((err) => {
+        console.log("Push notification registration failed (non-fatal):", err)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [accountId, isAdmin, isApprovedHost])
 
   const addToRoster = useCallback(
     (name: string, phone: string) => {
