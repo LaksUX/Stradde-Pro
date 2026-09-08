@@ -88,8 +88,8 @@ export default function HomeScreen() {
         <Text className="text-zinc-400 text-sm mt-3 font-medium text-center leading-relaxed">
           Your account is set up. Ask the app admin to approve you as a host to create games.
         </Text>
-        <Pressable onPress={logout} className="mt-8 w-full max-w-xs h-12 bg-felt-surface border border-felt-border rounded-xl items-center justify-center">
-          <Text className="text-zinc-300 font-bold text-sm">Sign out</Text>
+        <Pressable onPress={logout} className="mt-8 w-full max-w-xs h-13 bg-felt-surface-2 border border-felt-border rounded-full items-center justify-center">
+          <Text className="text-zinc-200 font-bold text-sm">Sign out</Text>
         </Pressable>
       </View>
     )
@@ -124,12 +124,12 @@ export default function HomeScreen() {
               <Pressable
                 onPress={sendTestNotification}
                 disabled={sendingTestNotif}
-                className="p-2.5 rounded-xl bg-felt-surface border border-felt-border"
+                className="w-10 h-10 rounded-full bg-felt-surface-2 border border-felt-border items-center justify-center"
               >
-                <Text className="text-zinc-500 text-sm">{sendingTestNotif ? "⋯" : "🔔"}</Text>
+                <Text className="text-zinc-400 text-sm">{sendingTestNotif ? "⋯" : "🔔"}</Text>
               </Pressable>
-              <Pressable onPress={logout} className="p-2.5 rounded-xl bg-felt-surface border border-felt-border">
-                <Text className="text-zinc-500 text-sm">⎋</Text>
+              <Pressable onPress={logout} className="w-10 h-10 rounded-full bg-felt-surface-2 border border-felt-border items-center justify-center">
+                <Text className="text-zinc-400 text-sm">⎋</Text>
               </Pressable>
             </View>
           </View>
@@ -139,7 +139,7 @@ export default function HomeScreen() {
           {activeGame && (
             <Pressable
               onPress={() => router.push((activeGame.status === "cashout" ? "/cashout-entry" : "/live-game") as never)}
-              className="rounded-2xl bg-emerald-950 border border-emerald-800/50 p-4"
+              className="rounded-3xl bg-emerald-950 border border-emerald-700/60 p-4.5"
             >
               <View className="flex-row items-center gap-2 mb-2">
                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -155,14 +155,14 @@ export default function HomeScreen() {
 
         {/* Host/Player filter */}
         <View className="px-5 mt-4 flex-row">
-          <View className="flex-row items-center gap-1 bg-felt-surface-2/70 border border-felt-border rounded-full p-1">
+          <View className="flex-row items-center gap-1 bg-felt-surface-2 border border-felt-outline rounded-full p-1.5">
             {(["host", "player"] as const).map((f) => (
               <Pressable
                 key={f}
                 onPress={() => setFilter(f)}
-                className={cn("px-3.5 py-1.5 rounded-full", filter === f && "bg-gold")}
+                className={cn("px-4 py-2 rounded-full", filter === f && "bg-gold")}
               >
-                <Text className={cn("text-[11px] font-bold", filter === f ? "text-white" : "text-zinc-400")}>
+                <Text className={cn("text-xs font-bold", filter === f ? "text-[#241a05]" : "text-zinc-400")}>
                   {f === "host" ? "Host" : "Player"}
                 </Text>
               </Pressable>
@@ -178,15 +178,15 @@ export default function HomeScreen() {
         {tab === "overview" && filter === "host" && (
           <>
             <View className="px-5 mt-4">
-              <Pressable onPress={() => router.push("/create-game" as never)} className="rounded-2xl bg-felt-surface border border-felt-border p-4 flex-row items-center gap-4">
-                <View className="w-11 h-11 rounded-xl bg-gold/20 border border-gold/30 items-center justify-center">
-                  <Text className="text-gold-light text-lg font-bold">+</Text>
+              <Pressable onPress={() => router.push("/create-game" as never)} className="rounded-3xl bg-felt-surface-2 border border-felt-outline p-4.5 flex-row items-center gap-4">
+                <View className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 items-center justify-center">
+                  <Text className="text-gold-light text-xl font-bold">+</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-white font-bold text-sm">New Game</Text>
+                  <Text className="text-white font-bold text-[15px]">New Game</Text>
                   <Text className="text-zinc-400 text-xs mt-0.5">Set up players & buy-ins</Text>
                 </View>
-                <Text className="text-zinc-400">›</Text>
+                <Text className="text-zinc-400 text-lg">›</Text>
               </Pressable>
             </View>
             <SL>Hosting Overview</SL>
@@ -199,7 +199,7 @@ export default function HomeScreen() {
                     const h = g.players.find((p: any) => p.name === hostName)
                     const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
                     return (
-                      <Pressable key={g.id} onPress={() => viewGameDetail(g, true)} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3.5 flex-row items-center gap-3">
+                      <Pressable key={g.id} onPress={() => viewGameDetail(g, true)} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-4 flex-row items-center gap-3">
                         <View className={cn("w-1 h-9 rounded-full", net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600")} />
                         <View className="flex-1">
                           <Text className="font-semibold text-zinc-100 text-sm">{g.name}</Text>
@@ -254,7 +254,7 @@ export default function HomeScreen() {
                       const h = g.players.find((p: any) => p.name === hostName)
                       const net = h ? h.cashoutAmount - totalBuyinsFor(h) : null
                       return (
-                        <Pressable key={g.id} onPress={() => viewGameDetail(g, false)} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3.5 flex-row items-center gap-3">
+                        <Pressable key={g.id} onPress={() => viewGameDetail(g, false)} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-4 flex-row items-center gap-3">
                           <View className={cn("w-1 h-9 rounded-full", net === null ? "bg-zinc-700" : net > 0 ? "bg-emerald-500" : net < 0 ? "bg-red-500" : "bg-zinc-600")} />
                           <View className="flex-1">
                             <Text className="font-semibold text-zinc-100 text-sm">{g.name}</Text>
@@ -304,19 +304,19 @@ function HostStatsView({ pastGames, hostName }: { pastGames: any[]; hostName: st
   return (
     <View className="px-5 gap-2.5">
       <View className="flex-row flex-wrap gap-2.5">
-        <View className="flex-1 min-w-[45%] bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <View className="flex-1 min-w-[45%] bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <Text className="text-[9px] font-bold tracking-[1.5px] uppercase text-zinc-500">Games Hosted</Text>
           <Text className="text-white font-mono text-2xl font-extrabold mt-1">{gamesHosted}</Text>
         </View>
-        <View className="flex-1 min-w-[45%] bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <View className="flex-1 min-w-[45%] bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <Text className="text-[9px] font-bold tracking-[1.5px] uppercase text-zinc-500">Players Hosted</Text>
           <Text className="text-white font-mono text-2xl font-extrabold mt-1">{uniquePlayers}</Text>
         </View>
-        <View className="flex-1 min-w-[45%] bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <View className="flex-1 min-w-[45%] bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <Text className="text-[9px] font-bold tracking-[1.5px] uppercase text-zinc-500">Rake Collected</Text>
-          <NumB value={totalRake} size="text-2xl" className="mt-1 text-amber-400" />
+          <NumB value={totalRake} size="text-2xl" className="mt-1 text-gold-vivid" />
         </View>
-        <View className="flex-1 min-w-[45%] bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+        <View className="flex-1 min-w-[45%] bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
           <Text className="text-[9px] font-bold tracking-[1.5px] uppercase text-zinc-500">Avg Pot / Game</Text>
           <NumB value={avgPot} size="text-2xl" className="mt-1 text-zinc-100" />
         </View>
@@ -330,9 +330,9 @@ function PaidToggle({ paid, onToggle }: { paid: boolean; onToggle: () => void })
   return (
     <Pressable
       onPress={onToggle}
-      className={cn("w-7 h-7 rounded-lg border items-center justify-center", paid ? "bg-emerald-500/20 border-emerald-500/40" : "bg-felt-surface-2 border-felt-border")}
+      className={cn("w-9 h-9 rounded-full border items-center justify-center", paid ? "bg-mint-container border-mint/50" : "bg-felt-surface-2 border-felt-border")}
     >
-      <Text className={cn("text-xs", paid ? "text-emerald-400" : "text-zinc-500")}>✓</Text>
+      <Text className={cn("text-sm font-bold", paid ? "text-mint-light" : "text-zinc-500")}>✓</Text>
     </Pressable>
   )
 }
@@ -363,7 +363,7 @@ function MySettlementsSection({
         <>
           <Text className="text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-500 mt-1">You owe</Text>
           {iOwe.map((t: any, i: number) => (
-            <View key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex-row items-center gap-3">
+            <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex-row items-center gap-3">
               <Pressable onPress={() => onSelectGame(t.game)} className="flex-1 flex-row items-center gap-3">
                 <Av name={t.to} size={28} />
                 <View className="flex-1">
@@ -383,7 +383,7 @@ function MySettlementsSection({
         <>
           <Text className="text-[10px] font-bold tracking-[1.5px] uppercase text-zinc-500 mt-2">Owed to you</Text>
           {owedToMe.map((t: any, i: number) => (
-            <View key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex-row items-center gap-3">
+            <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex-row items-center gap-3">
               <Pressable onPress={() => onSelectGame(t.game)} className="flex-1 flex-row items-center gap-3">
                 <Av name={t.from} size={28} />
                 <View className="flex-1">
@@ -424,12 +424,12 @@ function SettlementLedgerSection({
     <View className="gap-2">
       {hostedPlayers.length > 0 && (
         <View className="flex-row flex-wrap gap-1.5 mb-1">
-          <Pressable onPress={() => setDrillPlayer(null)} className={cn("px-2.5 py-1 rounded-full border", !drillPlayer ? "bg-gold border-gold" : "bg-felt-surface-2 border-felt-border")}>
-            <Text className={cn("text-[11px] font-bold", !drillPlayer ? "text-white" : "text-zinc-400")}>All players</Text>
+          <Pressable onPress={() => setDrillPlayer(null)} className={cn("px-3.5 py-2 rounded-full border", !drillPlayer ? "bg-gold border-gold" : "bg-felt-surface-2 border-felt-border")}>
+            <Text className={cn("text-xs font-bold", !drillPlayer ? "text-[#241a05]" : "text-zinc-400")}>All players</Text>
           </Pressable>
           {hostedPlayers.map((p: any) => (
-            <Pressable key={p} onPress={() => setDrillPlayer(p)} className={cn("px-2.5 py-1 rounded-full border", drillPlayer === p ? "bg-gold border-gold" : "bg-felt-surface-2 border-felt-border")}>
-              <Text className={cn("text-[11px] font-bold", drillPlayer === p ? "text-white" : "text-zinc-400")}>{p}</Text>
+            <Pressable key={p} onPress={() => setDrillPlayer(p)} className={cn("px-3.5 py-2 rounded-full border", drillPlayer === p ? "bg-gold border-gold" : "bg-felt-surface-2 border-felt-border")}>
+              <Text className={cn("text-xs font-bold", drillPlayer === p ? "text-[#241a05]" : "text-zinc-400")}>{p}</Text>
             </Pressable>
           ))}
         </View>
@@ -438,7 +438,7 @@ function SettlementLedgerSection({
         <Text className="text-zinc-400 text-xs text-center py-6">{hostedClosed.length === 0 ? "No games you've hosted have closed yet." : "No settlement lines to show."}</Text>
       )}
       {drillLines.map((t: any, i: number) => (
-        <View key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex-row items-center gap-3">
+        <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4.5 py-3.5 flex-row items-center gap-3">
           <Pressable onPress={() => onSelectGame(t.game)} className="flex-1">
             <Text className={cn("text-sm font-semibold", t.paid ? "text-zinc-400 line-through" : "text-zinc-100")}>
               {t.from} → {t.to}

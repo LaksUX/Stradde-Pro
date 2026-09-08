@@ -49,14 +49,17 @@ export function NumB({
 }
 
 // ─── Small status dot (in-play/locked/settled state) ──────────────────────
+// [decision, M3 structural pass, 2026-09-08] Bumped from w-2/h-2 to
+// w-2.5/h-2.5 and "indigo" moved from gold-light to gold-vivid, matching
+// the same bolder-dot decision made on web.
 export function Dot({ color = "zinc", className = "" }: { color?: "indigo" | "emerald" | "red" | "zinc"; className?: string }) {
   const map: Record<string, string> = {
-    indigo: "bg-gold-light",
+    indigo: "bg-gold-vivid",
     emerald: "bg-emerald-400",
     red: "bg-red-400",
-    zinc: "bg-felt-surface-2",
+    zinc: "bg-felt-outline",
   }
-  return <View className={cn("w-2 h-2 rounded-full", map[color] || map.zinc, className)} />
+  return <View className={cn("w-2.5 h-2.5 rounded-full", map[color] || map.zinc, className)} />
 }
 
 // ─── Avatar — solid color (hashed from name) + initials, not web's gradient
@@ -78,7 +81,7 @@ export function Av({ name, size = 36 }: { name: string; size?: number }) {
       style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: avColor(name) }}
       className="items-center justify-center"
     >
-      <Text style={{ fontSize: size * 0.38 }} className="text-white font-bold">
+      <Text style={{ fontSize: size * 0.4, letterSpacing: 0.3 }} className="text-white font-extrabold">
         {initials(name)}
       </Text>
     </View>
@@ -119,18 +122,18 @@ export function AppSheet({
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
-        <View className="bg-felt-surface-3 border-t border-felt-outline rounded-t-3xl px-5 pt-3 pb-8 max-h-[85%]">
-          <View className="w-10 h-1 rounded-full bg-felt-border self-center mb-4" />
+        <View className="bg-felt-surface-3 border-t border-felt-outline rounded-t-[28px] px-5 pt-3.5 pb-8 max-h-[85%]">
+          <View className="w-11 h-1.5 rounded-full bg-felt-outline self-center mb-4" />
           <View className="flex-row items-center gap-3 mb-4">
             {avatar}
             <View className="flex-1">
-              {title ? <Text className="text-white font-bold text-base">{title}</Text> : null}
+              {title ? <Text className="text-white font-extrabold text-base">{title}</Text> : null}
               {subtitle ? <Text className="text-zinc-400 text-xs mt-0.5">{subtitle}</Text> : null}
             </View>
             <Pressable
               onPress={onClose}
               style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}
-              className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center"
+              className="w-9 h-9 rounded-full bg-felt-surface-2 border border-felt-border items-center justify-center"
             >
               <Text className="text-zinc-400 text-xs">✕</Text>
             </Pressable>
@@ -163,7 +166,7 @@ export function AppDialog({
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 items-center justify-center px-6">
         <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
-        <View className="w-full max-w-[340px] bg-felt-surface-3 border border-felt-outline rounded-2xl p-4">
+        <View className="w-full max-w-[340px] bg-felt-surface-3 border border-felt-outline rounded-[28px] p-4.5">
           {title ? <Text className="text-white font-bold text-base mb-1">{title}</Text> : null}
           {description ? <Text className="text-zinc-400 text-xs mb-3">{description}</Text> : null}
           {children}
@@ -189,7 +192,7 @@ export function SegTabs({ tabs, active, onChange }: { tabs: string[]; active: st
           key={t}
           onPress={() => onChange(t)}
           style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}
-          className={cn("flex-1 h-8 rounded-full items-center justify-center", active === t && "bg-bloom")}
+          className={cn("flex-1 h-9 rounded-full items-center justify-center", active === t && "bg-bloom shadow-md")}
         >
           <Text className={cn("text-xs font-bold", active === t ? "text-white" : "text-zinc-400")}>{t}</Text>
         </Pressable>
@@ -227,11 +230,11 @@ export function Keypad({
           onPress={() => (k === "⌫" ? onBackspace() : k === "C" ? onClear() : onDigit(k))}
           style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.93 : 1 }] })}
           className={cn(
-            "w-[31%] h-12 mb-2 rounded-xl items-center justify-center",
-            k === "⌫" || k === "C" ? "bg-felt-surface-2" : "bg-felt-surface-2/70 border border-felt-border"
+            "w-[31%] h-14 mb-2.5 rounded-2xl items-center justify-center",
+            k === "⌫" || k === "C" ? "bg-felt-surface-3" : "bg-felt-surface-2 border border-felt-border"
           )}
         >
-          <Text className="text-zinc-100 text-base font-bold font-mono">{k}</Text>
+          <Text className="text-zinc-100 text-lg font-bold font-mono">{k}</Text>
         </Pressable>
       ))}
     </View>

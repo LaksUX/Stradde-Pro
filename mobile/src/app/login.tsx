@@ -76,7 +76,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View className="flex-1 justify-center px-6">
-        <Text className="text-6xl mb-5 text-center">{stage === "email" ? "♠" : "✉️"}</Text>
+        <Text className="text-7xl mb-6 text-center">{stage === "email" ? "♠" : "✉️"}</Text>
 
         {stage === "email" ? (
           <>
@@ -102,7 +102,7 @@ export default function LoginScreen() {
               loading={loading}
               disabled={!email.trim() || loading}
               onPress={sendCode}
-              contentStyle={{ height: 50 }}
+              contentStyle={{ height: 56 }}
               labelStyle={{ fontSize: 15, fontWeight: "800" }}
             >
               Send code
@@ -133,7 +133,7 @@ export default function LoginScreen() {
               loading={loading}
               disabled={!code.trim() || loading}
               onPress={verifyCode}
-              contentStyle={{ height: 50 }}
+              contentStyle={{ height: 56 }}
               labelStyle={{ fontSize: 15, fontWeight: "800" }}
             >
               Verify
