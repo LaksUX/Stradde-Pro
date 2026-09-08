@@ -1,65 +1,67 @@
-// ─── Login (email magic-link) ──────────────────────────────────────────────
-// [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 2, reversed 2026-09-08]
-// This was phone OTP via Twilio Verify until this pass. Reversed after
-// finding that Indian phone numbers (this app's actual player base) need
-// India's DLT (telecom) registration before Twilio will deliver OTP SMS to
-// them at all — a multi-day process that expects a registered business
-// entity, not something to take on for a home-game app among friends right
-// now. Email magic-link reuses exactly what's already live on the web app,
-// at the cost of the deep-link round trip this screen and RootLayout handle
-// (see RootLayout's createSessionFromUrl) — the friction phone OTP was
-// originally chosen to avoid. Revisit phone OTP if DLT registration ever
-// makes sense to do for real (see the migration plan for the full tradeoff).
+// ─── Login (email OTP code) ────────────────────────────────────────────────
+// [decision, docs/MOBILE_MIGRATION_PLAN.md -> Phase 2, revised 2026-09-08]
+// Originally built as tap-the-magic-link, matching the web app. That requires
+// completing a deep-link round trip (Supabase's /verify endpoint redirecting
+// back into the app via its exp:// or pokernight:// URL), which turned out
+// to be unreliable while testing in Expo Go: Gmail's in-app browser doesn't
+// complete custom-scheme handoffs, and — more fundamentally — Supabase kept
+// falling back to the project's Site URL (a different, unrelated app that
+// shares this same Supabase project) instead of honoring the exp://<lan-ip>
+// redirect_to, even once it was added to Authentication -> URL Configuration
+// -> Redirect URLs. Root cause never fully confirmed (see the migration plan
+// for the full troubleshooting trail); rather than keep chasing it, switched
+// to a mechanism that doesn't need a redirect URL at all.
+//
+// Supabase's OTP email includes a 6-digit code alongside the link. Verifying
+// that code directly via supabase.auth.verifyOtp() needs no link tap, no
+// redirect_to, no browser handoff — sidesteps the whole class of problem.
+// RootLayout's magic-link deep-link handling (createSessionFromUrl) is left
+// in place as a bonus path in case the link ever does complete successfully,
+// but code entry is now the primary, reliable flow.
 import { useState } from "react"
 import { View, KeyboardAvoidingView, Platform } from "react-native"
 import { Text, TextInput, Button } from "react-native-paper"
-import { makeRedirectUri } from "expo-auth-session"
 import { supabase } from "@/lib/supabase"
 
-// Resolves to the app's custom scheme deep link (pokernight://) in a real
-// build, or an exp:// URL when running in Expo Go during development — see
-// the Phase 2 note in the migration plan about registering both patterns as
-// Supabase redirect URLs while testing in Expo Go.
-const redirectTo = makeRedirectUri()
-
-type Status = "idle" | "sending" | "sent" | "error"
+type Stage = "email" | "code"
 
 export default function LoginScreen() {
+  const [stage, setStage] = useState<Stage>("email")
   const [email, setEmail] = useState("")
-  const [status, setStatus] = useState<Status>("idle")
+  const [code, setCode] = useState("")
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const submit = async () => {
-    if (!email.trim() || status === "sending") return
-    setStatus("sending")
+  const sendCode = async () => {
+    if (!email.trim() || loading) return
+    setLoading(true)
     setError("")
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: redirectTo },
-    })
+    const { error } = await supabase.auth.signInWithOtp({ email: email.trim() })
+    setLoading(false)
     if (error) {
-      setStatus("error")
       setError(error.message)
       return
     }
-    setStatus("sent")
+    setStage("code")
   }
 
-  if (status === "sent") {
-    return (
-      <View className="flex-1 items-center justify-center bg-felt-bg px-6">
-        <Text className="text-5xl mb-4">✉️</Text>
-        <Text variant="headlineSmall" className="text-white font-bold text-center">
-          Check your email
-        </Text>
-        <Text className="text-white/60 text-sm mt-2 text-center">
-          We sent a magic link to {email}. Open it on this device to sign in.
-        </Text>
-        <Button mode="text" onPress={() => { setStatus("idle"); setError("") }} className="mt-6">
-          Use a different email
-        </Button>
-      </View>
-    )
+  const verifyCode = async () => {
+    if (!code.trim() || loading) return
+    setLoading(true)
+    setError("")
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: code.trim(),
+      type: "email",
+    })
+    setLoading(false)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    // Success: verifyOtp() sets the session on the client itself, which
+    // fires RootLayout's onAuthStateChange listener and redirects to the
+    // signed-in home screen — nothing else to do here.
   }
 
   return (
@@ -68,32 +70,73 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View className="flex-1 justify-center px-6">
-        <Text className="text-5xl mb-4 text-center">♠</Text>
-        <Text variant="headlineMedium" className="text-gold mb-1 text-center font-bold">
-          Poker Night
-        </Text>
-        <Text className="text-white/60 mb-8 text-center">Sign in with your email</Text>
+        <Text className="text-5xl mb-4 text-center">{stage === "email" ? "♠" : "✉️"}</Text>
 
-        <TextInput
-          label="Email"
-          mode="outlined"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          placeholder="you@example.com"
-          autoFocus
-          className="mb-4"
-        />
-        <Button
-          mode="contained"
-          loading={status === "sending"}
-          disabled={!email.trim() || status === "sending"}
-          onPress={submit}
-        >
-          Send magic link
-        </Button>
+        {stage === "email" ? (
+          <>
+            <Text variant="headlineMedium" className="text-gold mb-1 text-center font-bold">
+              Poker Night
+            </Text>
+            <Text className="text-white/60 mb-8 text-center">Sign in with your email</Text>
+
+            <TextInput
+              label="Email"
+              mode="outlined"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              placeholder="you@example.com"
+              autoFocus
+              className="mb-4"
+            />
+            <Button
+              mode="contained"
+              loading={loading}
+              disabled={!email.trim() || loading}
+              onPress={sendCode}
+            >
+              Send code
+            </Button>
+          </>
+        ) : (
+          <>
+            <Text variant="headlineSmall" className="text-white font-bold text-center">
+              Check your email
+            </Text>
+            <Text className="text-white/60 text-sm mt-2 mb-8 text-center">
+              Enter the 6-digit code we sent to {email}.
+            </Text>
+
+            <TextInput
+              label="Code"
+              mode="outlined"
+              value={code}
+              onChangeText={setCode}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              autoFocus
+              className="mb-4"
+            />
+            <Button
+              mode="contained"
+              loading={loading}
+              disabled={!code.trim() || loading}
+              onPress={verifyCode}
+            >
+              Verify
+            </Button>
+            <Button
+              mode="text"
+              onPress={() => { setStage("email"); setCode(""); setError("") }}
+              className="mt-2"
+            >
+              Use a different email
+            </Button>
+          </>
+        )}
 
         {error ? <Text className="text-red-400 mt-4 text-center">{error}</Text> : null}
       </View>
