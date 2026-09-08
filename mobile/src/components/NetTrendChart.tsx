@@ -33,7 +33,7 @@ export function NetTrendChart({ pastGames, hostName }: { pastGames: any[]; hostN
 
   if (points.length < 2) {
     return (
-      <View className="bg-felt-surface border border-felt-border rounded-2xl px-4 py-6 items-center">
+      <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-6 items-center">
         <Text className="text-zinc-400 text-xs font-medium text-center">Play a couple more games to see your trend</Text>
       </View>
     )
@@ -56,7 +56,7 @@ export function NetTrendChart({ pastGames, hostName }: { pastGames: any[]; hostN
   const fillColor = up ? "#3b9169" : "#ef4444"
 
   return (
-    <View className="bg-felt-surface border border-felt-border rounded-2xl px-4 pt-4 pb-3">
+    <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 pt-4 pb-3">
       <View className="flex-row items-center justify-between mb-2">
         <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500">Net Trend</Text>
         <NumB value={last} sign size="text-sm" className={up ? "text-mint-light" : "text-red-400"} />

@@ -23,7 +23,7 @@ export default function GameDetailRoute() {
     return (
       <View className="flex-1 items-center justify-center bg-felt-bg px-6">
         <Text className="text-zinc-400 text-sm text-center">No game selected.</Text>
-        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-5 rounded-xl bg-felt-surface-2 border border-felt-border items-center justify-center">
+        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-6 rounded-full bg-felt-surface-2 border border-felt-outline items-center justify-center">
           <Text className="text-zinc-300 text-sm font-semibold">Back</Text>
         </Pressable>
       </View>
@@ -62,15 +62,15 @@ function PlayerView({ game, viewerName, onBack }: { game: any; viewerName: strin
           </Text>
         </View>
         <View className="px-5 pt-5 gap-2.5 pb-10">
-          <View className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex-row items-center justify-between">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex-row items-center justify-between">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your buy-ins</Text>
             <NumB value={myIn} size="text-lg" className="text-white" />
           </View>
-          <View className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex-row items-center justify-between">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex-row items-center justify-between">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your cash-out</Text>
             <NumB value={myOut} size="text-lg" className="text-white" />
           </View>
-          <View className="bg-felt-surface border border-felt-border rounded-2xl p-4 flex-row items-center justify-between">
+          <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4.5 flex-row items-center justify-between">
             <Text className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Your net</Text>
             <NumB value={myNet} sign size="text-xl" className={myNet >= 0 ? "text-emerald-400" : "text-red-400"} />
           </View>
@@ -115,11 +115,11 @@ function HostView({
           <View className="flex-row items-center gap-2">
             <Text className="text-white text-xl font-black tracking-tight">{game.name}</Text>
             {isClosed ? (
-              <Text className="text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-md bg-felt-surface-2 text-zinc-400 border border-felt-border">
+              <Text className="text-[9.5px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full bg-felt-surface-3 text-zinc-400 border border-felt-outline">
                 Closed
               </Text>
             ) : (
-              <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30">
+              <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30">
                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <Text className="text-[9.5px] font-extrabold uppercase tracking-wide text-emerald-400">Game in progress</Text>
               </View>
@@ -136,20 +136,20 @@ function HostView({
         </View>
 
         <View className="px-5 pt-4 flex-row gap-2.5">
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Pot</Text>
             <View className="mt-1">
               <NumB value={totalIn} size="text-[17px]" className="text-white" />
             </View>
           </View>
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Players</Text>
             <Text className="mt-1 text-[17px] font-extrabold text-white">{game.players.length}</Text>
           </View>
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <View className="flex-row items-center justify-between">
               <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</Text>
-              <Pressable onPress={() => setRakeVisible((v) => !v)} className="w-5 h-5 rounded-md bg-felt-surface-2 border border-felt-border items-center justify-center">
+              <Pressable onPress={() => setRakeVisible((v) => !v)} className="w-6 h-6 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center">
                 <Text className="text-zinc-500 text-[9px]">◐</Text>
               </Pressable>
             </View>
@@ -171,7 +171,7 @@ function HostView({
               <View
                 key={pos.name}
                 className={cn(
-                  "bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex-row items-center gap-3 border-l-2",
+                  "bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5 flex-row items-center gap-3 border-l-2",
                   pos.net > 0 ? "border-l-emerald-500" : pos.net < 0 ? "border-l-red-500" : ""
                 )}
               >
@@ -195,7 +195,7 @@ function HostView({
         ) : (
           <View className="px-5 gap-2 pb-10">
             {txns.map((t: any, i: number) => (
-              <View key={i} className="bg-felt-surface border border-felt-border rounded-xl px-4 py-3 flex-row items-center gap-3">
+              <View key={i} className="bg-felt-surface-2 border border-felt-outline rounded-2xl px-4 py-3.5 flex-row items-center gap-3">
                 <Av name={t.from} size={28} />
                 <Text className={cn("text-sm font-semibold", t.paid ? "text-zinc-500 line-through" : "text-red-400")}>{t.from}</Text>
                 <Text className="text-zinc-400">≫</Text>
@@ -208,7 +208,7 @@ function HostView({
                 {isClosed && (
                   <Pressable
                     onPress={() => onTogglePaid(t)}
-                    className={cn("w-7 h-7 rounded-lg border items-center justify-center", t.paid ? "bg-emerald-500/20 border-emerald-500/40" : "bg-felt-surface-2 border-felt-border")}
+                    className={cn("w-8 h-8 rounded-full border items-center justify-center", t.paid ? "bg-emerald-500/20 border-emerald-500/40" : "bg-felt-surface-3 border-felt-outline")}
                   >
                     <Text className={cn("text-xs", t.paid ? "text-emerald-400" : "text-zinc-500")}>✓</Text>
                   </Pressable>
