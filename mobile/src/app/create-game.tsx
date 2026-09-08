@@ -93,7 +93,7 @@ export default function CreateGameRoute() {
       `You're invited! Players:`,
       ...g.players.map((p: any) => `• ${p.name}`),
       ``,
-      `https://pokernight.app/g/${g.id}`,
+      `https://straddle-pro.vercel.app/g/${g.id}`,
     ]
       .filter((l) => l !== null)
       .join("\n")

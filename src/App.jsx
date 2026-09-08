@@ -1010,7 +1010,7 @@ function CreateGameScreen({ pastGames, roster, addToRoster, onCancel, onCreate, 
       `You're invited! Players:`,
       ...g.players.map(p => `• ${p.name}`),
       ``,
-      `https://pokernight.app/g/${g.id}`,
+      `https://straddle-pro.vercel.app/g/${g.id}`,
     ].filter(l => l !== null).join("\n")
   }
 
@@ -2294,7 +2294,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
     ...allTxns.map(t => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
     ...(allTxns.length === 0 ? ["• Everyone's even!"] : []),
     ``,
-    `See your own results: https://pokernight.app/g/${game.id}/results`,
+    `See your own results: https://straddle-pro.vercel.app/g/${game.id}/results`,
     `(sign in with the phone number you played under)`,
   ].join("\n")
 

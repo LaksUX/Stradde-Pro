@@ -317,8 +317,8 @@ never completed a sign-in, across a long troubleshooting pass:
   did nothing visible or silently consumed the one-time token without
   completing the app handoff.
 - Independent of that, Supabase kept redirecting to the project's **Site
-  URL** — which turned out to be set to an unrelated app (`stradde-pro`,
-  a different project sharing this same Supabase backend) — instead of the
+  URL** — which turned out to be set to `stradde-pro.vercel.app`, a misspelled
+  domain name — instead of the
   `exp://<lan-ip>:<port>` `redirect_to` the app actually requested, *even
   after* that exact address was added to Authentication → URL Configuration
   → Redirect URLs (confirmed via the raw `/auth/v1/verify` link's own
@@ -429,12 +429,23 @@ separate template Supabase doesn't sync automatically.
    sense to take on — nothing about either reversal makes it harder to add
    back; it just isn't worth pursuing on this pass. See the "auth was phone
    OTP, then reversed" note above for the full reasoning if revisiting.
-3. This Supabase project is shared with at least one unrelated app
-   (`stradde-pro` — its Site URL is set to that app's Vercel deployment,
-   discovered via Auth Logs while debugging the above). Worth being
-   deliberate about whether that's still the right setup, since project-wide
-   settings (Site URL, rate limits, email templates — including the two
-   templates just edited above) affect both apps.
+3. ~~This Supabase project is shared with at least one unrelated app~~
+   **Corrected 2026-09-08**: `stradde-pro` was never a separate app — it's
+   this repo's own Vercel deployment, just under a misspelled project name
+   (this repo's own git remote is `github.com/LaksUX/Stradde-Pro`; confirmed
+   live via a direct fetch — `stradde-pro.vercel.app` serves the real Poker
+   Night app, while the correctly-spelled `straddle-pro.vercel.app` 404s, i.e.
+   nothing is deployed there yet). The user is renaming/redeploying to
+   `straddle-pro.vercel.app` on the Vercel side and will update the Supabase
+   Site URL (and Redirect URLs allowlist) to match — until that lands, the
+   *code* now points at `straddle-pro.vercel.app` (invite/results links,
+   `.env.example`'s `VITE_SITE_URL`) slightly ahead of the actual deployment,
+   which is expected and intentional, not a bug to chase. So the "shared
+   project" framing above was itself wrong: there's no second, unrelated app
+   involved. That said, project-wide Supabase settings (Site URL, rate
+   limits, email templates — including the two
+   templates just edited above) apply project-wide, so keep that in mind if
+   this Supabase project ever does end up backing a second app for real.
 
 ---
 

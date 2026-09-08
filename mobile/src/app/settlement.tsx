@@ -154,7 +154,7 @@ function SettlementBody({
       ...visibleTxns.map((t) => `• ${t.from} → ${t.to}: ${fmtB(t.amount)}`),
       ...(visibleTxns.length === 0 ? ["• Everyone's even!"] : []),
       ``,
-      `See your own results: https://pokernight.app/g/${game.id}/results`,
+      `See your own results: https://straddle-pro.vercel.app/g/${game.id}/results`,
       `(sign in with the phone number you played under)`,
     ].join("\n")
 
