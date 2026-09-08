@@ -2058,7 +2058,7 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
             {/* Reversible — nothing here has finally locked yet (see
                 REQUIREMENTS.md -> Game lifecycle), so going back to buy-ins
                 is always available, not just for the first few seconds. */}
-            <button disabled={busy} onClick={backToBuyins} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 bg-felt-surface border border-felt-border px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <button disabled={busy} onClick={backToBuyins} className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-felt-surface-2 border border-felt-border px-3.5 py-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <ChevronUp className="w-3.5 h-3.5" /> Back to buy-ins
             </button>
           </div>
@@ -2131,7 +2131,7 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
               key={p.name}
               onClick={() => openSheet(p)}
               className={cn(
-                "flex items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3 text-left transition-opacity",
+                "flex items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5 text-left transition-all active:scale-[0.99]",
                 p.cashedOut && "opacity-55"
               )}
             >
@@ -2158,7 +2158,7 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
           <button
             disabled={overpayError || busy}
             onClick={() => setShowEnd(true)}
-            className="w-full h-12 bg-red-600/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-xl text-sm transition-colors"
+            className="w-full h-13 bg-red-600/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed border border-red-500/30 text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]"
           >
             Review & Continue →
           </button>
@@ -2198,7 +2198,7 @@ function CashoutEntryScreen({ game, onMutated, onNavigate, showToast }) {
               onBackspace={() => setCashoutDigits(prev => prev.slice(0, -1))}
               onClear={() => setCashoutDigits("")}
             />
-            <button disabled={busy} onClick={confirmCashout} className="w-full h-12 bg-gold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors">
+            <button disabled={busy} onClick={confirmCashout} className="w-full h-13 bg-gold hover:bg-gold-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full text-sm transition-all active:scale-[0.98]">
               {sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}
             </button>
           </div>
@@ -2321,7 +2321,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       <div className="relative px-5 pt-14 pb-6 border-b border-felt-border overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.06),transparent_60%)]" />
         <div className="relative z-10">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-300 text-sm mb-5 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-sm font-semibold mb-5 transition-colors bg-felt-surface-2 border border-felt-border rounded-full px-3.5 py-2">
             <X className="w-4 h-4" /> Back to cash-outs
           </button>
           <div className="flex items-center justify-between">
@@ -2333,7 +2333,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           </div>
           <div className="flex gap-2 mt-4 flex-wrap">
             {[`${fmtB(totalIn)} pot`, rake > 0 ? `${fmtB(rake)} rake` : null, `${players.length} players`, `${visibleTxns.length} payments`].filter(Boolean).map(s => (
-              <span key={s} className="text-[10px] font-bold text-zinc-500 bg-felt-surface border border-felt-border rounded-full px-3 py-1">{s}</span>
+              <span key={s} className="text-[10px] font-bold text-zinc-400 bg-felt-surface-2 border border-felt-outline rounded-full px-3 py-1.5">{s}</span>
             ))}
           </div>
         </div>
@@ -2354,8 +2354,8 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           const p = players.find(x => x.name === pos.name)
           return (
             <div key={pos.name} className={cn(
-              "bg-felt-surface border rounded-xl px-4 py-3 flex items-center gap-3 border-l-2",
-              pos.net > 0 ? "border-l-emerald-500 border-felt-border" : pos.net < 0 ? "border-l-red-500 border-felt-border" : "border-felt-border"
+              "bg-felt-surface-2 border rounded-3xl px-4.5 py-3.5 flex items-center gap-3 border-l-[3px]",
+              pos.net > 0 ? "border-l-emerald-500 border-felt-outline" : pos.net < 0 ? "border-l-red-500 border-felt-outline" : "border-felt-outline"
             )}>
               <div className="text-xl w-7 text-center shrink-0">{rank < 3 ? medals[rank] : `#${rank + 1}`}</div>
               <Av name={pos.name} size={32} />
@@ -2379,7 +2379,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
           {visibleTxns.map(t => {
             const done = settled[t.key]
             return (
-              <div key={t.key} className={cn("flex items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3 transition-opacity", done && "opacity-50")}>
+              <div key={t.key} className={cn("flex items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5 transition-opacity", done && "opacity-50")}>
                 <button onClick={() => openEdit(t)} className="flex-1 min-w-0 flex items-center gap-2.5 text-left">
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-zinc-100 flex items-center gap-1.5 truncate">
@@ -2390,8 +2390,8 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
                   <NumB value={t.amount} size="text-[14.5px]" className="text-white shrink-0" />
                 </button>
                 <span className={cn(
-                  "text-[9.5px] font-extrabold px-2 py-0.5 rounded-md tracking-wide shrink-0",
-                  done ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"
+                  "text-[9.5px] font-extrabold px-2.5 py-1 rounded-full tracking-wide shrink-0",
+                  done ? "bg-mint-container text-mint-light" : "bg-gold-vivid/15 text-gold-vivid"
                 )}>
                   {done ? "PAID" : "DUE"}
                 </span>
@@ -2404,17 +2404,17 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       {/* Progress */}
       {visibleTxns.length > 0 && (
         <div className="px-5 mb-4">
-          <div className="flex items-center gap-3 bg-felt-surface border border-felt-border rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-2xl px-4.5 py-3.5">
             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">Settled</span>
-            <Progress value={visibleTxns.length ? (settledCount / visibleTxns.length) * 100 : 0} className="flex-1 bg-felt-surface-2" indicatorClassName="bg-emerald-500" />
-            <span className="font-mono text-sm font-bold text-emerald-400">{settledCount}/{visibleTxns.length}</span>
+            <Progress value={visibleTxns.length ? (settledCount / visibleTxns.length) * 100 : 0} className="flex-1 bg-felt-surface-3" indicatorClassName="bg-mint" />
+            <span className="font-mono text-sm font-bold text-mint-light">{settledCount}/{visibleTxns.length}</span>
           </div>
         </div>
       )}
 
       <div className="px-5 mb-4">
         <button onClick={openAdd}
-          className="w-full border border-dashed border-felt-border hover:border-felt-border hover:bg-felt-surface/50 rounded-xl py-3 text-sm text-zinc-400 hover:text-zinc-400 font-medium transition-all flex items-center justify-center gap-2">
+          className="w-full border border-dashed border-felt-outline hover:border-gold-light/50 hover:bg-felt-surface-2 rounded-full py-3.5 text-sm text-zinc-300 hover:text-white font-bold transition-all flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" /> Add Custom Payment
         </button>
       </div>
@@ -2422,7 +2422,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
       {/* Actions */}
       <div className="px-5 flex flex-col gap-3">
         <button onClick={copySettlement}
-          className="w-full h-12 bg-gold hover:bg-gold text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+          className="w-full h-13 bg-gold hover:bg-gold-dark text-white font-bold rounded-full text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2">
           <Share2 className="w-4 h-4" /> Copy settlement summary
         </button>
         <button
@@ -2434,7 +2434,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
             try { await navigator.clipboard.writeText(resultsText()) } catch { /* best-effort */ }
             onClose(visibleTxns.map(({ from, to, amount }) => ({ from, to, amount })))
           }}
-          className="w-full h-12 bg-felt-surface-2 hover:bg-zinc-700 border border-felt-border text-zinc-200 font-bold rounded-xl text-sm transition-colors">
+          className="w-full h-13 bg-felt-surface-2 hover:bg-felt-surface-3 border border-felt-outline text-zinc-100 font-bold rounded-full text-sm transition-colors">
           End Game & Send Results
         </button>
       </div>
@@ -2475,7 +2475,7 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
             </div>
 
             <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-1.5">Amount</div>
-            <div className="bg-felt-surface-2/60 border border-felt-border rounded-2xl px-4 py-3 text-right mb-3">
+            <div className="bg-felt-surface-3 border border-felt-border rounded-2xl px-4.5 py-3.5 text-right mb-3">
               <NumB value={(parseInt(sheetDigits || "0", 10)) * 10000} size="text-[26px]" className="text-white justify-end" />
             </div>
 
@@ -2486,10 +2486,10 @@ function SettlementScreen({ game, onClose, onBack, showToast }) {
             />
 
             <div className="grid grid-cols-2 gap-2.5 mt-3">
-              <button onClick={removeSheet} className="h-11 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm transition-colors hover:bg-red-500/15">
+              <button onClick={removeSheet} className="h-12 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm transition-colors hover:bg-red-500/15">
                 Remove
               </button>
-              <button onClick={saveSheet} className="h-11 rounded-xl bg-gold hover:bg-gold text-white font-bold text-sm transition-colors">
+              <button onClick={saveSheet} className="h-12 rounded-full bg-gold hover:bg-gold-dark text-white font-bold text-sm transition-all active:scale-[0.98]">
                 Save
               </button>
             </div>
