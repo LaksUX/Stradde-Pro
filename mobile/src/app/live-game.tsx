@@ -68,7 +68,7 @@ export default function LiveGameRoute() {
         <Text className="text-zinc-400 text-sm text-center leading-relaxed">
           No active game right now. Start one from Home to begin tracking buy-ins.
         </Text>
-        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-5 rounded-xl bg-felt-surface-2 border border-felt-border items-center justify-center">
+        <Pressable onPress={() => router.replace("/")} className="mt-5 h-11 px-6 rounded-full bg-felt-surface-2 border border-felt-outline items-center justify-center">
           <Text className="text-zinc-300 text-sm font-semibold">Back</Text>
         </Pressable>
       </View>
@@ -305,8 +305,8 @@ function LiveGameBody({
             <Pressable
               onPress={() => setShowBankCheck(true)}
               className={cn(
-                "flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border",
-                checkOverdue ? "bg-amber-500/10 border-amber-500/30" : "bg-felt-surface border-felt-border"
+                "flex-row items-center gap-1.5 px-3.5 py-2 rounded-full border",
+                checkOverdue ? "bg-amber-500/10 border-amber-500/30" : "bg-felt-surface-2 border-felt-outline"
               )}
             >
               <Text className={cn("text-sm", checkOverdue ? "text-amber-300" : "text-zinc-400")}>🪙</Text>
@@ -322,22 +322,22 @@ function LiveGameBody({
 
         {/* Stats row */}
         <View className="px-5 pt-4 flex-row gap-2.5">
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">On table</Text>
             <View className="mt-1">
               <NumB value={totalIn - totalOut} size="text-[18px]" className="text-white" />
             </View>
           </View>
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3">
             <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Cashed out</Text>
             <View className="mt-1">
               <NumB value={totalOut} size="text-[18px]" className="text-white" />
             </View>
           </View>
-          <View className="flex-1 bg-felt-surface border border-felt-border rounded-2xl px-3 py-2.5 justify-between">
+          <View className="flex-1 bg-felt-surface-2 border border-felt-outline rounded-3xl px-3.5 py-3 justify-between">
             <View className="flex-row items-center justify-between">
               <Text className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400">Rake</Text>
-              <Pressable onPress={() => setRakeVisible((v) => !v)} className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center">
+              <Pressable onPress={() => setRakeVisible((v) => !v)} className="w-7 h-7 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center">
                 {rakeVisible ? <Text className="text-zinc-500 text-xs">⌃</Text> : <Text className="text-[10px] text-zinc-500">◐</Text>}
               </Pressable>
             </View>
@@ -365,7 +365,7 @@ function LiveGameBody({
         <View className="px-5 pt-2.5">
           <View
             className={cn(
-              "rounded-xl px-3.5 py-2 flex-row items-center gap-2",
+              "rounded-2xl px-4 py-2.5 flex-row items-center gap-2",
               overpayError ? "bg-red-500/10 border border-red-500/30" : "bg-felt-surface-2/50"
             )}
           >
@@ -388,7 +388,7 @@ function LiveGameBody({
         {/* Add late player */}
         <View className="px-5 mt-4">
           {addingPlayer ? (
-            <View className="bg-felt-surface border border-felt-border rounded-2xl p-3.5">
+            <View className="bg-felt-surface-2 border border-felt-outline rounded-3xl p-4">
               <View className="flex-row items-center justify-between mb-2.5">
                 <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500">Add late player</Text>
                 <Pressable
@@ -398,7 +398,7 @@ function LiveGameBody({
                     setNewName("")
                     setNewPhone("")
                   }}
-                  className="w-6 h-6 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center"
+                  className="w-7 h-7 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center"
                 >
                   <Text className="text-zinc-500 text-xs">✕</Text>
                 </Pressable>
@@ -409,9 +409,9 @@ function LiveGameBody({
                   <Pressable
                     key={m}
                     onPress={() => setAddMode(m)}
-                    className={cn("flex-1 h-8 rounded-lg items-center justify-center", addMode === m ? "bg-gold" : "bg-felt-surface-2")}
+                    className={cn("flex-1 h-9 rounded-full items-center justify-center", addMode === m ? "bg-gold" : "bg-felt-surface-3")}
                   >
-                    <Text className={cn("text-xs font-bold", addMode === m ? "text-white" : "text-zinc-400")}>
+                    <Text className={cn("text-xs font-bold", addMode === m ? "text-[#241a05]" : "text-zinc-400")}>
                       {m === "roster" ? "Your players" : "Someone new"}
                     </Text>
                   </Pressable>
@@ -425,7 +425,7 @@ function LiveGameBody({
                       <Pressable
                         key={r.name}
                         onPress={() => addFromRoster(r)}
-                        className="flex-row items-center gap-1.5 px-2.5 py-1.5 border border-dashed border-felt-border rounded-full"
+                        className="flex-row items-center gap-1.5 px-3 py-2 border border-dashed border-felt-outline rounded-full"
                       >
                         <Text className="text-gold-light font-bold text-xs">+</Text>
                         <Text className="text-zinc-400 text-xs font-medium">{r.name}</Text>
@@ -440,14 +440,14 @@ function LiveGameBody({
                 <View className="gap-2">
                   <TextInput
                     autoFocus
-                    className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm"
+                    className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm"
                     placeholder="Player's name…"
                     placeholderTextColor="#a1a1aa"
                     value={newName}
                     onChangeText={setNewName}
                   />
                   <TextInput
-                    className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-3.5 text-zinc-100 text-sm"
+                    className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm"
                     placeholder="Phone number (required)…"
                     placeholderTextColor="#a1a1aa"
                     keyboardType="phone-pad"
@@ -461,17 +461,17 @@ function LiveGameBody({
                     disabled={!newName.trim() || !newPhone.trim()}
                     onPress={addNewPlayer}
                     className={cn(
-                      "w-full h-10 rounded-xl items-center justify-center",
+                      "w-full h-12 rounded-full items-center justify-center",
                       !newName.trim() || !newPhone.trim() ? "bg-gold/40" : "bg-gold"
                     )}
                   >
-                    <Text className="text-white text-sm font-bold">Add to game</Text>
+                    <Text className="text-[#241a05] text-sm font-bold">Add to game</Text>
                   </Pressable>
                 </View>
               )}
             </View>
           ) : (
-            <Pressable onPress={() => setAddingPlayer(true)} className="w-full h-11 bg-felt-surface border border-felt-border rounded-xl items-center justify-center">
+            <Pressable onPress={() => setAddingPlayer(true)} className="w-full h-12 bg-felt-surface-2 border border-felt-outline rounded-3xl items-center justify-center">
               <Text className="text-zinc-400 text-sm font-semibold">+ Add late player</Text>
             </Pressable>
           )}
@@ -495,7 +495,7 @@ function LiveGameBody({
             return (
               <View
                 key={p.id}
-                className={cn("flex-row items-center gap-3 bg-felt-surface border border-felt-border rounded-2xl px-3.5 py-3", p.cashedOut && "opacity-55")}
+                className={cn("flex-row items-center gap-3 bg-felt-surface-2 border border-felt-outline rounded-3xl px-4 py-3.5", p.cashedOut && "opacity-55")}
               >
                 <Pressable onPress={() => openSheet(p)} className="flex-row items-center gap-3 flex-1">
                   <Av name={p.name} size={36} />
@@ -514,12 +514,12 @@ function LiveGameBody({
                   <Dot color={dotColor} />
                 </Pressable>
                 {!isClosed && (
-                  <Pressable onPress={() => openEditPlayer(p)} className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center">
+                  <Pressable onPress={() => openEditPlayer(p)} className="w-9 h-9 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center">
                     <Text className="text-zinc-500 text-xs">✎</Text>
                   </Pressable>
                 )}
                 {!isClosed && locked === 0 && (
-                  <Pressable onPress={() => removePlayer(p)} className="w-8 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center">
+                  <Pressable onPress={() => removePlayer(p)} className="w-9 h-9 rounded-full bg-felt-surface-3 border border-felt-outline items-center justify-center">
                     <Text className="text-zinc-500 text-xs">✕</Text>
                   </Pressable>
                 )}
@@ -533,7 +533,7 @@ function LiveGameBody({
             <Pressable
               disabled={busy}
               onPress={handleEndBuyins}
-              className={cn("w-full h-12 rounded-xl items-center justify-center border", busy ? "bg-red-600/40 border-red-500/20" : "bg-red-600/80 border-red-500/30")}
+              className={cn("w-full h-12 rounded-full items-center justify-center border", busy ? "bg-red-600/40 border-red-500/20" : "bg-red-600/80 border-red-500/30")}
             >
               <Text className="text-white font-bold text-sm">End Buy-ins →</Text>
             </Pressable>
@@ -548,7 +548,7 @@ function LiveGameBody({
             {players.map((p: Player) => {
               const unlockedCount = p.buyins.length - lockedCountFor(p, game)
               return (
-                <View key={p.id} className="flex-row items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5">
+                <View key={p.id} className="flex-row items-center justify-between bg-felt-surface-3/50 border border-felt-outline rounded-2xl px-4 py-3">
                   <View className="flex-row items-center gap-2.5">
                     <Av name={p.name} size={28} />
                     <Text className="text-sm font-semibold text-zinc-200">{p.name}</Text>
@@ -562,15 +562,15 @@ function LiveGameBody({
           </View>
         </ScrollView>
         <View className="flex-row gap-3">
-          <Pressable onPress={() => setShowBankCheck(false)} className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl items-center justify-center">
+          <Pressable onPress={() => setShowBankCheck(false)} className="flex-1 h-12 bg-felt-surface-2 border border-felt-outline rounded-full items-center justify-center">
             <Text className="text-zinc-300 font-semibold text-sm">Cancel</Text>
           </Pressable>
           <Pressable
             disabled={sinceLastCheck === 0 || busy}
             onPress={confirmBankCheck}
-            className={cn("flex-1 h-11 rounded-xl items-center justify-center", sinceLastCheck === 0 || busy ? "bg-gold/40" : "bg-gold")}
+            className={cn("flex-1 h-12 rounded-full items-center justify-center", sinceLastCheck === 0 || busy ? "bg-gold/40" : "bg-gold")}
           >
-            <Text className="text-white font-bold text-sm">Confirm & Lock {sinceLastCheck > 0 ? sinceLastCheck : ""}</Text>
+            <Text className="text-[#241a05] font-bold text-sm">Confirm & Lock {sinceLastCheck > 0 ? sinceLastCheck : ""}</Text>
           </Pressable>
         </View>
       </AppDialog>
@@ -580,7 +580,7 @@ function LiveGameBody({
         <View className="gap-3 mb-3">
           <View>
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-1.5">Name</Text>
-            <TextInput value={editName} onChangeText={setEditName} className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm" />
+            <TextInput value={editName} onChangeText={setEditName} className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm" />
           </View>
           <View>
             <Text className="text-[10px] font-bold tracking-[2px] uppercase text-zinc-500 mb-1.5">Phone</Text>
@@ -588,20 +588,20 @@ function LiveGameBody({
               value={editPhone}
               onChangeText={setEditPhone}
               keyboardType="phone-pad"
-              className="w-full h-11 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm"
+              className="w-full h-12 bg-felt-surface-2 border border-felt-border rounded-2xl px-4 text-zinc-100 text-sm"
             />
           </View>
         </View>
         <View className="flex-row gap-3">
-          <Pressable onPress={closeEditPlayer} className="flex-1 h-11 bg-felt-surface-2 border border-felt-border rounded-xl items-center justify-center">
+          <Pressable onPress={closeEditPlayer} className="flex-1 h-12 bg-felt-surface-2 border border-felt-outline rounded-full items-center justify-center">
             <Text className="text-zinc-300 font-semibold text-sm">Cancel</Text>
           </Pressable>
           <Pressable
             disabled={!editName.trim() || busy}
             onPress={saveEditPlayer}
-            className={cn("flex-1 h-11 rounded-xl items-center justify-center", !editName.trim() || busy ? "bg-gold/40" : "bg-gold")}
+            className={cn("flex-1 h-12 rounded-full items-center justify-center", !editName.trim() || busy ? "bg-gold/40" : "bg-gold")}
           >
-            <Text className="text-white font-bold text-sm">Save</Text>
+            <Text className="text-[#241a05] font-bold text-sm">Save</Text>
           </Pressable>
         </View>
       </AppDialog>
@@ -635,8 +635,8 @@ function LiveGameBody({
                     <Text className="text-center text-[11px] text-zinc-400">
                       Locks at your <Text className="text-zinc-400 font-semibold">next bank check</Text> — once locked it's permanent, no override
                     </Text>
-                    <Pressable disabled={busy} onPress={confirmBuyins} className={cn("w-full h-12 rounded-xl items-center justify-center", busy ? "bg-gold/50" : "bg-gold")}>
-                      <Text className="text-white font-bold text-sm">
+                    <Pressable disabled={busy} onPress={confirmBuyins} className={cn("w-full h-12 rounded-full items-center justify-center", busy ? "bg-gold/50" : "bg-gold")}>
+                      <Text className="text-[#241a05] font-bold text-sm">
                         Confirm {sliderVal} buy-in{sliderVal === 1 ? "" : "s"}
                       </Text>
                     </Pressable>
@@ -645,7 +645,7 @@ function LiveGameBody({
               </>
             )}
 
-            <View className="flex-row items-center justify-between bg-felt-surface-2/50 border border-felt-border rounded-xl px-3.5 py-2.5 mt-1">
+            <View className="flex-row items-center justify-between bg-felt-surface-3/50 border border-felt-outline rounded-2xl px-4 py-3 mt-1">
               <Text className="text-xs font-bold text-zinc-300">Leaving early? Cash out now</Text>
               <Pressable
                 disabled={isClosed}
@@ -676,8 +676,8 @@ function LiveGameBody({
                       onBackspace={() => setCashoutDigits((prev) => prev.slice(0, -1))}
                       onClear={() => setCashoutDigits("")}
                     />
-                    <Pressable disabled={busy} onPress={confirmCashout} className={cn("w-full h-12 rounded-xl items-center justify-center", busy ? "bg-gold/50" : "bg-gold")}>
-                      <Text className="text-white font-bold text-sm">{sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}</Text>
+                    <Pressable disabled={busy} onPress={confirmCashout} className={cn("w-full h-12 rounded-full items-center justify-center", busy ? "bg-gold/50" : "bg-gold")}>
+                      <Text className="text-[#241a05] font-bold text-sm">{sheetPlayer.cashedOut ? "Update cash out" : "Confirm cash out"}</Text>
                     </Pressable>
                   </>
                 )}
