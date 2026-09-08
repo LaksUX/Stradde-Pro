@@ -10,6 +10,8 @@
 import { useEffect, useState } from "react"
 import { Slot, useRouter, useSegments } from "expo-router"
 import { PaperProvider, MD3DarkTheme } from "react-native-paper"
+import * as Linking from "expo-linking"
+import * as QueryParams from "expo-auth-session/build/QueryParams"
 import type { Session } from "@supabase/supabase-js"
 import "../global.css"
 import { supabase } from "@/lib/supabase"
@@ -29,12 +31,37 @@ const theme = {
   },
 }
 
+// Completes sign-in from a magic-link deep link (see login.tsx). Unlike web
+// — where Supabase's client reads the same tokens straight out of the
+// browser's own URL bar (detectSessionInUrl) — there's no browser URL here,
+// just whatever URL opened the app, so this has to explicitly parse it and
+// hand the tokens to setSession() itself.
+async function createSessionFromUrl(url: string) {
+  const { params, errorCode } = QueryParams.getQueryParams(url)
+  if (errorCode) throw new Error(errorCode)
+  const { access_token, refresh_token } = params as {
+    access_token?: string
+    refresh_token?: string
+  }
+  if (!access_token || !refresh_token) return // not a magic-link URL — ignore
+  const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+  if (error) throw error
+}
+
 export default function RootLayout() {
   // undefined = "haven't checked yet" (matches App.jsx's authLoading),
   // null = "checked, signed out", Session = "checked, signed in".
   const [session, setSession] = useState<Session | null | undefined>(undefined)
   const router = useRouter()
   const segments = useSegments()
+  const url = Linking.useLinkingURL()
+
+  useEffect(() => {
+    if (!url) return
+    createSessionFromUrl(url).catch((err) => {
+      console.error("Magic-link sign-in failed", err)
+    })
+  }, [url])
 
   useEffect(() => {
     let mounted = true
