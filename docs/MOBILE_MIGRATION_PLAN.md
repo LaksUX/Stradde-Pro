@@ -18,9 +18,10 @@ any more. **Phase 2's skeleton is built** (`mobile/`, same repo): expo-router
 React Native Paper, an email-OTP-code login screen (reversed twice now:
 phone-OTP → email magic-link → email OTP code — see Phase 2 below for both
 reversals), and a minimal signed-in home screen wired to the same Supabase
-project via `mobile/src/lib/supabase.ts`. **Run on a real device for the
-first time this pass** — magic-link tap-to-sign-in did not work end to end
-(see below), OTP code entry does.
+project via `mobile/src/lib/supabase.ts`. **Phase 2 is fully done**: run for
+real on a physical device via Expo Go, 2026-09-08 — email → 6-digit code →
+signed in, confirmed working end to end. Magic-link tap-to-sign-in did not
+work (see below); OTP code entry does, and is what shipped.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -393,23 +394,30 @@ this. **What's not verified, and can't be from here: the app has never
 actually run** — no simulator, no physical device, no `expo start` session.
 That's the real next step, on your end.
 
-Deliverable at the end of this phase: a login screen and an empty home screen,
-signed in against the same Supabase project as the web app. **Code-complete;
-run-verified is still open** — see "Still needs a human" below.
+Deliverable at the end of this phase: a login screen and an empty home
+screen, signed in against the same Supabase project as the web app.
+**Done and confirmed, 2026-09-08**: ran on a physical device via Expo Go —
+email → 6-digit code → landed signed in on the home screen (shows the
+signed-in email, a working Sign out button). This is the first time any
+part of the mobile app has actually executed, not just type-checked or
+bundled.
 
-**Still needs a human to confirm:** try the new OTP-code flow end to end —
-`npx expo start` + Expo Go on a real device, email → 6-digit code → should
-land signed in on the home screen. This is what the magic-link version
-never managed to do; the code-entry version is expected to work but hasn't
-been confirmed on-device yet as of this edit.
+Getting there also needed one more piece beyond the code itself: Supabase's
+default "Magic Link" email template only renders the confirmation *link*,
+not the 6-digit code — `{{ .Token }}` had to be added to the template body
+manually (Authentication → Email Templates) for the code to show up in the
+email at all. Also had to add it to the **Confirm signup** template
+specifically, not just Magic Link — an email address that hasn't
+successfully signed in before gets the signup template instead, which is a
+separate template Supabase doesn't sync automatically.
 
-**Still open regardless of the above:**
+**Open follow-ups, not blocking:**
 1. The magic-link Site-URL/redirect_to mismatch (see the reversal note
-   above) was never root-caused — only worked around. If it ever matters
-   again (e.g. wanting the tap-the-link flow back, or noticing the same
-   Site-URL-fallback behavior elsewhere), start from Supabase's Auth Logs
-   for the specific failing request rather than re-guessing at the
-   allowlist.
+   above) was never root-caused — only worked around by switching to code
+   entry. If it ever matters again (e.g. wanting the tap-the-link flow back,
+   or noticing the same Site-URL-fallback behavior elsewhere), start from
+   Supabase's Auth Logs for the specific failing request rather than
+   re-guessing at the allowlist.
 2. Phone OTP itself is still viable later if DLT registration ever makes
    sense to take on — nothing about either reversal makes it harder to add
    back; it just isn't worth pursuing on this pass. See the "auth was phone
@@ -418,7 +426,8 @@ been confirmed on-device yet as of this edit.
    (`stradde-pro` — its Site URL is set to that app's Vercel deployment,
    discovered via Auth Logs while debugging the above). Worth being
    deliberate about whether that's still the right setup, since project-wide
-   settings (Site URL, rate limits, email templates) affect both apps.
+   settings (Site URL, rate limits, email templates — including the two
+   templates just edited above) affect both apps.
 
 ---
 
