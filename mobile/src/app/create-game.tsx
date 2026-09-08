@@ -10,12 +10,16 @@
 // The invite link is a stub, same as web: it doesn't route anywhere real
 // yet, no phone verification.
 //
-// "Contacts" source tab is a placeholder, same as web — no contacts-picker
-// integration on either platform yet.
-import { useState } from "react"
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native"
+// "Contacts" source tab imports real device contacts via expo-contacts,
+// added 2026-09-08 — see the useEffect below for the load/permission flow.
+// Web has no equivalent (no Contacts API in a browser without a much
+// heavier picker integration); this is a mobile-only capability, same
+// spirit as push notifications being native-only.
+import { useState, useEffect } from "react"
+import { View, Text, ScrollView, Pressable, TextInput, Linking } from "react-native"
 import { useRouter } from "expo-router"
 import * as Clipboard from "expo-clipboard"
+import * as Contacts from "expo-contacts"
 import { useAppState } from "@/lib/AppContext"
 import { BANK } from "@core/money"
 import { Av, SegTabs, cn } from "@/components/game-ui"
@@ -49,6 +53,58 @@ export default function CreateGameRoute() {
   const [creating, setCreating] = useState(false)
 
   const notAdded = roster.filter((r) => !players.find((p) => p.name.toLowerCase() === r.name.toLowerCase()))
+
+  // ─── Device contacts import ────────────────────────────────────────────
+  // Lazy-loaded the first time the "Contacts" tab is opened (not on mount —
+  // no reason to prompt for the permission before the user asks for it).
+  // "denied" covers both a fresh no-tap-through and the OS remembering an
+  // earlier denial (which iOS/Android won't re-prompt for — only Settings
+  // can flip it back), so the fallback there points at Settings directly.
+  const [contactsStatus, setContactsStatus] = useState<"idle" | "loading" | "granted" | "denied" | "error">("idle")
+  const [deviceContacts, setDeviceContacts] = useState<{ id: string; name: string; phone: string }[]>([])
+  const [contactsSearch, setContactsSearch] = useState("")
+
+  useEffect(() => {
+    if (source !== "Contacts" || contactsStatus !== "idle") return
+    let cancelled = false
+    setContactsStatus("loading")
+    ;(async () => {
+      try {
+        const { status } = await Contacts.requestPermissionsAsync()
+        if (cancelled) return
+        if (status !== "granted") {
+          setContactsStatus("denied")
+          return
+        }
+        const { data } = await Contacts.getContactsAsync({
+          fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+        })
+        if (cancelled) return
+        const withPhones = data
+          .map((c) => {
+            const name = c.name || [c.firstName, c.lastName].filter(Boolean).join(" ")
+            const rawPhone = c.phoneNumbers && c.phoneNumbers.length > 0 ? c.phoneNumbers[0].number : ""
+            return { id: c.id || name, name, phone: (rawPhone || "").replace(/[^\d+]/g, "") }
+          })
+          .filter((c) => c.name && c.phone)
+          .sort((a, b) => a.name.localeCompare(b.name))
+        setDeviceContacts(withPhones)
+        setContactsStatus("granted")
+      } catch (err) {
+        console.log("Loading device contacts failed:", err)
+        if (!cancelled) setContactsStatus("error")
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [source, contactsStatus])
+
+  const filteredContacts = contactsSearch.trim()
+    ? deviceContacts.filter((c) => c.name.toLowerCase().includes(contactsSearch.trim().toLowerCase()))
+    : deviceContacts
+  const contactsNotAdded = filteredContacts.filter((c) => !players.find((p) => p.name.toLowerCase() === c.name.toLowerCase()))
+  const contactsToShow = contactsSearch.trim() ? contactsNotAdded : contactsNotAdded.slice(0, 40)
 
   const addPlayer = (n: string, ph: string) => {
     const t = n.trim(),
@@ -265,9 +321,69 @@ export default function CreateGameRoute() {
                 ))}
 
               {source === "Contacts" && (
-                <Text className="text-center py-6 text-zinc-400 text-xs font-medium leading-relaxed">
-                  Contacts access isn't wired up yet — this tab is a placeholder.{"\n"}Use "Type in" for now.
-                </Text>
+                <View>
+                  {contactsStatus === "loading" && (
+                    <Text className="text-center py-6 text-zinc-400 text-xs font-medium">Loading your contacts…</Text>
+                  )}
+                  {contactsStatus === "denied" && (
+                    <View className="items-center py-5 gap-2.5 px-2">
+                      <Text className="text-center text-zinc-400 text-xs font-medium leading-relaxed">
+                        Contacts access was denied. Enable it in Settings to import players from your phone.
+                      </Text>
+                      <Pressable
+                        onPress={() => Linking.openSettings()}
+                        className="px-3 h-8 rounded-lg bg-felt-surface-2 border border-felt-border items-center justify-center"
+                      >
+                        <Text className="text-zinc-300 text-xs font-bold">Open Settings</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                  {contactsStatus === "error" && (
+                    <Text className="text-center py-6 text-zinc-400 text-xs font-medium">Couldn't load contacts — try again in a moment.</Text>
+                  )}
+                  {contactsStatus === "granted" && (
+                    <View>
+                      <TextInput
+                        className="w-full h-10 bg-felt-surface-2 border border-felt-border rounded-xl px-4 text-zinc-100 text-sm mb-2.5"
+                        placeholder="Search contacts…"
+                        placeholderTextColor="#a1a1aa"
+                        value={contactsSearch}
+                        onChangeText={setContactsSearch}
+                      />
+                      {deviceContacts.length === 0 ? (
+                        <Text className="text-center py-5 text-zinc-400 text-xs font-medium">No contacts with phone numbers found</Text>
+                      ) : contactsToShow.length === 0 ? (
+                        <Text className="text-center py-5 text-zinc-400 text-xs font-medium">
+                          {contactsSearch.trim() ? "No matches" : "Everyone from your contacts is already added"}
+                        </Text>
+                      ) : (
+                        <ScrollView className="max-h-72" nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                          <View className="gap-1.5">
+                            {contactsToShow.map((c) => (
+                              <Pressable
+                                key={c.id}
+                                onPress={() => addPlayer(c.name, c.phone)}
+                                className="flex-row items-center gap-2.5 bg-felt-surface-2/70 border border-felt-border rounded-xl px-2.5 py-2"
+                              >
+                                <Av name={c.name} size={28} />
+                                <View className="flex-1">
+                                  <Text className="text-[12.5px] font-semibold text-zinc-200">{c.name}</Text>
+                                  <Text className="text-[10px] font-mono text-zinc-500">{c.phone}</Text>
+                                </View>
+                                <Text className="text-gold-light font-bold text-base">+</Text>
+                              </Pressable>
+                            ))}
+                          </View>
+                          {!contactsSearch.trim() && contactsNotAdded.length > 40 && (
+                            <Text className="text-center text-[10.5px] text-zinc-500 mt-2 mb-1">
+                              Showing 40 of {contactsNotAdded.length} — search to find more
+                            </Text>
+                          )}
+                        </ScrollView>
+                      )}
+                    </View>
+                  )}
+                </View>
               )}
 
               {source === "Type in" && (

@@ -23,6 +23,7 @@ import { totalBuyinsFor } from "@core/settlement"
 import { fmtB, fmtNet } from "@core/money"
 import { NumB, Dot, Av, SL, SegTabs, ProgressBar, cn } from "@/components/game-ui"
 import { NetTrendChart } from "@/components/NetTrendChart"
+import { sendTestLocalNotificationAsync } from "@/lib/pushNotifications"
 
 export default function HomeScreen() {
   const router = useRouter()
@@ -39,10 +40,33 @@ export default function HomeScreen() {
     logout,
     toggleSettlementPaid,
     viewGameDetail,
+    showToast,
   } = useAppState()
 
   const [filter, setFilter] = useState<"host" | "player">("player")
   const [tab, setTab] = useState<"overview" | "settlements">("overview")
+  const [sendingTestNotif, setSendingTestNotif] = useState(false)
+
+  // [added 2026-09-08] Manual way to prove the notification pipeline is
+  // alive end to end (permission prompt -> local display) in Expo Go on
+  // either platform -- remote/server push can't be tested in Expo Go on
+  // Android at all (see src/lib/pushNotifications.ts header), and nothing
+  // in this app sends a real push yet anyway, so this is the only way to
+  // actually see a notification right now.
+  const sendTestNotification = async () => {
+    if (sendingTestNotif) return
+    setSendingTestNotif(true)
+    try {
+      const result = await sendTestLocalNotificationAsync()
+      if (result.ok) {
+        showToast("🔔", "Test notification sent", "Check your notification tray/banner")
+      } else {
+        showToast("⚠️", "Couldn't send it", result.reason || "Please try again")
+      }
+    } finally {
+      setSendingTestNotif(false)
+    }
+  }
 
   if (authLoading) {
     return (
@@ -96,9 +120,18 @@ export default function HomeScreen() {
                 {hostName} <Text className="text-zinc-400">♠</Text>
               </Text>
             </View>
-            <Pressable onPress={logout} className="p-2.5 rounded-xl bg-felt-surface border border-felt-border">
-              <Text className="text-zinc-500 text-sm">⎋</Text>
-            </Pressable>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={sendTestNotification}
+                disabled={sendingTestNotif}
+                className="p-2.5 rounded-xl bg-felt-surface border border-felt-border"
+              >
+                <Text className="text-zinc-500 text-sm">{sendingTestNotif ? "⋯" : "🔔"}</Text>
+              </Pressable>
+              <Pressable onPress={logout} className="p-2.5 rounded-xl bg-felt-surface border border-felt-border">
+                <Text className="text-zinc-500 text-sm">⎋</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 

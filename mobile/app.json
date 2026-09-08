@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Poker Night to access your contacts so you can quickly add players from your address book."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

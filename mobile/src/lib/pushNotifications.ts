@@ -37,6 +37,63 @@ import Constants, { ExecutionEnvironment } from "expo-constants"
 
 const isExpoGoAndroid = Platform.OS === "android" && Constants.executionEnvironment === ExecutionEnvironment.StoreClient
 
+// ─── Local test notification ───────────────────────────────────────────────
+// [added 2026-09-08] Fires a local notification immediately. Unlike
+// registerForPushNotificationsAsync() above, this works fine in Expo Go on
+// BOTH platforms — the Expo Go/Android limitation is specific to *remote*
+// push (see this file's header note #1); local notifications never left
+// Expo Go. This exists so there's a way to actually see a notification
+// appear end-to-end (permission prompt -> display) without a dev build,
+// an EAS project, or a server — none of which registerForPushNotificationsAsync
+// can get past in Expo Go on Android right now.
+export async function sendTestLocalNotificationAsync(): Promise<{ ok: boolean; reason?: string }> {
+  // Same lazy-require discipline as the rest of this file — see header note.
+  // Not strictly required for the Expo Go/Android crash (that's a remote-
+  // push-only issue), but there's no reason to import this any other way
+  // anywhere in this file.
+  const Notifications = require("expo-notifications")
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  })
+
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.DEFAULT,
+    })
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync()
+  let finalStatus = existingStatus
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync()
+    finalStatus = status
+  }
+  if (finalStatus !== "granted") {
+    return { ok: false, reason: "Notification permission wasn't granted" }
+  }
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "\ud83c\udccf Poker Night",
+        body: "Notifications are working \u2014 you'll see reminders like this here.",
+      },
+      trigger: null, // null = fire immediately, not scheduled for later
+    })
+    return { ok: true }
+  } catch (err: any) {
+    console.log("Test notification failed:", err)
+    return { ok: false, reason: err?.message || "Unknown error" }
+  }
+}
+
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (isExpoGoAndroid) {
     // See this file's header note #1 and the [bug fix] note above — do not
