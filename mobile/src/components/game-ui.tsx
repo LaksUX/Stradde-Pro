@@ -191,8 +191,21 @@ export function SegTabs({ tabs, active, onChange }: { tabs: string[]; active: st
         <Pressable
           key={t}
           onPress={() => onChange(t)}
-          style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}
-          className={cn("flex-1 h-9 rounded-full items-center justify-center", active === t && "bg-bloom shadow-md")}
+          // [fix, 2026-09-08] shadow-md used to be a NativeWind class here,
+          // toggled on/off per-tab via the `active === t &&` conditional.
+          // Dynamically toggling a `shadow-*` className through NativeWind's
+          // runtime CSS interop is a known race condition with Expo Router's
+          // navigation context init (nativewind/nativewind#1711) — it threw
+          // "Couldn't find a navigation context" on every tab tap. Moved the
+          // shadow to a plain RN style object (computed here, not through
+          // NativeWind) so it never touches that interop path.
+          style={({ pressed }) => [
+            { transform: [{ scale: pressed ? 0.96 : 1 }] },
+            active === t
+              ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 3 }
+              : null,
+          ]}
+          className={cn("flex-1 h-9 rounded-full items-center justify-center", active === t && "bg-bloom")}
         >
           <Text className={cn("text-xs font-bold", active === t ? "text-white" : "text-zinc-400")}>{t}</Text>
         </Pressable>
