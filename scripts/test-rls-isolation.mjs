@@ -74,10 +74,16 @@ function check(label, condition, detail) {
 }
 
 async function main() {
-  const { data: { user: hostUser }, error: hostAuthErr } = await asHost.auth.getUser()
-  const { data: { user: playerUser }, error: playerAuthErr } = await asPlayer.auth.getUser()
-  if (hostAuthErr || !hostUser) throw new Error("SUPABASE_TEST_HOST_JWT didn't resolve to a user — token likely expired, get a fresh one")
-  if (playerAuthErr || !playerUser) throw new Error("SUPABASE_TEST_PLAYER_JWT didn't resolve to a user — token likely expired, get a fresh one")
+  // Pass the JWT explicitly: getUser() with no argument checks the client's own
+  // internally-managed session (from a prior sign-in on this client instance),
+  // not the Authorization header set in clientAs() above — since this client was
+  // never signed in itself, that check fails locally (AuthSessionMissingError)
+  // before ever reaching the network, regardless of whether the token is valid.
+  // Passing the token tells it to verify that specific JWT against the server.
+  const { data: { user: hostUser }, error: hostAuthErr } = await asHost.auth.getUser(hostJwt)
+  const { data: { user: playerUser }, error: playerAuthErr } = await asPlayer.auth.getUser(playerJwt)
+  if (hostAuthErr || !hostUser) throw new Error(`SUPABASE_TEST_HOST_JWT didn't resolve to a user: ${hostAuthErr?.message || "no user returned"}`)
+  if (playerAuthErr || !playerUser) throw new Error(`SUPABASE_TEST_PLAYER_JWT didn't resolve to a user: ${playerAuthErr?.message || "no user returned"}`)
   if (hostUser.id === playerUser.id) throw new Error("Both tokens are the same account — this test needs two different accounts")
 
   console.log(`Host account:   ${hostUser.id}`)

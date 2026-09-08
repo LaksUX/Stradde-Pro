@@ -5,13 +5,14 @@ does*. This file is about *how we get it onto Android and iOS* without breaking 
 re-litigating what's already been decided there.
 
 **Progress:** Phase 0 done (`src/core/money.js`, `src/core/settlement.js`, first
-test coverage in the project — commit `caf84cf`). Phase 1 is now fully done for
-the web app: schema + RLS + API layer, and `App.jsx`'s game screens (Live Game,
-Cash-out Entry, Settlement, Create Game, the Home dashboard's settlement
-sections) are wired to Supabase instead of local state/localStorage. `roster.js`
-is the one piece deliberately still local — see its own Phase 1 note — and the
-DB migration still needs to be *run* against the live project plus the RLS
-isolation script actually executed once (see "What's actually wired up" below).
+test coverage in the project — commit `caf84cf`). Phase 1 is now fully done,
+including the manual verification steps: schema + RLS + API layer, `App.jsx`'s
+game screens (Live Game, Cash-out Entry, Settlement, Create Game, the Home
+dashboard's settlement sections) wired to Supabase instead of local
+state/localStorage, the migration SQL run against the live project, and the RLS
+isolation script actually executed (2026-09-08, `PASS — 0 check(s) failed`).
+`roster.js` is the one piece deliberately still local — see its own Phase 1
+note — and is the only remaining work before Phase 1 is 100% closed out.
 
 **Decision (recap):** React Native via Expo, one shared codebase for Android and
 iOS. Not Flutter (would throw away the tested JS money-math logic), not separate
@@ -162,12 +163,23 @@ script or a test, not eyeballing the UI) that a non-host account genuinely canno
 read another player's buy-ins/cash-out for a game it didn't host. This is the one
 place in the whole migration where "looks right in the app" is not sufficient
 evidence — RLS bugs are invisible from the UI until someone goes looking.
-**Done:** `scripts/test-rls-isolation.mjs` — six checks (own-row read, other-row
-read denied, own/other buy-ins, direct-write denied, broad-query leak check)
-against two real signed-in accounts. Needs to actually be *run* once against the
-live project after the migration is applied — see the script's own header for
-the two-JWT setup, which needs a person to sign in twice, so it isn't something
-this migration pass could run unattended.
+**Done, and actually run:** `scripts/test-rls-isolation.mjs` — six checks
+(own-row read, other-row read denied, own/other buy-ins, direct-write denied,
+broad-query leak check) against two real signed-in accounts. Executed against
+the live project on 2026-09-08 — `PASS — 0 check(s) failed` — after fixing a
+real bug the first run surfaced: the script's `auth.getUser()` calls were
+missing the JWT argument, so they checked the *client's own* internally-managed
+session (which was never set, since these clients are constructed with a bare
+`Authorization` header and never sign in themselves) instead of verifying the
+token that was actually passed in — this failed immediately, client-side, with
+`AuthSessionMissingError`, regardless of whether the token itself was valid.
+Fixed by calling `getUser(jwt)` with the token explicitly, which tells auth-js
+to verify that specific JWT against the server instead of consulting local
+session state. Separately (not a script bug): grabbing both accounts' tokens
+by signing out of one to sign into the other in the same browser tab
+invalidates the first session at the moment of sign-out — the fix there is
+mundane, just use two separate browser contexts (e.g. a normal window + an
+Incognito window) so both sessions stay live at once.
 
 ### Open decision this phase forced — resolved
 
@@ -229,12 +241,10 @@ replacement (see that file's own Phase 1 note). It was kept separate from the
 async/loading roster is a self-contained follow-up, not free to fold into an
 already-large change.
 
-**Still needs a human, not more code:** the migration SQL has to actually be
-*run* once against the live Supabase project (SQL editor — no CLI link exists
-for this repo), and `scripts/test-rls-isolation.mjs` has to actually be
-*executed* once against it afterward (needs two real accounts' session
-tokens — see the script's header). Both are one-time, manual steps; nothing
-about them can be scripted from here.
+**The two one-time manual steps are both done now:** the migration SQL was run
+against the live Supabase project (SQL editor — no CLI link exists for this
+repo), and `scripts/test-rls-isolation.mjs` was executed against it afterward
+and passed (see above). Phase 1's only remaining item is wiring `roster.js`.
 
 ---
 
@@ -341,12 +351,11 @@ engineering:
 - ~~Realtime multi-device sync vs. simple refetch (Phase 1).~~ Resolved:
   refetch for v1 — see Phase 1 above.
 - **Finish wiring `roster.js` to `knownPlayersApi.js`** before starting Phase
-  2 — `App.jsx` itself is done, this is what's left. Small in isolation, but
-  Expo screens should still be built against a data layer that's fully proven
-  on the web app first, not one with a known remaining gap.
-- **Actually run the migration SQL and the RLS isolation script** against the
-  live Supabase project (see "What's actually wired up" in Phase 1 above) —
-  both are one-time manual steps, neither has happened yet.
+  2 — this is the only thing left in Phase 1. `App.jsx` is done, the migration
+  SQL is applied, and the RLS isolation script has actually been run and
+  passed (see Phase 1 above). Small in isolation, but Expo screens should
+  still be built against a data layer that's fully proven on the web app
+  first, not one with a known remaining gap.
 - Phone OTP vs. email magic-link on mobile (Phase 2).
 - `expo-router` vs. React Navigation (Phase 2) — low-stakes, pick one and move.
 - Tamagui vs. React Native Paper vs. gluestack-ui (Phase 2) — pick once, don't
