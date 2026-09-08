@@ -723,6 +723,115 @@ fresh test JWTs the way the Phase 1 script's setup steps describe.
 
 ---
 
+## Material 3 Expressive restyle (2026-09-08)
+
+Requested directly: "upgrade the native android build with material 3 / m3
+ui... the app should be bold with expressive styles." Not a new phase in
+the numbered plan above — a visual pass across everything Phase 3 already
+built, done after the full usecase test pass (previous section) confirmed
+the underlying wiring was correct, so the redesign wasn't layered on top of
+an unverified baseline.
+
+**Approach: redefine token VALUES, not class names.** Every ported screen
+already references semantic Tailwind classes (`bg-felt-surface`,
+`text-gold-light`, `bg-gold`, etc.) defined centrally in
+`mobile/tailwind.config.js`. Rather than touch every screen's JSX, the
+highest-leverage move was redefining the underlying hex values of the
+existing keys — every already-built screen picks up the bolder look for
+free — while adding new keys for M3 roles the app never had:
+
+- `felt.surface-3` / `felt.surface-4` — extra neutral elevation tiers
+  (`surfaceContainerHigh`/`surfaceContainerHighest` in M3 terms), used for
+  sheets/dialogs/toasts so they read as clearly floating above the base
+  `felt.surface` cards behind them.
+- `felt.outline` — a bolder border color for emphasis, separate from the
+  existing quiet `felt.border`.
+- `gold.vivid` — a more saturated primary tone for accents that pair with
+  dark text (existing `gold.DEFAULT`/`light`/`dark` also got bolder/richer
+  values, but stayed safe for white-text-on-filled-button use).
+- `mint` (secondary) and `bloom` (tertiary) — two entirely new accent
+  families. A felt/gold-only palette isn't actually Material 3; M3 is built
+  around three distinct accent hues plus a multi-tier neutral surface
+  family, so these are the real second and third colors the design system
+  calls for, not just "make it brighter."
+
+Tones are hand-generated (HSL, four hue families: gold 42°, mint 152°,
+bloom 322°, plus error/neutral/neutral-variant) at roughly M3's tone-scale
+positions — an approximation, not true HCT color science, judged close
+enough for a bold dark-theme app.
+
+React Native Paper's theme (`_layout.tsx`) got the same hex values mapped
+onto a full MD3 color-role set (primary/secondary/tertiary, each with
+`on-*`/`container`/`on-*Container` pairs, plus background/surface/outline/
+error roles) — previously only six ad hoc keys were set. `login.tsx` is the
+one screen using Paper's own `TextInput`/`Button` directly, so it now gets
+authentic M3 ripple/elevation/state-layer behavior instead of falling back
+toward Paper's default purple.
+
+**What got hand-touched, beyond the token swap:**
+- `login.tsx` — bigger hero glyph, `displaySmall`/`font-black` headline,
+  taller buttons with heavier label weight.
+- `game-ui.tsx` (the shared primitives every screen builds on) — avatar
+  hash colors bumped from Tailwind 600- to 500-shades; `SegTabs`'s active
+  pill moved from gold (primary, already the dominant CTA color everywhere)
+  to bloom (tertiary), so tab selection reads as its own control and the
+  app actually uses its new secondary/tertiary roles; `ProgressBar`'s fill
+  moved from generic emerald to the app's own mint; `AppSheet`/`AppDialog`
+  bumped to the new `felt-surface-3` elevation tier; `BuyinSlider`'s native
+  slider tint props (hardcoded hex — `@react-native-community/slider` takes
+  color props, not classNames, so these can't ride the Tailwind swap) hand-
+  updated to match; press-scale feedback added to Keypad digits, SegTabs
+  pills, and AppSheet's close button.
+- `Toast.tsx` — bumped to the same `felt-surface-3`/`felt-outline`
+  elevation treatment as sheets/dialogs.
+- `NetTrendChart.tsx` — "up" trend color moved from generic emerald to the
+  app's own mint (brand-colored positive trend); "down" deliberately left
+  on red as a semantic danger color, not a brand hue; zero-line dash moved
+  from generic zinc to `felt-outline`.
+- Every screen's header title bumped from `text-xl font-bold` to
+  `font-black tracking-tight`, matching the bolder headline treatment
+  Home and Login already had, so the whole app reads consistently bold
+  rather than just the two screens that happened to get it first.
+- `live-game.tsx`'s pull-to-refresh spinner had the *old* pre-M3 gold hex
+  (`#caa043`) hardcoded as a native `tintColor` prop — missed by the token
+  swap for the same "native prop, not className" reason as the slider —
+  hand-updated to the new `gold.vivid`.
+- `app.json` — fixed two real native Android surfaces left over from the
+  Expo template and never actually themed: the adaptive launcher icon's
+  background (was a generic light blue, `#E6F4FE`) and the splash screen's
+  background (was Expo's own default blue, `#208AEF`). Both are now the
+  app's actual felt background (`#0a0f0c`), so the app's *launch*
+  experience — which is a real native Android asset, not something Expo
+  Go's JS bundle controls — matches the app instead of flashing an
+  unrelated brand color first.
+
+**Deliberately left alone:** `create-game.tsx`'s WhatsApp-brand green
+(`#25d366`) on the invite-copy button — that's WhatsApp's own brand color,
+checked and confirmed not part of this app's palette, so it stays hardcoded
+on purpose. `mobile/src/constants/theme.ts` — confirmed via grep to be
+completely unused/unimported dead code left over from the `create-expo-app`
+scaffold; not worth the risk of touching something nothing references.
+
+**Verification, each batch:** `tsc --noEmit` (clean every time) plus
+`npx expo export --platform android` after every batch of file changes,
+confirming Metro resolves all 2051 modules with zero bundling/import
+errors. The final step of that command — compiling to Hermes bytecode —
+fails in this specific sandbox VM: its bundled `hermesc` binary is x86-64
+and the VM itself is `aarch64` (confirmed via `uname -m`), so the OS can't
+exec it (`ENOEXEC`, which surfaces as a confusing "Syntax error: word
+unexpected" from the shell's script-interpretation fallback). This is a
+pre-existing sandbox toolchain limitation, not a regression from this
+restyle — Metro's own module-resolution/bundling step, which is what
+actually validates every import/export across the app, completes
+successfully every time before that unrelated native step fails.
+
+**Not verified: how any of this actually looks on a real device.** Nothing
+in this pass could screenshot- or visually-verify the result — that needs
+either the user's own phone/Expo Go session, or a description-based review
+requested from here. The same live-Supabase/RLS gap noted in the usecase
+testing section above is unchanged by this restyle.
+
+
 ## Decisions still open (don't guess on these — ask before Phase 2 starts)
 
 - ~~Realtime multi-device sync vs. simple refetch (Phase 1).~~ Resolved:
